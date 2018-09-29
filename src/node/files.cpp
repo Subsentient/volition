@@ -1,0 +1,284 @@
+/**
+* This file is part of Volition.
+
+* Volition is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+
+* Volition is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+
+* You should have received a copy of the GNU General Public License
+* along with Volition.  If not, see <https://www.gnu.org/licenses/>.
+**/
+
+
+
+#include "../libvolition/include/common.h"
+#include "../libvolition/include/utils.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
+
+#include "files.h"
+
+NetCmdStatus Files::Delete(const char *Path)
+{ //Try to do as much of our needed allocation on the heap as possible to allow lots of recursion.
+	VLScopedPtr<struct stat*> FileStat = new struct stat();
+	
+	if (stat(Path, FileStat) != 0)
+	{
+		return NetCmdStatus(false, STATUS_MISSING);
+	}
+	
+
+	//Just a file.
+	if (!S_ISDIR(FileStat->st_mode))
+	{
+		return !unlink(Path);
+	}
+	
+	
+	//Directory.
+	DIR *CurDir = opendir(Path);
+	
+	if (!CurDir)
+	{
+		return false;
+	}
+	struct dirent *DirPtr = nullptr;
+	bool AllSucceeded = true;
+	
+	while ((DirPtr = readdir(CurDir)))
+	{
+		const VLString &NewPath = VLString(Path) + PATHSEP + (const char*)DirPtr->d_name;
+		
+		if (!Files::Delete(NewPath)) AllSucceeded = false;
+		
+	}
+	
+	closedir(CurDir);
+	
+	return AllSucceeded && !rmdir(Path);
+}
+
+#define CHUNK_SIZE (1024*1024*4) //4MB
+
+static bool CopyFileSub(const char *Source, const char *Destination)
+{
+	VLScopedPtr<struct stat*> FileStat = new struct stat();
+	
+	if (stat(Source, FileStat) != 0 ||
+		S_ISDIR(FileStat->st_mode))
+	{
+#ifdef DEBUG
+		puts("CopyFileSub(): stat() of source failed.");
+#endif
+		return false;
+	}
+	
+	const size_t Size = FileStat->st_size;
+	
+	
+	FILE *InDesc = fopen(Source, "rb");
+	FILE *OutDesc = fopen(Destination, "wb");
+	
+	if (!InDesc || !OutDesc)
+	{
+#ifdef DEBUG
+		printf("CopyFileSub(): Failed to open a descriptor. InDesc open: %d, OutDesc open: %d\n", (int)(bool)InDesc, (int)(bool)OutDesc);
+#endif
+		if (InDesc) fclose(InDesc);
+		if (OutDesc) fclose(OutDesc);
+		return false;
+	}
+	
+	size_t TotalRead = 0;
+	size_t Read = 0;
+	
+	VLScopedPtr<uint8_t*> Buffer { new uint8_t[CHUNK_SIZE], VLScopedPtr<uint8_t*>::ALLOCTYPE_ARRAYNEW };
+	
+	for (; TotalRead < Size; TotalRead += Read)
+	{
+		Read = fread(Buffer, 1, CHUNK_SIZE, InDesc);
+		
+		if (ferror(InDesc))
+		{
+#ifdef DEBUG
+			puts("CopyFileSub(): InDesc tripped ferror()");
+#endif
+		LoopFailed:
+			if (InDesc) fclose(InDesc);
+			if (OutDesc) fclose(OutDesc);
+			return false;
+		}
+		
+		if (!Read) goto LoopFailed; //We're using the loop condition to test this, we shouldn't get here!
+		
+		fwrite(Buffer, 1, Read, OutDesc);
+		
+		if (ferror(OutDesc))
+		{
+#ifdef DEBUG
+			puts("CopyFileSub(): OutDesc tripped ferror()");
+#endif
+			goto LoopFailed;
+		}
+		
+	}
+		
+		
+	fclose(InDesc);
+	fclose(OutDesc);
+	
+	
+	return true;
+	
+}
+
+
+bool Files::Copy(const char *Source, const char *Destination)
+{
+#ifdef DEBUG
+	printf("Files::Copy(): Source = \"%s\", Destination = \"%s\".\n", Source, Destination);
+#endif
+	VLScopedPtr<struct stat *> FileStat = new struct stat();
+	
+	if (stat(Source, FileStat) != 0)
+	{
+		delete FileStat;
+		return false;
+	}
+	
+	if (!S_ISDIR(FileStat->st_mode))
+	{ //Regular file.
+		delete FileStat;
+#ifdef DEBUG
+		puts(VLString("Files::Copy(): Copying regular file \"") + Source + "\" to \"" + Destination + "\".");
+#endif
+		return CopyFileSub(Source, Destination);
+	}
+	
+	//Directory
+	
+	//Create destination directory.
+#ifdef WIN32
+	if (mkdir(Destination) != 0)
+#else
+	if (mkdir(Destination, 0755) != 0)
+#endif //WIN32
+	{
+		return false;
+	}
+	
+	DIR *CurDir = opendir(Source);
+	
+	if (!CurDir) return false;
+	
+	struct dirent *DirPtr = nullptr;
+	
+	while ((DirPtr = readdir(CurDir)))
+	{
+		const VLString &NewOldPath = VLString(Source) + PATHSEP + (const char*)DirPtr->d_name;
+		const VLString &NewNewPath = VLString(Destination) + PATHSEP + (const char*)DirPtr->d_name;
+		
+		//Reuse the pointer declared in the outer scope.
+		VLScopedPtr<struct stat*> FileStat = new struct stat();
+		
+		//Get file type.
+		if (stat(NewOldPath, FileStat) != 0)
+		{
+			closedir(CurDir);
+			return false;
+		}
+		
+		if (S_ISDIR(FileStat->st_mode))
+		{ //Directory
+			if (!Files::Copy(NewOldPath, NewNewPath))
+			{
+				closedir(CurDir);
+				return false;
+			}
+		}
+		else
+		{
+			if (!CopyFileSub(NewOldPath, NewNewPath))
+			{
+				closedir(CurDir);
+				return false;
+			}
+		}
+	}
+
+	closedir(CurDir);
+	return true;
+	
+	
+	
+}
+
+bool Files::Move(const char *Source, const char *Destination)
+{
+	int Status = rename(Source, Destination); //Try an easy rename.
+	
+	if (Status == 0) return true; //Worked.
+	
+	//Something went wrong.
+	
+	if (errno == EXDEV) //Target isn't on the same filesystem.
+	{
+		if (!Files::Copy(Source, Destination)) return false; //Can't do it.
+		
+		if (!Files::Delete(Source)) return false;
+		
+		return true;
+	}
+	
+	//Another error occurred.
+	return false;
+
+}
+
+bool Files::Chdir(const char *NewWD)
+{
+	return !chdir(NewWD);
+}
+
+VLString Files::GetWorkingDirectory(void)
+{
+	char CWD[2048] {};
+	getcwd(CWD, sizeof CWD);
+
+	return CWD;
+}
+
+
+std::list<Files::DirectoryEntry> *Files::ListDirectory(const char *Path)
+{
+	if (!Utils::IsDirectory(Path)) return nullptr; //Not a directory, so wtf are you doing
+	
+	DIR *Dir = opendir(Path);
+
+	if (!Dir) return nullptr;
+	
+	struct dirent *Ptr = nullptr;
+
+	std::list<Files::DirectoryEntry> *RetVal = new std::list<Files::DirectoryEntry>;
+	
+	while ((Ptr = readdir(Dir)))
+	{
+		const VLString &FullPath = VLString(Path) + PATHSEP + (const char*)Ptr->d_name;
+		
+		RetVal->push_back({FullPath, Utils::IsDirectory(FullPath)});
+	}
+
+	closedir(Dir);
+	
+	return RetVal;
+}
