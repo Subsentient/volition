@@ -27,7 +27,7 @@ namespace Main
 {
 	char **GetArgvData(int **ArgcOut);
 	const int *GetSocketDescriptor(void);
-	void Begin(const int DescriptorFromRecovery = 0);
+	void Begin(const bool JustUpdated = false);
 	
 	void PushStreamToWriteQueue(Conation::ConationStream *Stream);
 	void PushStreamToWriteQueue(const Conation::ConationStream &Stream);

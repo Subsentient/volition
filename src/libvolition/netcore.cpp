@@ -55,6 +55,10 @@ static VLString RootCert;
 
 static const VLString PublicCertFilename = "servercert.pem";
 static const VLString PrivateKeyFilename = "serverprivatekey.pem";
+
+
+static bool VerifyCert(SSL *SSLDesc);
+
 void Net::InitNetcore(const bool Server)
 {
 	ERR_load_BIO_strings();
@@ -67,7 +71,7 @@ void Net::InitNetcore(const bool Server)
 	
     if (Server)
     {
-#if defined(LIBRESSL_VERSION_NUMBER) || defined(OPENSSL_IS_BORINGSSL)
+#if defined(LIBRESSL_VERSION_NUMBER) || defined(OPENSSL_IS_BORINGSSL) || OPENSSL_VERSION_NUMBER < 0x10100000L
 		if (!(SSLContext = SSL_CTX_new(TLSv1_2_server_method())))
 #else
 		if (!(SSLContext = SSL_CTX_new(TLS_server_method())))
@@ -93,7 +97,7 @@ void Net::InitNetcore(const bool Server)
 		return;
 
 	}
-#if defined(LIBRESSL_VERSION_NUMBER) || defined(OPENSSL_IS_BORINGSSL)
+#if defined(LIBRESSL_VERSION_NUMBER) || defined(OPENSSL_IS_BORINGSSL) || OPENSSL_VERSION_NUMBER < 0x10100000L
 	if (!(SSLContext = SSL_CTX_new(TLSv1_2_client_method())))
 #else
 	if (!(SSLContext = SSL_CTX_new(TLS_client_method())))
@@ -272,14 +276,24 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, int *OutDescriptor
 		return false;
 	}
 
-	X509 *ServerCert = SSL_get_peer_certificate(New);
+	if (!VerifyCert(New))
+	{
+		Net::Close(*OutDescriptor);
+		return false;
+	}
+	
+	return true;
+}
+
+static bool VerifyCert(SSL *SSLDesc)
+{
+	X509 *ServerCert = SSL_get_peer_certificate(SSLDesc);
 
 	if (!ServerCert)
 	{
 #ifdef DEBUG
 		fputs("Failed to get server SSL certificate!\n", stderr);
 #endif
-		Net::Close(*OutDescriptor);
 		return false;
 	}
 	
@@ -290,7 +304,7 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, int *OutDescriptor
 
 	if (!RCert)
 	{
-		throw Errors::InitError{};
+		throw Net::Errors::InitError{};
 	}
 
 	EVP_PKEY *RootPubKey = X509_get_pubkey(RCert);
@@ -307,14 +321,12 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, int *OutDescriptor
 #ifdef DEBUG
 		fputs("Server's X509 certificate is invalid! Refusing to connect.\n", stderr);
 #endif
-		Net::Close(*OutDescriptor);
 		return false;
 	}
 
-	
 	return true;
 }
-
+	
 bool Net::Write(const int SockDescriptor, const void *const Bytes, const uint64_t ToTransfer,
 				Net::NetRWStatusForEachFunc StatusFunc, void *PassAlongWith)
 {

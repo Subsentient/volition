@@ -86,6 +86,7 @@ void CmdHandling::HandleReport(Conation::ConationStream *Stream)
 			AddNodeCommandStatusReport(Stream);
 			break;
 		}
+		case CMDCODE_B2C_USEUPDATE:
 		case CMDCODE_A2S_FORGETNODE:
 		case CMDCODE_A2S_PROVIDEUPDATE:
 		case CMDCODE_A2S_REMOVEUPDATE:
@@ -484,15 +485,14 @@ static void AddNodeCommandStatusReport(Conation::ConationStream *Stream)
 #ifdef DEBUG
 	puts("Entered AddNodeCommandStatusReport()");
 #endif
-	
-	
-	const Conation::ConationStream::ODHeader &Hdr = Stream->Pop_ODHeader();
 
 	VLString Msg;
 	
 	//Simple report.
 	if (Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_NETCMDSTATUS, Conation::ARGTYPE_NONE))
 	{
+		const Conation::ConationStream::ODHeader &Hdr = Stream->Pop_ODHeader();
+
 		NetCmdStatus Status = Stream->Pop_NetCmdStatus();
 
 		Msg = VLString("Order ")
@@ -506,7 +506,6 @@ static void AddNodeCommandStatusReport(Conation::ConationStream *Stream)
 #endif
 		return;
 	}
-	
 
 	std::vector<Conation::ArgType> *ArgTypes = Stream->GetArgTypes();
 
@@ -514,6 +513,16 @@ static void AddNodeCommandStatusReport(Conation::ConationStream *Stream)
 	{
 		return; //I mean, what can we do?
 	}
+
+	if (ArgTypes->at(0) != Conation::ARGTYPE_ODHEADER)
+	{
+#ifdef DEBUG
+		puts("AddNodeCommandStatusReport(): No ODHeader for node report! Returning.");
+#endif
+		return;
+	}
+	
+	const Conation::ConationStream::ODHeader &Hdr = Stream->Pop_ODHeader();
 
 	//We start at 1 to skip the ODHeader.
 	for (size_t Inc = 1u; Inc < ArgTypes->size(); ++Inc)

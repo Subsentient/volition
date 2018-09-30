@@ -18,10 +18,13 @@
 
 #include "../libvolition/include/common.h"
 #include "../libvolition/include/utils.h"
+#include "../libvolition/include/netcore.h"
 #include "../libvolition/include/conation.h"
 #include "jobs.h"
 #include "files.h"
 #include "main.h"
+#include "interface.h"
+#include "identity_module.h"
 
 #include <time.h>
 #include <unistd.h> //For execlp()
@@ -42,8 +45,8 @@ static const char *const UpdateParam = strdup(UPDATE_PARAM);
 
 //prototypes
 static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File);
-static void InitStage2(int Descriptor, const VLString &OriginalBinaryPath, const VLString &TempBinaryPath);
-static void CompleteUpdate(const int Descriptor, const VLString &TempBinaryPath);
+static void InitStage2(const VLString &OriginalBinaryPath, const VLString &TempBinaryPath);
+static void CompleteUpdate(const VLString &TempBinaryPath);
 static VLString GetNewTempBinaryPath(void);
 
 static void ExecuteBinary(const VLString &Path, const std::vector<VLString> &ExtraArguments);
@@ -167,7 +170,7 @@ void Updates::HandleUpdateRecovery(void)
 			puts("Updates::HandleUpdateRecovery(): Detected Stage 1 update action");
 #endif
 
-			if (*argc != 6)
+			if (*argc != 5)
 			{
 #ifdef DEBUG
 				puts(VLString("Updates::HandleUpdateRecovery(): Argument count mismatch for stage 1. Got ") + VLString::IntToString(*argc));
@@ -180,13 +183,13 @@ void Updates::HandleUpdateRecovery(void)
 				return;
 			}
 
-			InitStage2(VLString::StringToInt(argv[3]), argv[4], argv[5]);
+			InitStage2(argv[3], argv[4]);
 			break;
 		}
 		case UPDATE_X_STAGE2:
 		{ //We're running as the original, updated binary.
 			
-			if (*argc != 5)
+			if (*argc != 4)
 			{
 #ifdef DEBUG
 				puts(VLString("Updates::HandleUpdateRecovery(): Argument count mismatch for stage 2. Got ") + VLString::IntToString(*argc));
@@ -199,7 +202,7 @@ void Updates::HandleUpdateRecovery(void)
 				return;
 			}
 			
-			CompleteUpdate(VLString::StringToInt(argv[3]), argv[4]);
+			CompleteUpdate(argv[3]);
 			break; //Shouldn't really reach here.
 		}
 		default:
@@ -214,13 +217,13 @@ void Updates::HandleUpdateRecovery(void)
 }
 
 
-static void CompleteUpdate(const int Descriptor, const VLString &TempBinaryPath)
+static void CompleteUpdate(const VLString &TempBinaryPath)
 {
 #ifdef DEBUG
 	puts("Entered CompleteUpdate()");
 #endif //DEBUG
 	Files::Delete(TempBinaryPath);
-	Main::Begin(Descriptor);
+	Main::Begin(true);
 }
 
 static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File)
@@ -280,7 +283,6 @@ static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File)
 	std::vector<VLString> Arguments = 	{
 											UpdateParam,
 											VLString::IntToString(UPDATE_X_STAGE1),
-											VLString::IntToString(*Main::GetSocketDescriptor()),
 											SelfBinaryPath,
 											TempBinaryPath
 										};
@@ -300,7 +302,7 @@ static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File)
 }
 
 
-static void InitStage2(int Descriptor, const VLString &OriginalBinaryPath, const VLString &TempBinaryPath)
+static void InitStage2(const VLString &OriginalBinaryPath, const VLString &TempBinaryPath)
 {
 	if (!Files::Copy(TempBinaryPath, OriginalBinaryPath))
 	{
@@ -315,7 +317,6 @@ static void InitStage2(int Descriptor, const VLString &OriginalBinaryPath, const
 	std::vector<VLString> Arguments = 	{
 											UpdateParam,
 											VLString::IntToString(UPDATE_X_STAGE2),
-											VLString::IntToString(Descriptor),
 											TempBinaryPath
 										};
 	ExecuteBinary(OriginalBinaryPath, Arguments);
@@ -340,8 +341,17 @@ NetCmdStatus Updates::AttemptUpdate(const Conation::ConationStream::FileArg &Fil
 	Main::GetReadQueue().Head_Release(false);
 	
 	Main::MurderAllThreads();
+
+	Net::Close(*Main::GetSocketDescriptor());
 	
 	const NetCmdStatus WhatFailed = InitStage1(File); //If this returns, we failed.
+
+	if (!Interface::Establish(IdentityModule::GetServerAddr()))
+	{
+#ifdef DEBUG
+		puts("Updates::AttemptUpdate(): Not only did updating fail, so did reconnecting to tell the server!");
+#endif
+	}
 	
 	//Now get the old update command off the top of the queue and discard it.
 	Main::GetReadQueue().Head_Acquire();

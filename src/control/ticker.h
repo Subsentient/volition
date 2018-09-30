@@ -23,6 +23,7 @@
 #include "../libvolition/include/conation.h"
 
 #include <list>
+#include <time.h>
 
 namespace Ticker
 {

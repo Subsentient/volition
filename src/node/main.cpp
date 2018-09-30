@@ -95,27 +95,22 @@ int main(int argc, char **argv)
 	Main::Begin();
 }
 
-void Main::Begin(const int DescriptorFromRecovery)
+void Main::Begin(const bool JustUpdated)
 {
+	while (!(SocketDescriptor = Interface::Establish(IdentityModule::GetServerAddr() ) ) ) Utils::vl_sleep(1000);
 
-	if (DescriptorFromRecovery)
+	MasterReadQueue.Begin(SocketDescriptor);
+	MasterWriteQueue.Begin(SocketDescriptor);
+	
+	if (JustUpdated)
 	{
-		SocketDescriptor = DescriptorFromRecovery;
-
 		//Tell the server we're alright.
-		Conation::ConationStream Msg(CMDCODE_B2C_USEUPDATE, true, 0u);
+		Conation::ConationStream Msg(CMDCODE_B2C_USEUPDATE, Conation::IDENT_ISREPORT_BIT, 0u);
 		Msg.Push_NetCmdStatus(true);
 		Msg.Push_String(IdentityModule::GetNodeRevision());
 		
 		MasterWriteQueue.Push(new Conation::ConationStream(Msg));
 	}
-	else
-	{
-		while (!(SocketDescriptor = Interface::Establish(IdentityModule::GetServerAddr() ) ) ) Utils::vl_sleep(1000);
-	}
-
-	MasterReadQueue.Begin(SocketDescriptor);
-	MasterWriteQueue.Begin(SocketDescriptor);
 	
 	//Do the things.
 	while (1) MasterLoop(SocketDescriptor);

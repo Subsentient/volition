@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 openssl genrsa -des3 -out ca_privkey.pem 8192
 openssl req -x509 -new -nodes -key ca_privkey.pem -sha256 -days 5000 -out ca_root.pem
 openssl genrsa -out privkey.pem 8192
