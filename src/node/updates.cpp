@@ -342,17 +342,16 @@ NetCmdStatus Updates::AttemptUpdate(const Conation::ConationStream::FileArg &Fil
 	
 	Main::MurderAllThreads();
 
+	Conation::ConationStream DisconnectRequest(CMDCODE_ANY_DISCONNECT, 0, 0);
+	DisconnectRequest.Transmit(*Main::GetSocketDescriptor());
+
 	Net::Close(*Main::GetSocketDescriptor());
 	
 	const NetCmdStatus WhatFailed = InitStage1(File); //If this returns, we failed.
 
-	if (!Interface::Establish(IdentityModule::GetServerAddr()))
-	{
-#ifdef DEBUG
-		puts("Updates::AttemptUpdate(): Not only did updating fail, so did reconnecting to tell the server!");
-#endif
-	}
-	
+
+	while (!((*(int*)Main::GetSocketDescriptor()) = Interface::Establish(IdentityModule::GetServerAddr() ) ) ) Utils::vl_sleep(1000);
+
 	//Now get the old update command off the top of the queue and discard it.
 	Main::GetReadQueue().Head_Acquire();
 	Main::GetReadQueue().Head_Release(true);
