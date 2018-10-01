@@ -71,7 +71,7 @@ static char *ScanForDelim(const char *Buf, const size_t FileSize, const char *De
 	return nullptr;
 }
 
-bool Brander::BrandBinaryViaBuffer(void *Buf, const size_t BufSize, std::map<Brander::AttributeTypes, Brander::AttrValue> &Values)
+bool Brander::BrandBinaryViaBuffer(void *Buf, const size_t BufSize, const std::map<Brander::AttributeTypes, Brander::AttrValue> &Values)
 {
 	for (auto Iter = Values.begin(); Iter != Values.end(); ++Iter)
 	{

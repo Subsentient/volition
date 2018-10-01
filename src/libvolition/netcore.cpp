@@ -298,7 +298,7 @@ static bool VerifyCert(SSL *SSLDesc)
 	}
 	
 
-	BIO *RootCertBIO = BIO_new_mem_buf(+RootCert, -1);
+	BIO *RootCertBIO = BIO_new_mem_buf((void*)+RootCert, -1);
 
 	X509 *RCert = PEM_read_bio_X509(RootCertBIO, nullptr, 0, nullptr);
 

@@ -134,7 +134,7 @@ static bool ReadBinary(const char *Binary)
 int main(const int argc, const char **argv)
 {
 	VLString Binary;
-	std::map<Brander::AttributeTypes, Brander::AttrValue> Values;
+	std::map<Brander::AttributeTypes, Brander::AttrValue> Values{};
 
 	if (argc < 3)
 	{

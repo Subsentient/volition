@@ -67,7 +67,7 @@ namespace Brander
 	};
 	
 	
-	bool BrandBinaryViaBuffer(void *Buf, const size_t BufSize, std::map<AttributeTypes, AttrValue> &Values);
+	bool BrandBinaryViaBuffer(void *Buf, const size_t BufSize, const std::map<AttributeTypes, AttrValue> &Values);
 	bool BrandBinaryViaFile(const char *Path, std::map<AttributeTypes, AttrValue> &Values);
 	AttrValue *ReadBrandedBinaryViaBuffer(const void *Buf, const size_t BufSize, const AttributeTypes Attribute);
 	AttrValue *ReadBrandedBinaryViaFile(const char *Path, const AttributeTypes Attribute);

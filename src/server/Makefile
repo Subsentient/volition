@@ -1,4 +1,4 @@
-CXXFLAGS = -std=gnu++14 -pedantic -Wall -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing `$(PKGCONFIG) --cflags openssl`
+CXXFLAGS = -std=gnu++14 -pedantic -Wall -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing `$(PKGCONFIG) --cflags openssl` `$(PKGCONFIG) --cflags sqlite3`
 OUTFILE = ./volition_server
 OBJECTS = core.o clients.o cmdhandling.o db.o nodeupdates.o logger.o routines.o
 LDFLAGS = ./.libvl/libvolition.a `$(PKGCONFIG) --libs sqlite3` `$(PKGCONFIG) --libs openssl`
