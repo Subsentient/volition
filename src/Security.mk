@@ -34,12 +34,11 @@ endif
 #Spectre v2 mitigation and whatnot
 ifeq ($(shell expr $(GCC_VERSION) \>= 7),1)
 	CXXFLAGS += -mindirect-branch=thunk -mmitigate-rop -mfunction-return=thunk
-	CXXFLAGS += -fstack-clash-protection
 endif
 
 #GCC 8 has some extra stuff we want for x86
 ifeq ($(shell expr $(GCC_VERSION) \>= 8),1)
-	CXXFLAGS += -fcf-protection=full -mcet
+	CXXFLAGS += -fcf-protection=full -mcet -fstack-clash-protection
 endif
 
 endif

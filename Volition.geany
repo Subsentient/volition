@@ -28,8 +28,8 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=97
-FILE_NAME_0=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Fcommon.h;0;4
+current_page=0
+FILE_NAME_0=939;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Fcommon.h;0;4
 FILE_NAME_1=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Futils.h;0;4
 FILE_NAME_2=715;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Fnetcore.h;0;4
 FILE_NAME_3=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fmain.cpp;0;4
@@ -124,10 +124,10 @@ FILE_NAME_91=663;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fserver%2Flo
 FILE_NAME_92=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fserver%2Flogger.h;0;4
 FILE_NAME_93=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Futils%2Fgenauthtoken.cpp;0;4
 FILE_NAME_94=449;Make;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2FSecurity.mk;0;4
-FILE_NAME_95=216;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Fscripting_selftest.lua;0;4
+FILE_NAME_95=258;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Fscripting_selftest.lua;0;4
 
 [VTE]
-last_dir=/home/ben/.vm/volition/src
+last_dir=/home/ben/.vm
 
 [build-menu]
 C++FT_01_LB=_Build

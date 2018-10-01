@@ -35,6 +35,8 @@ ifeq ($(OS),windows)
 	LDFLAGS += -lws2_32 -static
 	OUTFILE = ./volition_server.exe
 	OBJECTS += ./win32/win.o
+else ifeq ($(OS),haikuos)
+	LDFLAGS += -lnetwork -lpthread
 else
 	LDFLAGS += -lpthread 
 endif

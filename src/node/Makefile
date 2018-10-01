@@ -43,7 +43,7 @@ else ifeq ($(OS),macosx)
 	LDFLAGS += -lpthread
 else ifeq ($(OS),haikuos)
 	PLATFORM_CXXFLAGS += -DHAIKUOS
-	LDFLAGS += -lpthread
+	LDFLAGS += -lpthread -lnetwork
 endif
 
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
