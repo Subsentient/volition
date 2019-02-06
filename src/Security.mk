@@ -38,7 +38,7 @@ endif
 
 #GCC 8 has some extra stuff we want for x86
 ifeq ($(shell expr $(GCC_VERSION) \>= 8),1)
-	CXXFLAGS += -fcf-protection=full -mcet -fstack-clash-protection
+	CXXFLAGS += -fcf-protection=full -fstack-clash-protection
 endif
 
 endif
