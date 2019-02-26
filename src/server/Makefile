@@ -10,6 +10,7 @@ EXTRA_LDFLAGS =
 
 ifdef DEBUG
 	CXXFLAGS += -DDEBUG -g3 -pg
+	LDFLAGS += -pg
 else
 	CXXFLAGS += -O3
 endif

@@ -12,6 +12,7 @@ include ../Security.mk
 
 ifdef DEBUG
 	CXXFLAGS += -DDEBUG -g3 -pg -O1
+	LDFLAGS += -pg
 else
 	CXXFLAGS += -O3
 endif
