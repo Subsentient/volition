@@ -36,6 +36,8 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#include <signal.h>
+
 #include <vector>
 #include <map>
 #include "include/common.h"
@@ -61,6 +63,8 @@ static bool VerifyCert(SSL *SSLDesc);
 
 void Net::InitNetcore(const bool Server)
 {
+	signal(SIGPIPE, SIG_IGN); //Ignore SIGPIPE as it does virtually nothing useful but crash us.
+	
 	ERR_load_BIO_strings();
 	ERR_load_crypto_strings();
 	SSL_load_error_strings();
