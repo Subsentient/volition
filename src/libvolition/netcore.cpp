@@ -364,10 +364,9 @@ bool Net::Write(const int SockDescriptor, const void *const Bytes, const uint64_
 
 bool Net::HasRealDataToRead(const int SockDescriptor)
 {
-	char Byte{};
-	if (recv(SockDescriptor, &Byte, 1, MSG_PEEK) <= 0) return false;
+	uint64_t QWord;
 	
-	return true;
+	return SSL_peek(SSLMap[SockDescriptor], &QWord, sizeof QWord) > 0;
 }
 
 bool Net::Read(const int SockDescriptor, void *const OutStream_, const uint64_t MaxLength,

@@ -145,9 +145,9 @@ std::vector<uint8_t> *Utils::Slurp(const char *FilePath, const bool Binary)
 	return RetVal;
 }
 
-static inline bool ArchIsBigEndian(void)
+static inline constexpr bool ArchIsBigEndian(void)
 {
-	const uint16_t Test = 1;
+	constexpr uint16_t Test = 1;
 	return *(uint8_t*)&Test == 0;
 }
 

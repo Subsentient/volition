@@ -251,12 +251,15 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 		
 
 		//Something to do?
-		if (select(ThisPointer->Descriptor + 1, &Set, nullptr, &ErrSet, &Time) <= 0)
+		
+		const int SelectStatus = select(ThisPointer->Descriptor + 1, &Set, nullptr, &ErrSet, &Time);
+		
+		if (!SelectStatus)
 		{ //Guess not.
 			continue;
 		}
 		
-		if (FD_ISSET(ThisPointer->Descriptor, &ErrSet) || !Net::HasRealDataToRead(ThisPointer->Descriptor))
+		if (SelectStatus < 0 || FD_ISSET(ThisPointer->Descriptor, &ErrSet) || !Net::HasRealDataToRead(ThisPointer->Descriptor))
 		{
 			ThisPointer->Error = true;
 			Utils::vl_sleep(10);
