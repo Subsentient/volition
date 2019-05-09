@@ -30,6 +30,8 @@
 #include <sys/select.h>
 #endif //WIN32
 
+#include <errno.h>
+
 NetScheduler::QueueBase::QueueBase(VLThreads::Thread::EntryFunc EntryFuncParam, const int DescriptorIn)
 	: Thread(EntryFuncParam, this),
 	Descriptor(DescriptorIn),
@@ -254,13 +256,16 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 		
 		const int SelectStatus = select(ThisPointer->Descriptor + 1, &Set, nullptr, &ErrSet, &Time);
 		
-		if (!SelectStatus)
+		if (!SelectStatus || (SelectStatus < 0 && errno == EINTR))
 		{ //Guess not.
 			continue;
 		}
 		
-		if (SelectStatus < 0 || FD_ISSET(ThisPointer->Descriptor, &ErrSet) || !Net::HasRealDataToRead(ThisPointer->Descriptor))
+		if ((SelectStatus < 0 && errno != EINTR) || FD_ISSET(ThisPointer->Descriptor, &ErrSet) || !Net::HasRealDataToRead(ThisPointer->Descriptor))
 		{
+#ifdef DEBUG
+			if (SelectStatus < 0) puts(VLString("NetScheduler::ReadQueue::ThreadFunc(): Error detected was ") + (const char*)strerror(errno));
+#endif
 			ThisPointer->Error = true;
 			Utils::vl_sleep(10);
 			continue;
