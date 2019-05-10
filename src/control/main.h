@@ -25,10 +25,15 @@
 #define PROGRESS_WINDOW_DATA_THRESHOLD (1024*512)
 namespace Main
 {
+	extern Net::PingTracker PingTrack;
+	
 	void InitiateLogin(GuiBase::LoginScreen *Instance);
 	void TerminateLink(void);
 	
 	int GetSocketDescriptor(void);
+	
+	void RegisterPing(void);
+	bool CheckPingout(void);
 	
 	NetScheduler::ReadQueue &GetReadQueue(void);
 	NetScheduler::WriteQueue &GetWriteQueue(void);

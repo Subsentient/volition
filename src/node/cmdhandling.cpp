@@ -42,8 +42,10 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 	
 	switch (Hdr.CmdCode)
 	{
-		case CMDCODE_ANY_ECHO:
 		case CMDCODE_ANY_PING:
+			Main::PingTrack.RegisterPing();
+			//Fall through
+		case CMDCODE_ANY_ECHO:
 		{
 			Conation::ConationStream::StreamHeader NewHeader = Hdr;
 			NewHeader.CmdIdentFlags |= Conation::IDENT_ISREPORT_BIT;

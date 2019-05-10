@@ -133,6 +133,8 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 	{
 		case CMDCODE_ANY_PING:
 		{
+			Main::PingTrack.RegisterPing();
+			
 			auto NewHeader = Hdr;
 			NewHeader.CmdIdentFlags |= Conation::IDENT_ISREPORT_BIT;
 			

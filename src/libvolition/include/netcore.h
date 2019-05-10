@@ -20,6 +20,11 @@
 #define __VL_NETCORE_H__
 
 #define NET_MAX_CHUNK_SIZE 2048
+
+#define PING_INTERVAL_TIME_SECS 60
+#define PING_PINGOUT_TIME_SECS (PING_INTERVAL_TIME_SECS / 4)
+
+
 #include <stddef.h>
 #include <vector>
 #include "common.h"
@@ -62,6 +67,31 @@ namespace Net
 	bool HasRealDataToRead(const int SockDescriptor);
 	void InitNetcore(const bool Server);
 	void LoadRootCert(const VLString &Certificate);
+	
+	class PingTracker
+	{
+	private:
+		time_t LastPing;
+	public:
+		PingTracker(void) : LastPing(time(nullptr)) {}
+		
+		inline void RegisterPing(void)
+		{
+			this->LastPing = time(nullptr);
+		}
+		
+		inline bool CheckPingout(void)
+		{ //Has the server pinged us since it last should have?
+			if (!this->LastPing) return true;
+			
+			const time_t CurTime = time(nullptr);
+			
+			return CurTime - this->LastPing <= (PING_INTERVAL_TIME_SECS + PING_PINGOUT_TIME_SECS);
+		}
+	
+	};
+	
+		
 }
 
 #endif //__VL_NETCORE_H__

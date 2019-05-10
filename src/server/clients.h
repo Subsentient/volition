@@ -31,13 +31,7 @@
 #include <chrono>
 
 #include <time.h>
-#ifndef PING_PINGOUT_TIME_SECS
-#define PING_PINGOUT_TIME_SECS 15 //Keep this relatively small.
-#endif //PING_PINGOUT_TIME_SECS
 
-#ifndef PING_INTERVAL_TIME_SECS
-#define PING_INTERVAL_TIME_SECS 60
-#endif //PING_INTERVAL_TIME_SECS
 
 namespace Clients
 {

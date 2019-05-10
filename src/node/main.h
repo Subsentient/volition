@@ -21,10 +21,13 @@
 
 #include "../libvolition/include/common.h"
 #include "../libvolition/include/conation.h"
+#include "../libvolition/include/netcore.h"
 #include "../libvolition/include/netscheduler.h"
 
 namespace Main
 {
+	extern Net::PingTracker PingTrack;
+	
 	char **GetArgvData(int **ArgcOut);
 	const int *GetSocketDescriptor(void);
 	void Begin(const bool JustUpdated = false);
@@ -42,6 +45,7 @@ namespace Main
 	NetScheduler::WriteQueue &GetWriteQueue(void);
 	
 	VLString GetCurrentBinaryPath(void);
+
 }
 
 #endif //_VL_NODE_MAIN_H_

@@ -46,6 +46,8 @@ static NetScheduler::SchedulerStatusObj WriteOperationStatus;
 
 static int SocketDescriptor = 0;
 
+Net::PingTracker Main::PingTrack;
+
 //Prototypes
 static gboolean PrimaryLoop(void* = nullptr);
 static gboolean UpdateNetProgress(void* = nullptr);
@@ -199,9 +201,9 @@ static gboolean PrimaryLoop(void*)
 {
 Restart:
 	;
-	if (SockReadQueue.HasError())
+	if (!Main::PingTrack.CheckPingout() || SockReadQueue.HasError())
 	{
-		fputs("Socket slammed shut by remote server! Shutting down.\n", stderr);
+		fputs(VLString("Socket ") + (SockReadQueue.HasError() ? "slammed shut by remote server" : "timed out") + "! Shutting down.\n", stderr);
 		NetCmdStatus FailStatus(false, STATUS_FAILED, "Connection to server has been lost!\nCannot continue. Shutting down.");
 		
 		if (GuiMainWindow::MainWindowScreen *Temp = (GuiMainWindow::MainWindowScreen*)GuiBase::LookupScreen(GuiBase::ScreenObj::ScreenType::MAINWINDOW))

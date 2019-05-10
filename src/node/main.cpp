@@ -47,6 +47,9 @@ static int SocketDescriptor;
 static NetScheduler::ReadQueue MasterReadQueue;
 static NetScheduler::WriteQueue MasterWriteQueue;
 
+Net::PingTracker Main::PingTrack;
+
+
 int main(int argc, char **argv)
 {
 	argc_ = argc;
@@ -135,7 +138,7 @@ static void MasterLoop(int &Descriptor)
 {
 Restart:
 	//Poll for it.
-	if (MasterReadQueue.HasError() || MasterWriteQueue.HasError())
+	if (!Main::PingTrack.CheckPingout() || MasterReadQueue.HasError() || MasterWriteQueue.HasError())
 	{
 #ifdef DEBUG
 		puts("MasterLoop(): Server lost connection. Attempting to reconnect.");
@@ -256,4 +259,3 @@ VLString Main::GetCurrentBinaryPath(void)
 
 	return SelfBinaryPath;
 }
-
