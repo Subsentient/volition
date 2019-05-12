@@ -49,12 +49,14 @@ void NodeUpdates::HandleUpdatesForNode(Clients::ClientObj *Client)
 	Brander::AttrValue *BinPlatformString = Brander::ReadBrandedBinaryViaBuffer((const char*)NewBinary.data(), NewBinary.size(), Brander::AttributeTypes::PLATFORMSTRING);
 	Brander::AttrValue *BinRevision = Brander::ReadBrandedBinaryViaBuffer((const char*)NewBinary.data(), NewBinary.size(), Brander::AttributeTypes::REVISION);
 	Brander::AttrValue *BinServerAddr = Brander::ReadBrandedBinaryViaBuffer((const char*)NewBinary.data(), NewBinary.size(), Brander::AttributeTypes::SERVERADDR);
-	
+	Brander::AttrValue *BinAuthToken = Brander::ReadBrandedBinaryViaBuffer((const char*)NewBinary.data(), NewBinary.size(), Brander::AttributeTypes::AUTHTOKEN);
+
 	
 	//These checks are all mostly unnecessary
 	if (!BinPlatformString ||
 		!BinRevision ||
 		!BinServerAddr || //We just wanna make sure the server is set.
+		!BinAuthToken ||
 		BinRevision->Get_String() != NewRevision ||
 		BinPlatformString->Get_String() != Client->GetPlatformString())
 	{
@@ -66,6 +68,7 @@ void NodeUpdates::HandleUpdatesForNode(Clients::ClientObj *Client)
 	//Brand the binary.
 	std::map<Brander::AttributeTypes, Brander::AttrValue> Values;
 	Values.emplace(Brander::AttributeTypes::IDENTITY, Client->GetID());
+	Values.emplace(Brander::AttributeTypes::AUTHTOKEN, Client->GetAuthToken());
 
 	if (!Brander::BrandBinaryViaBuffer((char*)NewBinary.data(), NewBinary.size(), Values))
 	{

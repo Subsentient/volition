@@ -427,3 +427,8 @@ int Net::ToRawDescriptor(const ClientDescriptor &Desc)
 {
 	return SSL_get_fd(static_cast<SSL*>(Desc.Internal));
 }
+
+VLString Net::GetRootCert(void)
+{
+	return RootCert;
+}

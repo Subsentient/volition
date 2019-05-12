@@ -60,6 +60,8 @@ static char *ScanForDelim(const char *Buf, const size_t FileSize, const char *De
 	
 	const char *Worker = Buf;
 
+
+	
 	for (; Worker != Stopper; ++Worker)
 	{
 		if (!memcmp(Worker, DelimStart, DelimStartLength + 1))
@@ -182,3 +184,4 @@ Brander::AttrValue *Brander::ReadBrandedBinaryViaBuffer(const void *Buf, const s
 	
 	return RetVal;
 }
+

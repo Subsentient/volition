@@ -459,6 +459,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			std::map<Brander::AttributeTypes, Brander::AttrValue> Values;
 			Values.emplace(Brander::AttributeTypes::IDENTITY, Lookup->GetID());
+			Values.emplace(Brander::AttributeTypes::AUTHTOKEN, Lookup->GetAuthToken());
 			
 			if (!Brander::BrandBinaryViaBuffer(File.Data, File.DataSize, Values))
 			{ //We're altering the file data in the ConationStream itself, and yes, this is safe.

@@ -77,7 +77,8 @@ namespace Net
 	void InitNetcore(const bool Server);
 	void LoadRootCert(const VLString &Certificate);
 	int ToRawDescriptor(const ClientDescriptor &Desc);
-
+	VLString GetRootCert(void);
+	
 	class PingTracker
 	{
 	private:

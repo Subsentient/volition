@@ -69,7 +69,7 @@
 
 #define NODE_CERT_DELIMSTART "SSCX://{{SSLCBF_NO::"
 #define NODE_CERT_DELIMSTART_LENGTH (sizeof NODE_CERT_DELIMSTART - 1)
-#define NODE_CERT_CAPACITY 4096
+#define NODE_CERT_CAPACITY 8192
 
 #include "vlstrings.h"
 
