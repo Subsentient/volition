@@ -152,13 +152,11 @@ bool Files::Copy(const char *Source, const char *Destination)
 	
 	if (stat(Source, FileStat) != 0)
 	{
-		delete FileStat;
 		return false;
 	}
 	
 	if (!S_ISDIR(FileStat->st_mode))
 	{ //Regular file.
-		delete FileStat;
 #ifdef DEBUG
 		puts(VLString("Files::Copy(): Copying regular file \"") + Source + "\" to \"" + Destination + "\".");
 #endif
@@ -217,10 +215,7 @@ bool Files::Copy(const char *Source, const char *Destination)
 	}
 
 	closedir(CurDir);
-	return true;
-	
-	
-	
+	return true;	
 }
 
 bool Files::Move(const char *Source, const char *Destination)

@@ -53,8 +53,7 @@ ifeq ($(FORCE_STATIC),1)
 endif
 
 ifdef DEBUG
-	CXXFLAGS += -DDEBUG -g3 -pg
-	LDFLAGS += -pg
+	CXXFLAGS += -DDEBUG -g3
 else
 	CXXFLAGS += -O3
 endif
