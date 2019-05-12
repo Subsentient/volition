@@ -27,6 +27,7 @@
 
 #include <stddef.h>
 #include <vector>
+#include <time.h>
 #include "common.h"
 
 namespace Net

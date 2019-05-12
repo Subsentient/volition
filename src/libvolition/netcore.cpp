@@ -62,8 +62,9 @@ static bool VerifyCert(SSL *SSLDesc);
 
 void Net::InitNetcore(const bool Server)
 {
+#ifndef WIN32
 	signal(SIGPIPE, SIG_IGN); //Ignore SIGPIPE as it does virtually nothing useful but crash us.
-	
+#endif
 	ERR_load_BIO_strings();
 	ERR_load_crypto_strings();
 	SSL_load_error_strings();
