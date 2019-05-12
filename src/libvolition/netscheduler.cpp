@@ -76,6 +76,8 @@ bool NetScheduler::QueueBase::StopThread(const size_t WaitInMS, const size_t Pre
 		if (!WaitInMS)
 		{ //Wait forever.
 			while (this->Thread.Alive());
+			
+			this->Thread.Join();
 		}
 		else
 		{			

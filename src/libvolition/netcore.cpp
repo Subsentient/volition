@@ -281,6 +281,7 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, ClientDescriptor *
 		return false;
 	}
 	
+	*OutDescriptor = { New };
 	return true;
 }
 

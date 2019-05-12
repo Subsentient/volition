@@ -143,8 +143,8 @@ Restart:
 #ifdef DEBUG
 		puts("MasterLoop(): Server lost connection. Attempting to reconnect.");
 #endif //DEBUG
-		MasterReadQueue.StopThread(5000, 100);
-		MasterWriteQueue.StopThread(5000, 100);
+		MasterReadQueue.StopThread();
+		MasterWriteQueue.StopThread();
 		
 		Net::Close(Descriptor);
 		

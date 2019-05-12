@@ -129,6 +129,7 @@ VLThreads::Thread::Thread(Thread::EntryFunc EntryPointIn, void *DataPointerIn) :
 
 void VLThreads::Thread::Start(void)
 {
+	this->Dead = false;
 #ifdef WIN32
 	this->ThreadObj = CreateThread(nullptr, 0u, (LPTHREAD_START_ROUTINE)this->EntryPoint, this->DataPointer, 0, nullptr);
 #else
@@ -156,6 +157,7 @@ void VLThreads::Thread::Join(void)
 #else
 	pthread_join(*(pthread_t*)this->ThreadObj, nullptr);
 #endif
+	this->Dead = true;
 }
 
 bool VLThreads::Thread::Alive(void)

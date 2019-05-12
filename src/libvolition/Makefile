@@ -8,7 +8,7 @@ OBJ_OUT_DIR = ./
 include ../Security.mk
 
 ifdef DEBUG
-	CXXFLAGS += -DDEBUG -g3 -pg -O1
+	CXXFLAGS += -DDEBUG -g3 -pg -O0
 else
 	CXXFLAGS += -O3
 endif
