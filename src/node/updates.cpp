@@ -350,7 +350,7 @@ NetCmdStatus Updates::AttemptUpdate(const Conation::ConationStream::FileArg &Fil
 	const NetCmdStatus WhatFailed = InitStage1(File); //If this returns, we failed.
 
 
-	while (!((*(int*)Main::GetSocketDescriptor()) = Interface::Establish(IdentityModule::GetServerAddr() ) ) ) Utils::vl_sleep(1000);
+	while (!((*(Net::ClientDescriptor*)Main::GetSocketDescriptor()) = Interface::Establish(IdentityModule::GetServerAddr() ) ).Internal ) Utils::vl_sleep(1000);
 
 	//Now get the old update command off the top of the queue and discard it.
 	Main::GetReadQueue().Head_Acquire();

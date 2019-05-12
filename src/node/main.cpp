@@ -37,12 +37,12 @@
 #include "updates.h"
 
 //prototypes
-static void MasterLoop(int &Descriptor);
+static void MasterLoop(Net::ClientDescriptor &Descriptor);
 
 static int argc_;
 static char **argv_;
 
-static int SocketDescriptor;
+static Net::ClientDescriptor SocketDescriptor;
 
 static NetScheduler::ReadQueue MasterReadQueue;
 static NetScheduler::WriteQueue MasterWriteQueue;
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
 void Main::Begin(const bool JustUpdated)
 {
-	while (!(SocketDescriptor = Interface::Establish(IdentityModule::GetServerAddr() ) ) ) Utils::vl_sleep(1000);
+	while (!(SocketDescriptor = Interface::Establish(IdentityModule::GetServerAddr() ) ).Internal ) Utils::vl_sleep(1000);
 
 	MasterReadQueue.Begin(SocketDescriptor);
 	MasterWriteQueue.Begin(SocketDescriptor);
@@ -134,7 +134,7 @@ void Main::MurderAllThreads(void)
 	Jobs::KillAllJobs();
 }
 
-static void MasterLoop(int &Descriptor)
+static void MasterLoop(Net::ClientDescriptor &Descriptor)
 {
 Restart:
 	//Poll for it.
@@ -148,7 +148,7 @@ Restart:
 		
 		Net::Close(Descriptor);
 		
-		while (!(Descriptor = Interface::Establish(IdentityModule::GetServerAddr() ) )) Utils::vl_sleep(1000);
+		while (!(Descriptor = Interface::Establish(IdentityModule::GetServerAddr() ) ).Internal) Utils::vl_sleep(1000);
 
 #ifdef DEBUG
 		puts("MasterLoop(): Reconnect succeeded. Restarting network queues.");
@@ -181,7 +181,7 @@ Restart:
 	
 	if (Stream) goto Restart; //We're just checking if it's a null pointer, so this is still legal.
 
-	Jobs::ProcessCompletedJobs(Descriptor);
+	Jobs::ProcessCompletedJobs();
 	
 	Utils::vl_sleep(50);
 }
@@ -204,7 +204,7 @@ char **Main::GetArgvData(int **ArgcOut)
 	return argv_;
 }
 
-const int *Main::GetSocketDescriptor(void)
+const Net::ClientDescriptor *Main::GetSocketDescriptor(void)
 {
 	return &SocketDescriptor;
 }

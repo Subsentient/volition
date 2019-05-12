@@ -28,9 +28,10 @@
 #include "cmdhandling.h"
 #include "main.h"
 
-bool Interface::Establish(const VLString &Username, const VLString &Password, const VLString &Hostname, int *OutDescriptor)
+bool Interface::Establish(const VLString &Username, const VLString &Password, const VLString &Hostname, Net::ClientDescriptor *const OutDescriptor)
 {
-	int Descriptor = 0;
+	Net::ClientDescriptor Descriptor{};
+	
 	if (!Net::Connect(Hostname, MASTER_PORT, &Descriptor))
 	{
 		return false;

@@ -141,10 +141,10 @@ Conation::ConationStream::ConationStream(const StreamHeader &Header, const uint8
 	this->IntegrityCheck();
 }
 
-Conation::ConationStream::ConationStream(const int SocketDescriptor, Net::NetRWStatusForEachFunc StatusFunc, void *UserData) : Bytes(new std::vector<uint8_t>(STREAM_HEADER_SIZE)), Index(), ExtraInteger(), ExtraPointer()
+Conation::ConationStream::ConationStream(const Net::ClientDescriptor &SocketDescriptor, Net::NetRWStatusForEachFunc StatusFunc, void *UserData) : Bytes(new std::vector<uint8_t>(STREAM_HEADER_SIZE)), Index(), ExtraInteger(), ExtraPointer()
 {
 
-	if (!SocketDescriptor)
+	if (!SocketDescriptor.Internal)
 	{
 		throw Err_Misused();
 	}
@@ -839,7 +839,7 @@ Conation::ConationStream::BaseArg *Conation::ConationStream::PopArgument(void)
 
 }
 
-bool Conation::ConationStream::Transmit(const int Descriptor, Net::NetRWStatusForEachFunc StatusFunc, void *PassAlongWith) const
+bool Conation::ConationStream::Transmit(const Net::ClientDescriptor &Descriptor, Net::NetRWStatusForEachFunc StatusFunc, void *PassAlongWith) const
 {
 	StreamHeader Header = this->GetHeader();
 

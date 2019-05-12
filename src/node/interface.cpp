@@ -29,10 +29,10 @@
 
 #include <stdio.h>
 
-int Interface::Establish(const char *Hostname)
+Net::ClientDescriptor Interface::Establish(const char *Hostname)
 { //We know what server we want, now we communicate with it.
 	
-	int Connection = 0;
+	Net::ClientDescriptor Connection{};
 #ifdef DEBUG
 	puts(VLString("Interface::Establish(): Connecting to server ") + Hostname + "...");
 #endif //DEBUG
@@ -107,14 +107,6 @@ int Interface::Establish(const char *Hostname)
 
 	return Connection;
 }
-
-void Interface::Shutdown(const int Descriptor)
-{ //Simply informs the server of our intentions. We don't quit until the server authorizes it.
-	Conation::ConationStream Goodbye(CMDCODE_ANY_DISCONNECT, false, 0u);
-	
-	Main::PushStreamToWriteQueue(Goodbye);
-}
-
 bool Interface::HandleServerInterface(Conation::ConationStream *Stream)
 {
 	uint8_t Flags = 0;

@@ -20,12 +20,13 @@
 #define VL_CTL_INTERFACE_H
 #include "../libvolition/include/common.h"
 #include "../libvolition/include/utils.h"
+#include "../libvolition/include/netcore.h"
 #include "../libvolition/include/conation.h"
 
 
 namespace Interface
 {
-	bool Establish(const VLString &Username, const VLString &Password, const VLString &Hostname, int *OutDescriptor);
+	bool Establish(const VLString &Username, const VLString &Password, const VLString &Hostname, Net::ClientDescriptor *const OutDescriptor);
 	bool RequestIndex(void);
 	bool HandleServerInterface(Conation::ConationStream *Stream);
 }

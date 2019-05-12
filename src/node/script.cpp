@@ -67,7 +67,6 @@ static int VLAPI_GetIdentity(lua_State *State);
 static int VLAPI_GetRevision(lua_State *State);
 static int VLAPI_GetPlatformString(lua_State *State);
 static int VLAPI_GetServerAddr(lua_State *State);
-static int VLAPI_GetSocketDescriptor(lua_State *State);
 static int VLAPI_GetArgvData(lua_State *State);
 static int VLAPI_GetCompileTime(lua_State *State);
 static int VLAPI_GetProcesses(lua_State *State);
@@ -75,10 +74,6 @@ static int VLAPI_KillProcessByName(lua_State *State);
 static int VLAPI_CopyFile(lua_State *State);
 static int VLAPI_DeleteFile(lua_State *State);
 static int VLAPI_MoveFile(lua_State *State);
-static int VLAPI_NetConnect(lua_State *State);
-static int VLAPI_NetClose(lua_State *State);
-static int VLAPI_NetWrite(lua_State *State);
-static int VLAPI_NetRead(lua_State *State);
 static int VLAPI_GetHTTP(lua_State *State);
 static int VLAPI_RecvStream(lua_State *State);
 static int VLAPI_SendStream(lua_State *State);
@@ -119,7 +114,6 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "GetRevision", VLAPI_GetRevision },
 	{ "GetPlatformString", VLAPI_GetPlatformString },
 	{ "GetServerAddr", VLAPI_GetServerAddr },
-	{ "GetSocketDescriptor", VLAPI_GetSocketDescriptor },
 	{ "GetArgvData", VLAPI_GetArgvData },
 	{ "GetCompileTime", VLAPI_GetCompileTime },
 	{ "GetProcesses", VLAPI_GetProcesses },
@@ -127,10 +121,6 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "CopyFile", VLAPI_CopyFile },
 	{ "DeleteFile", VLAPI_DeleteFile },
 	{ "MoveFile", VLAPI_MoveFile },
-	{ "NetConnect", VLAPI_NetConnect },
-	{ "NetClose", VLAPI_NetClose },
-	{ "NetWrite", VLAPI_NetWrite },
-	{ "NetRead", VLAPI_NetRead },
 	{ "GetHTTP", VLAPI_GetHTTP },
 	{ "RecvStream", VLAPI_RecvStream },
 	{ "SendStream", VLAPI_SendStream },
@@ -218,13 +208,6 @@ static int VLAPI_GetPlatformString(lua_State *State)
 static int VLAPI_GetServerAddr(lua_State *State)
 {
 	lua_pushstring(State, IdentityModule::GetServerAddr());
-	
-	return 1;
-}
-
-static int VLAPI_GetSocketDescriptor(lua_State *State)
-{
-	lua_pushinteger(State, *Main::GetSocketDescriptor());
 	
 	return 1;
 }
@@ -708,36 +691,6 @@ static int VLAPI_SendStream(lua_State *State)
 	return 1;
 }
 
-static int VLAPI_NetConnect(lua_State *State)
-{
-	if (lua_gettop(State) != 2 || lua_type(State, 1) != LUA_TSTRING || lua_type(State, 2) != LUA_TNUMBER)
-	{ //Incorrect arguments passed.
-		lua_pushboolean(State, false);
-		return 1;
-	}
-	
-	const VLString Hostname = lua_tostring(State, 1);
-	const unsigned short PortNum = lua_tointeger(State, 2);
-	
-	lua_settop(State, 0);
-	
-	int Descriptor = 0;
-	
-	const bool Status = Net::Connect(+Hostname, PortNum, &Descriptor);
-	
-	//Failed?
-	if (!Status || !Descriptor)
-	{
-		lua_pushboolean(State, false);
-		return 1;
-	}
-	
-	//Give us the descriptor as the result.
-	lua_pushinteger(State, Descriptor);
-	
-	return 1;
-}
-
 static bool CloneConationStreamToLua(lua_State *State, Conation::ConationStream *Stream)
 {
 	lua_pushcfunction(State, NewLuaConationStream);
@@ -754,97 +707,6 @@ static bool CloneConationStreamToLua(lua_State *State, Conation::ConationStream 
 #endif
 
 	return lua_type(State, -1) == LUA_TTABLE;
-}
-
-
-static int VLAPI_NetClose(lua_State *State)
-{
-	if (lua_gettop(State) != 1 || lua_type(State, 1) != LUA_TNUMBER)
-	{
-		lua_pushboolean(State, false);
-		return 1;
-	}
-	
-	int Descriptor = lua_tointeger(State, 1);
-	
-	const bool Result = Net::Close(Descriptor);
-	
-	lua_pushboolean(State, Result);
-	
-	return 1;
-}
-
-static int VLAPI_NetWrite(lua_State *State)
-{
-	const size_t Count = lua_gettop(State);
-	
-	int Descriptor = 0;
-
-	if (Count < 2 || lua_type(State, 1) != LUA_TNUMBER || !(Descriptor = lua_tointeger(State, 1)))
-	{ //First argument must be the descriptor.
-		lua_pushboolean(State, false);
-		return 1;
-	}
-	
-	
-	size_t Inc = 2;
-	
-	std::vector<uint8_t> Buffer;
-	Buffer.reserve(4096);
-	
-	for (; Inc <= Count; ++Inc)
-	{ //Concatenate all arguments and send them all at once.
-		size_t Length = 0;
-		
-		if (lua_type(State, Inc) != LUA_TSTRING)
-		{
-			lua_pushboolean(State, false);
-			return 1;
-		}
-		
-		const char *ArgData = lua_tolstring(State, Inc, &Length);
-		
-		Buffer.resize(Buffer.size() + Length);
-		
-		memcpy(Buffer.data() + Buffer.size(), ArgData, Length);
-	}
-	
-	lua_settop(State, 0);
-	
-	const bool Result = Net::Write(Descriptor, Buffer.data(), Buffer.size());
-	
-	lua_pushboolean(State, Result);
-	
-	return 1;
-}
-
-static int VLAPI_NetRead(lua_State *State)
-{
-	if (lua_gettop(State) != 2 || lua_type(State, 1) != LUA_TNUMBER || lua_type(State, 2) != LUA_TNUMBER)
-	{
-		lua_pushnil(State);
-		return 1;
-	}
-	
-	const int Descriptor = lua_tointeger(State, 1);
-	const uint64_t Length = lua_tointeger(State, 2);
-	
-	lua_settop(State, 0);
-	
-	std::vector<uint8_t> Buffer;
-	Buffer.reserve(Length);
-	
-	const bool Result = Net::Read(Descriptor, Buffer.data(), Length);
-	
-	if (!Result)
-	{
-		lua_pushnil(State);
-		return 1;
-	}
-	
-	lua_pushlstring(State, (const char*)Buffer.data(), Buffer.size());
-	
-	return 1;
 }
 
 static int VLAPI_GetHTTP(lua_State *State)
@@ -1021,7 +883,6 @@ static int LuaConationStreamGCFunc(lua_State *State)
 static int NewLuaConationStream(lua_State *State)
 { //Create a new instance of the class.
 	std::vector<decltype(LUA_TNONE)> BasicConstructorParams { LUA_TNUMBER, LUA_TNUMBER, LUA_TNUMBER };
-	std::vector<decltype(LUA_TNONE)> SocketConstructorParams { LUA_TNUMBER };
 	std::vector<decltype(LUA_TNONE)> CloneStreamConstructorParams { LUA_TTABLE };
 	std::vector<decltype(LUA_TNONE)> CBasedCloneConstructorParams { LUA_TLIGHTUSERDATA };
 	
@@ -1030,7 +891,6 @@ static int NewLuaConationStream(lua_State *State)
 		CommandCode CmdCode;
 		uint8_t Flags;
 		uint64_t Ident;
-		int Descriptor;
 		Conation::ConationStream *ToClone;
 	} Args{};
 	
@@ -1048,10 +908,6 @@ static int NewLuaConationStream(lua_State *State)
 		Args.CmdCode = static_cast<CommandCode>(Code);
 		Args.Flags = lua_tointeger(State, 2);
 		Args.Ident = lua_tointeger(State, 3);
-	}
-	else if (VerifyLuaFuncArgs(State, SocketConstructorParams))
-	{ //Constructor from a socket we need to read from.
-		Args.Descriptor = lua_tointeger(State, 1);
 	}
 	else if (VerifyLuaFuncArgs(State, CloneStreamConstructorParams))
 	{ //Cloning one.
@@ -1116,10 +972,6 @@ static int NewLuaConationStream(lua_State *State)
 	if (Args.CmdCode != CMDCODE_INVALID)
 	{
 		new (Stream) Conation::ConationStream(Args.CmdCode, Args.Flags, Args.Ident);
-	}
-	else if (Args.Descriptor)
-	{
-		new (Stream) Conation::ConationStream(Args.Descriptor);
 	}
 	else if (Args.ToClone)
 	{

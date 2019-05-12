@@ -52,7 +52,6 @@
 
 static SSL_CTX *SSLContext;
 
-static std::map<int, SSL*> SSLMap;
 static VLString RootCert;
 
 static const VLString PublicCertFilename = "servercert.pem";
@@ -118,7 +117,7 @@ void Net::LoadRootCert(const VLString &Certificate)
 	RootCert = Certificate;
 }
 
-bool Net::AcceptClient(const ServerDescriptor &ServerDesc, int *const OutDescriptor, char *const OutIPAddr, const size_t IPAddrMaxLen)
+bool Net::AcceptClient(const ServerDescriptor &ServerDesc, ClientDescriptor *const OutDescriptor, char *const OutIPAddr, const size_t IPAddrMaxLen)
 {
 #ifdef VL_IPV6
 	struct sockaddr_in6 ClientInfo{};
@@ -130,9 +129,9 @@ bool Net::AcceptClient(const ServerDescriptor &ServerDesc, int *const OutDescrip
 	socklen_t SockaddrSize = sizeof(ClientInfo);
 	socklen_t AddrSize = sizeof Addr;
 	
-	const int ClientDescriptor = accept(ServerDesc.Descriptor, (struct sockaddr*)&ClientInfo, &SockaddrSize);
+	const int ClientDesc = accept(ServerDesc.Descriptor, (struct sockaddr*)&ClientInfo, &SockaddrSize);
 	
-	if (ClientDescriptor == -1) //Accept error.
+	if (ClientDesc == -1) //Accept error.
 	{
 #ifdef DEBUG
 		puts("Net::AcceptClient(): Failed to accept.");
@@ -141,7 +140,7 @@ bool Net::AcceptClient(const ServerDescriptor &ServerDesc, int *const OutDescrip
 	}
 	
 	//Get client IP.
-	getpeername(ClientDescriptor, (sockaddr*)&Addr, &AddrSize);
+	getpeername(ClientDesc, (sockaddr*)&Addr, &AddrSize);
 	
 #ifdef WIN32
 	WSAAddressToString((struct sockaddr*)&ClientInfo, sizeof ClientInfo, nullptr, OutIPAddr, (DWORD*)&IPAddrMaxLen);
@@ -155,18 +154,16 @@ bool Net::AcceptClient(const ServerDescriptor &ServerDesc, int *const OutDescrip
 
 #endif //WIN32
 
-	SSL *&New = SSLMap[ClientDescriptor];
-
-	New = SSL_new(SSLContext);
-	SSL_set_fd(New, ClientDescriptor);
+	SSL *New = SSL_new(SSLContext);
+	SSL_set_fd(New, ClientDesc);
 
 	if (SSL_accept(New) < 1)
 	{
-		Net::Close(ClientDescriptor);
+		Net::Close(ClientDesc);
 		return false;
 	}
 	
-	*OutDescriptor = ClientDescriptor; //Give them their descriptor.
+	*OutDescriptor = New; //Give them their descriptor.
 
 	return true;
 }
@@ -230,7 +227,7 @@ Net::ServerDescriptor Net::InitServer(unsigned short PortNum)
 	return Desc;
 }
 
-bool Net::Connect(const char *InHost, unsigned short PortNum, int *OutDescriptor)
+bool Net::Connect(const char *InHost, unsigned short PortNum, ClientDescriptor *const OutDescriptor)
 {
 	const VLString &FailMsg = "Failed to establish a connection to the server:";
 	struct addrinfo Hints{}, *Res = nullptr;
@@ -249,40 +246,38 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, int *OutDescriptor
 		return 0;
 	}
 	
-	if ((*OutDescriptor = socket(Res->ai_family, Res->ai_socktype, Res->ai_protocol)) == -1)
+	int IntDesc = 0;
+	if ((IntDesc = socket(Res->ai_family, Res->ai_socktype, Res->ai_protocol)) == -1)
 	{
 		perror(FailMsg);
 		return false;
 	}
 
 	
-	if (connect(*OutDescriptor, Res->ai_addr, Res->ai_addrlen) != 0)
+	if (connect(IntDesc, Res->ai_addr, Res->ai_addrlen) != 0)
 	{
 #ifdef DEBUG
 		fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
 #endif
-		Net::Close(*OutDescriptor);
-		*OutDescriptor = 0;
+		Net::Close(IntDesc);
 		return false;
 	}
 
-	SSL *&New = SSLMap[*OutDescriptor];
-
-	New = SSL_new(SSLContext);
-	SSL_set_fd(New, *OutDescriptor);
+	SSL *New = SSL_new(SSLContext);
+	SSL_set_fd(New, IntDesc);
 
 	if (SSL_connect(New) != 1)
 	{
 #ifdef DEBUG
 		fputs("SSL handshake failed!\n", stderr);
 #endif
-		Net::Close(*OutDescriptor);
+		Net::Close(IntDesc);
 		return false;
 	}
 
 	if (!VerifyCert(New))
 	{
-		Net::Close(*OutDescriptor);
+		Net::Close(New);
 		return false;
 	}
 	
@@ -331,9 +326,11 @@ static bool VerifyCert(SSL *SSLDesc)
 	return true;
 }
 	
-bool Net::Write(const int SockDescriptor, const void *const Bytes, const uint64_t ToTransfer,
+bool Net::Write(const ClientDescriptor &Descriptor, const void *const Bytes, const uint64_t ToTransfer,
 				Net::NetRWStatusForEachFunc StatusFunc, void *PassAlongWith)
 {
+	SSL *Desc = static_cast<SSL*>(Descriptor.Internal);
+	
 	uint64_t Transferred = 0, TotalTransferred = 0;
 
 	//Initialize status reporting with a zero value.
@@ -344,7 +341,7 @@ bool Net::Write(const int SockDescriptor, const void *const Bytes, const uint64_
 		//Force frequent iterations so status functions actually work.
 		const size_t ChunkSize = ToTransfer - TotalTransferred > NET_MAX_CHUNK_SIZE ? NET_MAX_CHUNK_SIZE : ToTransfer - TotalTransferred;
 
-		Transferred = SSL_write(SSLMap[SockDescriptor], (const char*)Bytes + TotalTransferred, ChunkSize);
+		Transferred = SSL_write(Desc, (const char*)Bytes + TotalTransferred, ChunkSize);
 		
 		if (Transferred == (uint64_t)-1) /*This is ugly I know, but it's converted implicitly, so shut up.*/
 		{
@@ -362,16 +359,18 @@ bool Net::Write(const int SockDescriptor, const void *const Bytes, const uint64_
 	return true;
 }
 
-bool Net::HasRealDataToRead(const int SockDescriptor)
+bool Net::HasRealDataToRead(const ClientDescriptor &Descriptor)
 {
 	uint64_t QWord;
 	
-	return SSL_peek(SSLMap[SockDescriptor], &QWord, sizeof QWord) > 0;
+	return SSL_peek((SSL*)Descriptor.Internal, &QWord, sizeof QWord) > 0;
 }
 
-bool Net::Read(const int SockDescriptor, void *const OutStream_, const uint64_t MaxLength,
+bool Net::Read(const ClientDescriptor &Descriptor, void *const OutStream_, const uint64_t MaxLength,
 				Net::NetRWStatusForEachFunc StatusFunc, void *PassAlongWith)
 {
+	SSL *Desc = static_cast<SSL*>(Descriptor.Internal);
+	
 	unsigned char *OutStream = static_cast<unsigned char*>(OutStream_);
 	unsigned TotalReceived = 0;
 	int Received = 0;
@@ -383,7 +382,7 @@ bool Net::Read(const int SockDescriptor, void *const OutStream_, const uint64_t 
 		//We have to force frequent iterations to get decent status reports.
 		const size_t ChunkSize = MaxLength - TotalReceived > NET_MAX_CHUNK_SIZE ? NET_MAX_CHUNK_SIZE : MaxLength - TotalReceived;
 		
-		Received = SSL_read(SSLMap[SockDescriptor], (char*)OutStream, ChunkSize);
+		Received = SSL_read(Desc, (char*)OutStream, ChunkSize);
 		if (Received > 0)
 		{
 			OutStream += Received;
@@ -400,20 +399,30 @@ bool Net::Read(const int SockDescriptor, void *const OutStream_, const uint64_t 
 }
 
 
-bool Net::Close(const int SockDescriptor)
+bool Net::Close(const int Descriptor)
 {
-	if (!SockDescriptor) return false;
-
-	if (SSLMap.count(SockDescriptor))
-	{
-		SSL_shutdown(SSLMap[SockDescriptor]);
-		SSL_free(SSLMap[SockDescriptor]);
-		SSLMap.erase(SockDescriptor);
-	}
-	
 #ifdef WIN32
-	return !closesocket(SockDescriptor);
+	return !closesocket(Descriptor);
 #else
-	return !close(SockDescriptor);
+	return !close(Descriptor);
 #endif
+}
+
+bool Net::Close(const ClientDescriptor &Descriptor)
+{
+	SSL *Desc = static_cast<SSL*>(Descriptor.Internal);
+	
+	if (!Desc) return false;
+
+	const int IntDesc = SSL_get_fd(Desc);
+	
+	SSL_shutdown(Desc);
+	SSL_free(Desc);
+	
+	return Net::Close(IntDesc);
+}
+
+int Net::ToRawDescriptor(const ClientDescriptor &Desc)
+{
+	return SSL_get_fd(static_cast<SSL*>(Desc.Internal));
 }

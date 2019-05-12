@@ -20,12 +20,12 @@
 #define _VL_NODE_INTERFACE_H_
 
 #include "../libvolition/include/common.h"
+#include "../libvolition/include/netcore.h"
 
 namespace Interface
 {
-	int Establish(const char *Hostname);
+	Net::ClientDescriptor Establish(const char *Hostname);
 	bool HandleServerInterface(Conation::ConationStream *Stream);
-	void Shutdown(const int Descriptor);
 }
 
 #endif //_VL_NODE_INTERFACE_H_

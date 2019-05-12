@@ -29,7 +29,7 @@ namespace Main
 	extern Net::PingTracker PingTrack;
 	
 	char **GetArgvData(int **ArgcOut);
-	const int *GetSocketDescriptor(void);
+	const Net::ClientDescriptor *GetSocketDescriptor(void);
 	void Begin(const bool JustUpdated = false);
 	
 	void PushStreamToWriteQueue(Conation::ConationStream *Stream);

@@ -95,7 +95,7 @@ namespace Jobs
 	};
 	
 	bool StartJob(const CommandCode NewJob, const Conation::ConationStream *Data);
-	void ProcessCompletedJobs(const int Descriptor);
+	void ProcessCompletedJobs(void);
 	VLString GetWorkingDirectory(void);
 	void ForwardToScriptJobs(Conation::ConationStream *Stream);
 	void KillAllJobs(void);

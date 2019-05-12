@@ -50,7 +50,7 @@ namespace Clients
 	class ClientObj
 	{
 	private:
-		int Descriptor;
+		Net::ClientDescriptor Descriptor;
 		time_t ConnectedTime; //The time authentication was completed.
 		VLString ID;
 		VLString IPAddr;
@@ -78,7 +78,7 @@ namespace Clients
 	public:
 		inline NetScheduler::ReadQueue *GetReadQueue(void) { return this->ClientReadQueue; }
 		inline NetScheduler::WriteQueue *GetWriteQueue(void) { return this->ClientWriteQueue; }
-		inline int GetDescriptor(void) const { return this->Descriptor; }
+		inline const Net::ClientDescriptor &GetDescriptor(void) const { return this->Descriptor; }
 		inline VLString GetPlatformString(void) const { return PlatformString; }
 		inline VLString GetNodeRevision(void) const { return NodeRevision; }
 		inline time_t GetConnectedTime(void) const { return ConnectedTime; }
@@ -101,7 +101,7 @@ namespace Clients
 		bool CompletePing(void);
 		
 		//Constructors
-		ClientObj(const int InDesc = 0) : Descriptor(InDesc), PlatformString("NA"),
+		ClientObj(const Net::ClientDescriptor &InDesc) : Descriptor(InDesc), PlatformString("NA"),
 				NodeRevision("NA"), Group(), Ping(),
 				ClientReadQueue(new NetScheduler::ReadQueue(InDesc)), ClientWriteQueue(new NetScheduler::WriteQueue(InDesc)),
 				ReadQueueStatus(new NetScheduler::SchedulerStatusObj), WriteQueueStatus(new NetScheduler::SchedulerStatusObj) {}
@@ -132,7 +132,7 @@ namespace Clients
 		Err_DuplicateClientDescriptor(ClientObj *const InDupe) : Dupe(InDupe) {}
 	};
 
-	ClientObj *AddClient(const int Descriptor);
+	ClientObj *AddClient(const Net::ClientDescriptor &Descriptor);
 	bool DeleteClient(const char *ID);
 	bool DeleteClient(const ClientObj *const Ptr);
 	

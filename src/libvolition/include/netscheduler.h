@@ -20,6 +20,7 @@
 
 #include "common.h"
 #include "conation.h"
+#include "netcore.h"
 #include "vlthreads.h"
 
 #include <list>
@@ -76,7 +77,7 @@ namespace NetScheduler
 		VLThreads::Semaphore Semaphore;
 		VLThreads::Thread Thread;
 		std::list<Conation::ConationStream*> Queue;
-		int Descriptor;
+		Net::ClientDescriptor Descriptor;
 		bool Error;
 		bool ThreadShouldDie;
 		SchedulerStatusObj *StatusObj;
@@ -88,10 +89,10 @@ namespace NetScheduler
 		QueueBase(QueueBase&&);
 		QueueBase &operator=(const QueueBase&);
 	public:
-		QueueBase(VLThreads::Thread::EntryFunc EntryFuncParam, const int RecvDescriptor = 0);
+		QueueBase(VLThreads::Thread::EntryFunc EntryFuncParam, const Net::ClientDescriptor &RecvDescriptor = {});
 		virtual ~QueueBase(void);
 		
-		virtual void Begin(const int NewDescriptor = 0);
+		virtual void Begin(const Net::ClientDescriptor &NewDescriptor = {});
 
 		virtual bool StopThread(const size_t WaitInMS = 0, const size_t PreCheckWait = 0);
 		virtual bool KillThread(void);
@@ -111,7 +112,7 @@ namespace NetScheduler
 		WriteQueue(WriteQueue&&);
 		WriteQueue &operator=(const WriteQueue&);
 	public:
-		WriteQueue(const int SendDescriptor = 0);
+		WriteQueue(const Net::ClientDescriptor &SendDescriptor = {});
 		virtual ~WriteQueue(void) = default;
 		
 		void Push(Conation::ConationStream *Stream);
@@ -128,7 +129,7 @@ namespace NetScheduler
 		ReadQueue(ReadQueue&&);
 		ReadQueue &operator=(const ReadQueue&);
 	public:
-		ReadQueue(const int RecvDescriptor = 0);
+		ReadQueue(const Net::ClientDescriptor &RecvDescriptor = {});
 		virtual ~ReadQueue(void) = default;
 		
 		Conation::ConationStream *Head_Acquire(void);

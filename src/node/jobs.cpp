@@ -825,7 +825,7 @@ bool Jobs::StartJob(const CommandCode ID, const Conation::ConationStream *Data)
 	
 }
 
-void Jobs::ProcessCompletedJobs(const int Descriptor)
+void Jobs::ProcessCompletedJobs(void)
 {
 	std::list<Job>::iterator Iter = JobsList.begin();
 
@@ -884,7 +884,11 @@ void Jobs::KillAllJobs(void)
 {
 	for (auto Iter = JobsList.begin(); Iter != JobsList.end(); ++Iter)
 	{
-		if (Iter->JobThread) Iter->JobThread->Kill();
+		if (Iter->JobThread)
+		{
+			Iter->JobThread->Kill();
+			Iter->JobThread->Join();
+		}
 	}
 	
 	JobsList.clear();
@@ -897,6 +901,7 @@ bool Jobs::KillJobByID(const uint64_t JobID)
 		if (Iter->JobID == JobID)
 		{
 			Iter->JobThread->Kill();
+			Iter->JobThread->Join();
 			JobsList.erase(Iter);
 			return true;
 		}
@@ -913,6 +918,7 @@ ResetLoop:
 		if (Iter->CmdCode == CmdCode)
 		{
 			Iter->JobThread->Kill();
+			Iter->JobThread->Join();
 			JobsList.erase(Iter);
 			FoundOne = true;
 			goto ResetLoop;

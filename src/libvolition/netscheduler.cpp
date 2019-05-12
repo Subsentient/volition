@@ -32,7 +32,7 @@
 
 #include <errno.h>
 
-NetScheduler::QueueBase::QueueBase(VLThreads::Thread::EntryFunc EntryFuncParam, const int DescriptorIn)
+NetScheduler::QueueBase::QueueBase(VLThreads::Thread::EntryFunc EntryFuncParam, const Net::ClientDescriptor &DescriptorIn)
 	: Thread(EntryFuncParam, this),
 	Descriptor(DescriptorIn),
 	Error(),
@@ -42,9 +42,9 @@ NetScheduler::QueueBase::QueueBase(VLThreads::Thread::EntryFunc EntryFuncParam, 
 }
 
 
-void NetScheduler::QueueBase::Begin(const int NewDescriptor)
+void NetScheduler::QueueBase::Begin(const Net::ClientDescriptor &NewDescriptor)
 {
-	if (NewDescriptor) this->Descriptor = NewDescriptor;
+	if (NewDescriptor.Internal) this->Descriptor = NewDescriptor;
 	
 	this->ThreadShouldDie = false;
 	this->Thread.Start();
@@ -85,6 +85,7 @@ bool NetScheduler::QueueBase::StopThread(const size_t WaitInMS, const size_t Pre
 			{
 				Utils::vl_sleep(WaitInMS);
 				this->Thread.Kill();
+				this->Thread.Join();
 			}
 		}
 		return true;
@@ -97,6 +98,7 @@ bool NetScheduler::QueueBase::KillThread(void)
 	if (this->Thread.Started() && this->Thread.Alive())
 	{
 		this->Thread.Kill();
+		this->Thread.Join();
 		return true;
 	}
 	else return false;
@@ -133,7 +135,7 @@ void NetScheduler::QueueBase::SetStatusObj(SchedulerStatusObj *const StatusObj)
 	this->Mutex.Unlock();
 }
 
-NetScheduler::WriteQueue::WriteQueue(const int DescriptorIn) : QueueBase((VLThreads::Thread::EntryFunc)WriteQueue::ThreadFunc, DescriptorIn)
+NetScheduler::WriteQueue::WriteQueue(const Net::ClientDescriptor &DescriptorIn) : QueueBase((VLThreads::Thread::EntryFunc)WriteQueue::ThreadFunc, DescriptorIn)
 {
 }
 
@@ -217,7 +219,7 @@ void *NetScheduler::WriteQueue::ThreadFunc(WriteQueue *ThisPointer)
 	return nullptr;
 }
 
-NetScheduler::ReadQueue::ReadQueue(const int DescriptorIn) : QueueBase((VLThreads::Thread::EntryFunc)ReadQueue::ThreadFunc, DescriptorIn)
+NetScheduler::ReadQueue::ReadQueue(const Net::ClientDescriptor &DescriptorIn) : QueueBase((VLThreads::Thread::EntryFunc)ReadQueue::ThreadFunc, DescriptorIn)
 {
 }
 
@@ -245,8 +247,10 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 
 		ThisPointer->Mutex.Unlock(); //We don't need access right now.
 
-		fd_set Set{};		
-		FD_SET(ThisPointer->Descriptor, &Set);
+		fd_set Set{};
+		const int IntDesc = Net::ToRawDescriptor(ThisPointer->Descriptor);
+			
+		FD_SET(IntDesc, &Set);
 		fd_set ErrSet = Set;
 		struct timeval Time{};
 		Time.tv_usec = 30;
@@ -254,14 +258,14 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 
 		//Something to do?
 		
-		const int SelectStatus = select(ThisPointer->Descriptor + 1, &Set, nullptr, &ErrSet, &Time);
+		const int SelectStatus = select(IntDesc + 1, &Set, nullptr, &ErrSet, &Time);
 		
 		if (!SelectStatus || (SelectStatus < 0 && errno == EINTR))
 		{ //Guess not.
 			continue;
 		}
 		
-		if ((SelectStatus < 0 && errno != EINTR) || FD_ISSET(ThisPointer->Descriptor, &ErrSet) || !Net::HasRealDataToRead(ThisPointer->Descriptor))
+		if ((SelectStatus < 0 && errno != EINTR) || FD_ISSET(IntDesc, &ErrSet) || !Net::HasRealDataToRead(ThisPointer->Descriptor))
 		{
 #ifdef DEBUG
 			if (SelectStatus < 0) puts(VLString("NetScheduler::ReadQueue::ThreadFunc(): Error detected was ") + (const char*)strerror(errno));

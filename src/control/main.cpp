@@ -44,7 +44,7 @@ static NetScheduler::WriteQueue SockWriteQueue;
 static NetScheduler::SchedulerStatusObj ReadOperationStatus;
 static NetScheduler::SchedulerStatusObj WriteOperationStatus;
 
-static int SocketDescriptor = 0;
+static Net::ClientDescriptor SocketDescriptor;
 
 Net::PingTracker Main::PingTrack;
 
@@ -192,7 +192,7 @@ void Main::TerminateLink(void)
 	Net::Close(SocketDescriptor);
 
 }
-int Main::GetSocketDescriptor(void)
+const Net::ClientDescriptor &Main::GetSocketDescriptor(void)
 {
 	return SocketDescriptor;
 }

@@ -54,7 +54,7 @@ static std::map<Clients::NodeDeauthType, VLString> NodeDeauthTypeText
 };
 
 //Function definitions.
-Clients::ClientObj *Clients::AddClient(const int Descriptor)
+Clients::ClientObj *Clients::AddClient(const Net::ClientDescriptor &Descriptor)
 {
 	ClientList.emplace_back(Descriptor);
 	return &ClientList.back();
@@ -126,7 +126,7 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 {
 	if (!Desc) return nullptr;
 	
-	int ClientDesc = 0;
+	Net::ClientDescriptor ClientDesc{};
 	
 	char IPBuf[512] = { 0 };
 	
@@ -504,7 +504,7 @@ bool Clients::ProcessNodeDisconnect(ClientObj *Client, const NodeDeauthType Type
 
 	//Give them a chance to finish sending data before we close their socket.
 
-	const int ToDieDesc = Client->GetDescriptor();
+	const Net::ClientDescriptor ToDieDesc = Client->GetDescriptor();
 	
 	/*We're doing all this to prevent a needless memory leak when it kills the read queue thread
 	*just because the primary loop has the queue head locked and the thread can't check if it needs to die.*/

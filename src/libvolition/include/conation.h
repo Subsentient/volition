@@ -228,7 +228,7 @@ namespace Conation
 		ConationStream(const CommandCode Cmd, const uint8_t Flags, const uint64_t Ident, const size_t ExtraBytesAfter = 32);
 		ConationStream(const uint8_t *Stream, const size_t ExtraBytesAfter = 32);
 		ConationStream(const StreamHeader &Header, const uint8_t *Stream, const size_t ExtraBytesAfter = 32);
-		ConationStream(const int SocketDescriptor, Net::NetRWStatusForEachFunc StatusFunc = nullptr, void *PassAlongWith = nullptr);
+		ConationStream(const Net::ClientDescriptor &SocketDescriptor, Net::NetRWStatusForEachFunc StatusFunc = nullptr, void *PassAlongWith = nullptr);
 		ConationStream(void);
 		inline ~ConationStream(void) { delete this->Bytes; }
 		
@@ -253,7 +253,7 @@ namespace Conation
 		bool VerifyArgTypePattern(const size_t ArgOffset, ...) const;
 		
 		std::vector<ArgType> *GetArgTypes(void) const;
-		bool Transmit(const int Descriptor, Net::NetRWStatusForEachFunc StatusFunc = nullptr, void *PassAlongWith = nullptr) const;
+		bool Transmit(const Net::ClientDescriptor &Descriptor, Net::NetRWStatusForEachFunc StatusFunc = nullptr, void *PassAlongWith = nullptr) const;
 		
 		//Write operations
 		void Push_Bool(const bool Value, const size_t ExtraSpaceAfter = 8);

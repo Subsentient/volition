@@ -30,7 +30,7 @@ namespace Main
 	void InitiateLogin(GuiBase::LoginScreen *Instance);
 	void TerminateLink(void);
 	
-	int GetSocketDescriptor(void);
+	const Net::ClientDescriptor &GetSocketDescriptor(void);
 	
 	void RegisterPing(void);
 	bool CheckPingout(void);
