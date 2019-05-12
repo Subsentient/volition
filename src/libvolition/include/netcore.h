@@ -102,8 +102,6 @@ namespace Net
 		}
 	
 	};
-	
-		
 }
 
 #endif //__VL_NETCORE_H__

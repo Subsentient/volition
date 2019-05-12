@@ -30,6 +30,10 @@
 
 bool Interface::Establish(const VLString &Username, const VLString &Password, const VLString &Hostname, Net::ClientDescriptor *const OutDescriptor)
 {
+	//Hack to fix ping registration
+	Main::PingTrack.RegisterPing();
+	
+	
 	Net::ClientDescriptor Descriptor{};
 	
 	if (!Net::Connect(Hostname, MASTER_PORT, &Descriptor))

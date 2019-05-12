@@ -31,6 +31,8 @@
 
 Net::ClientDescriptor Interface::Establish(const char *Hostname)
 { //We know what server we want, now we communicate with it.
+	//Hack to fix ping registration on disconnect
+	Main::PingTrack.RegisterPing();
 	
 	Net::ClientDescriptor Connection{};
 #ifdef DEBUG
