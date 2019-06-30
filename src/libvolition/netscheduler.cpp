@@ -364,6 +364,13 @@ void NetScheduler::SchedulerStatusObj::GetValues(uint64_t *TotalOut,
 	this->Mutex.Unlock();
 }
 
+NetScheduler::SchedulerStatusObj::OperationType NetScheduler::SchedulerStatusObj::GetCurrentOperation(void)
+{
+	const VLThreads::MutexKeeper Keeper { &this->Mutex };
+	
+	return this->CurrentOperation;
+}
+
 void NetScheduler::SchedulerStatusObj::SetValues(const uint64_t Total,
 												const uint64_t Transferred,
 												const uint64_t NumOnQueue,

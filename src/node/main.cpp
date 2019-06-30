@@ -38,6 +38,7 @@
 
 //prototypes
 static void MasterLoop(Net::ClientDescriptor &Descriptor);
+static inline bool PingedOut(void);
 
 static int argc_;
 static char **argv_;
@@ -47,8 +48,17 @@ static Net::ClientDescriptor SocketDescriptor;
 static NetScheduler::ReadQueue MasterReadQueue;
 static NetScheduler::WriteQueue MasterWriteQueue;
 
+static NetScheduler::SchedulerStatusObj ReadQueueStatus;
+static NetScheduler::SchedulerStatusObj WriteQueueStatus;
+
 Net::PingTracker Main::PingTrack;
 
+static inline bool PingedOut(void)
+{
+	return !Main::PingTrack.CheckPingout() &&
+			ReadQueueStatus.GetCurrentOperation() == NetScheduler::SchedulerStatusObj::OPERATION_IDLE &&
+			WriteQueueStatus.GetCurrentOperation() == NetScheduler::SchedulerStatusObj::OPERATION_IDLE;
+}
 
 int main(int argc, char **argv)
 {
@@ -102,6 +112,9 @@ void Main::Begin(const bool JustUpdated)
 {
 	while (!(SocketDescriptor = Interface::Establish(IdentityModule::GetServerAddr() ) ).Internal ) Utils::vl_sleep(1000);
 
+	MasterReadQueue.SetStatusObj(&ReadQueueStatus);
+	MasterWriteQueue.SetStatusObj(&WriteQueueStatus);
+	
 	MasterReadQueue.Begin(SocketDescriptor);
 	MasterWriteQueue.Begin(SocketDescriptor);
 	
@@ -138,7 +151,7 @@ static void MasterLoop(Net::ClientDescriptor &Descriptor)
 {
 Restart:
 	//Poll for it.
-	if (!Main::PingTrack.CheckPingout() || MasterReadQueue.HasError() || MasterWriteQueue.HasError())
+	if (MasterReadQueue.HasError() || MasterWriteQueue.HasError() || PingedOut())
 	{
 #ifdef DEBUG
 		puts("MasterLoop(): Server lost connection. Attempting to reconnect.");

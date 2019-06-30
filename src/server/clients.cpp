@@ -437,16 +437,16 @@ LoopStart:
 	{
 		ClientObj *const Client = &*Iter;
 		
+		uint64_t ReadQueueSize = 0, WriteQueueSize = 0;
+		NetScheduler::SchedulerStatusObj::OperationType ReadQueueState{}, WriteQueueState{};
+		
+		Client->ReadQueueStatus->GetValues(nullptr, nullptr, &ReadQueueSize, &ReadQueueState);
+		Client->WriteQueueStatus->GetValues(nullptr, nullptr, &WriteQueueSize, &WriteQueueState);
+		
 		if (!Client->Ping.Waiting)
 		{ //See if it's time to send another ping.
 			if ((Client->Ping.SentTime / 1000) + PING_INTERVAL_TIME_SECS <= time(nullptr))
 			{
-				uint64_t ReadQueueSize = 0, WriteQueueSize = 0;
-				NetScheduler::SchedulerStatusObj::OperationType ReadQueueState{}, WriteQueueState{};
-				
-				Client->ReadQueueStatus->GetValues(nullptr, nullptr, &ReadQueueSize, &ReadQueueState);
-				Client->WriteQueueStatus->GetValues(nullptr, nullptr, &WriteQueueSize, &WriteQueueState);
-				
 				/*Make sure we aren't in the middle of transmitting some enormous blob that will take forever
 				 * and make the client ping out when they're really just busy.*/
 				
@@ -458,7 +458,7 @@ LoopStart:
 			}
 			continue;
 		}
-		else if ((Client->Ping.SentTime / 1000) + PING_PINGOUT_TIME_SECS <= time(nullptr))
+		else if ((!ReadQueueState && !WriteQueueState) && (Client->Ping.SentTime / 1000) + PING_PINGOUT_TIME_SECS <= time(nullptr))
 		{
 			Clients::ProcessNodeDisconnect(Client, Clients::NODE_DEAUTH_PINGOUT);
 			
