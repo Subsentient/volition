@@ -201,7 +201,9 @@ static gboolean PrimaryLoop(void*)
 {
 Restart:
 	;
-	if (!Main::PingTrack.CheckPingout() || SockReadQueue.HasError())
+	if ( (!Main::PingTrack.CheckPingout() &&
+		ReadOperationStatus.GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS &&
+		WriteOperationStatus.GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS) || SockReadQueue.HasError())
 	{
 		fputs(VLString("Socket ") + (SockReadQueue.HasError() ? "slammed shut by remote server" : "timed out") + "! Shutting down.\n", stderr);
 		NetCmdStatus FailStatus(false, STATUS_FAILED, "Connection to server has been lost!\nCannot continue. Shutting down.");

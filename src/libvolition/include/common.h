@@ -30,6 +30,7 @@
 #include <limits.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <time.h>
 
 #ifdef WIN32
 #define PATH_DIVIDER '\\'

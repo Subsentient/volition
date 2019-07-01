@@ -435,6 +435,7 @@ void Clients::CheckPingsAndQueues(void)
 LoopStart:
 	for (std::list<ClientObj>::iterator Iter = ClientList.begin(); Iter != ClientList.end(); ++Iter)
 	{
+		static constexpr time_t TimeLimit = PING_INTERVAL_TIME_SECS + PING_PINGOUT_TIME_SECS;
 		ClientObj *const Client = &*Iter;
 		
 		uint64_t ReadQueueSize = 0, WriteQueueSize = 0;
@@ -458,7 +459,9 @@ LoopStart:
 			}
 			continue;
 		}
-		else if ((!ReadQueueState && !WriteQueueState) && (Client->Ping.SentTime / 1000) + PING_PINGOUT_TIME_SECS <= time(nullptr))
+		else if ((Client->Ping.SentTime / 1000) + PING_PINGOUT_TIME_SECS <= time(nullptr) &&
+				Client->ReadQueueStatus->GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS &&
+				Client->WriteQueueStatus->GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS)
 		{
 			Clients::ProcessNodeDisconnect(Client, Clients::NODE_DEAUTH_PINGOUT);
 			

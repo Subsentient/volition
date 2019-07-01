@@ -32,10 +32,11 @@ namespace NetScheduler
 	public:
 		enum OperationType : uint8_t { OPERATION_IDLE = 0, OPERATION_SEND, OPERATION_RECV }; //Keep IDLE as zero!
 	private:
-		VLThreads::Mutex Mutex;
+		mutable VLThreads::Mutex Mutex;
 		uint64_t Total;
 		uint64_t Transferred;
 		uint64_t NumOnQueue;
+		time_t LastActivity;
 		OperationType CurrentOperation;
 		
 		SchedulerStatusObj(const SchedulerStatusObj &);
@@ -56,6 +57,9 @@ namespace NetScheduler
 		static void NetSendStatusFunc(const int64_t Transferred, const int64_t Total, CallbackStruct *Sub);
 
 		void GetValues(uint64_t *TotalOut, uint64_t *TransferredOut, uint64_t *NumOnQueueOut, OperationType *CurrentOperationOut);
+		uint64_t GetSecsSinceActivity(void) const;
+		void RegisterActivity(void);
+		
 		OperationType GetCurrentOperation(void);
 	};
 		

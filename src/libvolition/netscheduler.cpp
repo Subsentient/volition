@@ -347,7 +347,7 @@ void NetScheduler::ReadQueue::Head_Release(const bool Pop)
 }
 
 NetScheduler::SchedulerStatusObj::SchedulerStatusObj(const uint64_t InTotal)
-	: Total(), Transferred(), NumOnQueue(), CurrentOperation()
+	: Total(), Transferred(), NumOnQueue(), LastActivity(time(nullptr)), CurrentOperation()
 {
 }
 
@@ -397,11 +397,11 @@ void NetScheduler::SchedulerStatusObj::NetRecvStatusFunc(const int64_t Transferr
 	if (Transferred == -1)
 	{
 		Sub->ThisPointer->SetValues(0u, 0u, Sub->NumOnQueue, OPERATION_IDLE); //Completed.
+		return;
 	}
-	else
-	{
-		Sub->ThisPointer->SetValues(Total, Transferred, Sub->NumOnQueue, OPERATION_RECV);
-	}
+	
+	Sub->ThisPointer->RegisterActivity();
+	Sub->ThisPointer->SetValues(Total, Transferred, Sub->NumOnQueue, OPERATION_RECV);
 }
 
 void NetScheduler::SchedulerStatusObj::NetSendStatusFunc(const int64_t Transferred,
@@ -411,9 +411,23 @@ void NetScheduler::SchedulerStatusObj::NetSendStatusFunc(const int64_t Transferr
 	if (Transferred == -1)
 	{
 		Sub->ThisPointer->SetValues(0u, 0u, Sub->NumOnQueue, OPERATION_IDLE); //Completed.
+		return;
 	}
-	else
-	{
-		Sub->ThisPointer->SetValues(Total, Transferred, Sub->NumOnQueue, OPERATION_SEND);
-	}
+
+	Sub->ThisPointer->RegisterActivity();
+	Sub->ThisPointer->SetValues(Total, Transferred, Sub->NumOnQueue, OPERATION_SEND);
+}
+
+uint64_t NetScheduler::SchedulerStatusObj::GetSecsSinceActivity(void) const
+{
+	const VLThreads::MutexKeeper Keeper { &this->Mutex };
+	
+	return time(nullptr) - this->LastActivity;
+}
+
+void NetScheduler::SchedulerStatusObj::RegisterActivity(void)
+{
+	const VLThreads::MutexKeeper Keeper { &this->Mutex };
+	
+	this->LastActivity = time(nullptr);
 }

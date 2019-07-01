@@ -56,8 +56,8 @@ Net::PingTracker Main::PingTrack;
 static inline bool PingedOut(void)
 {
 	return !Main::PingTrack.CheckPingout() &&
-			ReadQueueStatus.GetCurrentOperation() == NetScheduler::SchedulerStatusObj::OPERATION_IDLE &&
-			WriteQueueStatus.GetCurrentOperation() == NetScheduler::SchedulerStatusObj::OPERATION_IDLE;
+			ReadQueueStatus.GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS &&
+			WriteQueueStatus.GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS;
 }
 
 int main(int argc, char **argv)
