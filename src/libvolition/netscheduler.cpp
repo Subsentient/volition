@@ -255,7 +255,7 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 		FD_SET(IntDesc, &Set);
 		fd_set ErrSet = Set;
 		struct timeval Time{};
-		Time.tv_usec = 30;
+		Time.tv_usec = 10000;
 		
 
 		//Something to do?

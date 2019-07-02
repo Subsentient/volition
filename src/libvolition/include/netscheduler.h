@@ -84,7 +84,6 @@ namespace NetScheduler
 		std::list<Conation::ConationStream*> Queue;
 		Net::ClientDescriptor Descriptor;
 		bool Error;
-		bool Active;
 		bool ThreadShouldDie;
 		SchedulerStatusObj *StatusObj;
 	
