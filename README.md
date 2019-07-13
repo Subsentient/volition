@@ -72,7 +72,7 @@ Have fun experimenting with Volition!
 
 If you wish to contribute to Volition, here are the requirements for your code to be seriously considered for merging.
 
-* You must surrender the copyright to me, Daniel Hopson, because, as stated earlier, there may be an enterprise version of Volition in the future that is not GPLv3 licensed. In order to make that legal, I must have copyright control.
+* You must surrender the copyright to me, because as stated earlier, there may be an enterprise version of Volition in the future that is not GPLv3 licensed. In order to make that legal, I must have copyright control.
 * You must write your code with the same styling as the rest of the codebase.
 * You must use tabs, not spaces.
 * You must know C++ **well**.
