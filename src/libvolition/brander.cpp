@@ -93,9 +93,9 @@ bool Brander::BrandBinaryViaBuffer(void *Buf, const size_t BufSize, const std::m
 					return false;
 				}
 				
-				int64_t Time = Iter->second.Get_Int64();
-				*(uint64_t*)&Time = Utils::vl_htonll(*(uint64_t*)&Time);
-				memcpy(Search, &Time, sizeof Time);
+				int64_t Value = Iter->second.Get_Int64();
+				*(uint64_t*)&Value = Utils::vl_htonll(*(uint64_t*)&Value);
+				memcpy(Search, &Value, sizeof Value);
 				break;
 			}
 			default:
@@ -165,13 +165,13 @@ Brander::AttrValue *Brander::ReadBrandedBinaryViaBuffer(const void *Buf, const s
 	{
 		case AttributeTypes::COMPILETIME:
 		{
-			int64_t Time = 0;
+			int64_t Value = 0;
 			
-			memcpy(&Time, Search, sizeof Time);
+			memcpy(&Value, Search, sizeof Value);
 			
-			Time = Utils::vl_ntohll(Time);
+			Value = Utils::vl_ntohll(Value);
 			
-			RetVal = new AttrValue(Time);
+			RetVal = new AttrValue(Value);
 			break;
 		}
 		default:

@@ -23,19 +23,19 @@
 #include "identity_module.h"
 
 //Delimiter lengths
-static const size_t IdentityDelimLength = NODE_IDENTITY_DELIMSTART_LENGTH;
+static constexpr size_t IdentityDelimLength = NODE_IDENTITY_DELIMSTART_LENGTH;
 
-static const size_t RevisionDelimLength = NODE_REVISION_DELIMSTART_LENGTH;
+static constexpr size_t RevisionDelimLength = NODE_REVISION_DELIMSTART_LENGTH;
 
-static const size_t PlatformStringDelimLength = NODE_PLATFORM_STRING_DELIMSTART_LENGTH;
+static constexpr size_t PlatformStringDelimLength = NODE_PLATFORM_STRING_DELIMSTART_LENGTH;
 
-static const size_t ServerAddrDelimLength = NODE_SERVERADDR_DELIMSTART_LENGTH;
+static constexpr size_t ServerAddrDelimLength = NODE_SERVERADDR_DELIMSTART_LENGTH;
 
-static const size_t CompileTimeDelimLength = NODE_COMPILETIME_DELIMSTART_LENGTH;
+static constexpr size_t CompileTimeDelimLength = NODE_COMPILETIME_DELIMSTART_LENGTH;
 
-static const size_t AuthTokenDelimLength = NODE_AUTHTOKEN_DELIMSTART_LENGTH;
+static constexpr size_t AuthTokenDelimLength = NODE_AUTHTOKEN_DELIMSTART_LENGTH;
 
-static const size_t CertDelimLength = NODE_CERT_DELIMSTART_LENGTH;
+static constexpr size_t CertDelimLength = NODE_CERT_DELIMSTART_LENGTH;
 
 
 //Buffers holding our data.

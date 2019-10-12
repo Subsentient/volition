@@ -29,6 +29,13 @@
 #else
 #include <unistd.h>
 #endif //WIN32
+
+#if defined(LINUX) || defined(NETBSD)
+#include <fcntl.h>
+#elif defined(FREEBSD)
+#include <sys/sysctl.h>
+#endif
+
 #include "include/utils.h"
 #include "include/common.h"
 
@@ -324,3 +331,23 @@ bool Utils::IsDirectory(const char *Path)
 	return S_ISDIR(FileStat.st_mode);
 }
 
+VLString Utils::GetSelfBinaryPath(void)
+{
+	char Buffer[2048]{};
+#ifdef LINUX
+	
+	if (readlink("/proc/self/exe", Buffer, sizeof Buffer) == -1) return {};	
+#elif defined(NETBSD)
+	if (readlink("/proc/curproc/exe", Buffer, sizeof Buffer) == -1) return {};
+#elif defined(FREEBSD)
+	int CallArgs[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+	
+	size_t Size = sizeof Buffer;
+	
+	sysctl(CallArgs, sizeof CallArgs / sizeof *CallArgs, Buffer, &Size, nullptr, 0);
+#elif defined(WIN32)
+	GetModuleFileName(nullptr, Buffer, sizeof Buffer);
+#endif
+	return Buffer;
+
+}

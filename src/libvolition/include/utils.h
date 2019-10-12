@@ -41,7 +41,8 @@ namespace Utils
 	VLString JoinTextByCharacter(const std::vector<VLString> *Strings, const char Character);
 	VLString GetTempDirectory(void);
 	bool IsDirectory(const char *Path);
-	
+	VLString GetSelfBinaryPath(void);
+
 	template <typename I>
 	VLString ToBinaryString(const I Value)
 	{

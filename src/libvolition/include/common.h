@@ -177,9 +177,10 @@ public:
 		}
 
 		this->Ptr = nullptr;
+		this->Allocator = ALLOCTYPE_NEW;
 	}
 	
-	VLScopedPtr(const PtrType Input, const AllocatorType AllocatorIn = ALLOCTYPE_NEW) : Ptr(Input), Allocator(AllocatorIn)
+	VLScopedPtr(const PtrType Input = nullptr, const AllocatorType AllocatorIn = ALLOCTYPE_NEW) : Ptr(Input), Allocator(AllocatorIn)
 	{
 	}
 
@@ -195,9 +196,13 @@ public:
 		this->Allocator = AllocatorIn;
 	}
 
-	void Forget(void)
+	PtrType Forget(void)
 	{ //To abort freeing the pointer so something else can take control.
+		const PtrType RetVal = this->Ptr;
 		this->Ptr = nullptr;
+		this->Allocator = ALLOCTYPE_NEW;
+		
+		return RetVal;
 	}
 
 	operator PtrType(void) const { return this->Ptr; }
@@ -217,10 +222,25 @@ public:
 	{
 		Ref.Ptr = nullptr;
 	}
+
+	VLScopedPtr &operator=(VLScopedPtr &&Ref)
+	{
+		if (this == &Ref) return *this;
+		
+		this->Release();
+		
+		this->Ptr = Ref.Ptr;
+		this->Allocator = Ref.Allocator;
+		
+		Ref.Ptr = nullptr;
+		Ref.Allocator = ALLOCTYPE_NEW;
+		
+		return *this;
+	}
+		
 	
 private: //No copy operations please.
 	VLScopedPtr &operator=(const VLScopedPtr&);
-	VLScopedPtr &operator=(VLScopedPtr&&);
 	VLScopedPtr(const VLScopedPtr&);
 };
 

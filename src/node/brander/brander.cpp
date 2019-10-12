@@ -47,57 +47,48 @@ static std::map<VLString, Brander::AttributeTypes> ArgMap =	{
 static bool ReadBinary(const char *Binary)
 {
 	
-	std::vector<uint8_t> *FileBuffer = Utils::Slurp(Binary);
+	VLScopedPtr<std::vector<uint8_t>*> FileBuffer { Utils::Slurp(Binary) };
 	
 	if (!FileBuffer) return false;
 	
 	//Get identity
-	Brander::AttrValue *Value = Brander::ReadBrandedBinaryViaBuffer((const char*)FileBuffer->data(), FileBuffer->size(), Brander::AttributeTypes::IDENTITY);
+	VLScopedPtr<Brander::AttrValue*> Value { Brander::ReadBrandedBinaryViaBuffer((const char*)FileBuffer->data(), FileBuffer->size(), Brander::AttributeTypes::IDENTITY) };
 	
 	if (!Value)
 	{
-		delete FileBuffer;
 		return false;
 	}
 	printf("Identity: \"%s\"\n", +Value->Get_String());
-	delete Value;
 	
 	//Get server address
 	Value = Brander::ReadBrandedBinaryViaBuffer((const char*)FileBuffer->data(), FileBuffer->size(), Brander::AttributeTypes::SERVERADDR);
 	
 	if (!Value)
 	{
-		delete FileBuffer;
 		return false;
 	}
 
 	printf("Server address: \"%s\"\n", +Value->Get_String());
-	delete Value;
 	
 	//Get revision
 	Value = Brander::ReadBrandedBinaryViaBuffer((const char*)FileBuffer->data(), FileBuffer->size(), Brander::AttributeTypes::REVISION);
 
 	if (!Value)
 	{
-		delete FileBuffer;
 		return false;
 	}
 	
 	printf("Revision: \"%s\"\n", +Value->Get_String());
 
-	delete Value;
-	
 	//Get authentication token
 	Value = Brander::ReadBrandedBinaryViaBuffer((const char*)FileBuffer->data(), FileBuffer->size(), Brander::AttributeTypes::AUTHTOKEN);
 	
 	if (!Value)
 	{
-		delete FileBuffer;
 		return false;
 	}
 		
 	printf("Authentication token:  \"%s\"\n", +Value->Get_String());
-	delete Value;
 	
 	
 	//Get platform string
@@ -105,28 +96,21 @@ static bool ReadBinary(const char *Binary)
 
 	if (!Value)
 	{
-		delete FileBuffer;
 		return false;
 	}
 
 	printf("Platform string: \"%s\"\n", +Value->Get_String());
-	
-	delete Value;
 	
 	//Get compile time;
 	Value = Brander::ReadBrandedBinaryViaBuffer((const char*)FileBuffer->data(), FileBuffer->size(), Brander::AttributeTypes::COMPILETIME);
 
 	if (!Value)
 	{
-		delete FileBuffer;
 		return false;
 	}
 	
 	printf("Compile time: \"%llu\"\n", (unsigned long long)Value->Get_Int64());
 	
-	delete Value;
-	
-	delete FileBuffer;
 	//Done
 	return true;
 }
