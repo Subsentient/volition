@@ -142,6 +142,11 @@ VLThreads::Thread::~Thread(void)
 {
 	if (!this->ThreadObj) return;
 	
+	if (this->Started() && this->Alive())
+	{ //Murder the thread since its management object is about to die too
+		this->Kill();
+	}
+	
 #ifdef WIN32
 	CloseHandle((HANDLE)this->ThreadObj);
 #else

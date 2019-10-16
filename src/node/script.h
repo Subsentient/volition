@@ -20,7 +20,7 @@
 #define _VL_NODE_SCRIPT_H_
 
 #include "../libvolition/include/common.h"
-
+#include "../libvolition/include/vlthreads.h"
 #include "jobs.h" //Because we need JobReadQueue class.
 
 namespace Script
@@ -35,7 +35,7 @@ namespace Script
 	bool LoadScript(const char *ScriptBuffer, const char *ScriptName, const bool OverwritePermissible = false);
 	bool UnloadScript(const char *ScriptName);
 	bool ScriptIsLoaded(const char *ScriptName);
-	
+	VLThreads::Thread *SpawnInitScript(void);
 	bool ExecuteScriptFunction(const char *ScriptName, const char *FunctionName, Conation::ConationStream *Stream, Jobs::Job *OurJob);
 }
 

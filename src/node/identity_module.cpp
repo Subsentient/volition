@@ -37,6 +37,7 @@ static constexpr size_t AuthTokenDelimLength = NODE_AUTHTOKEN_DELIMSTART_LENGTH;
 
 static constexpr size_t CertDelimLength = NODE_CERT_DELIMSTART_LENGTH;
 
+static constexpr size_t InitScriptDelimLength = NODE_INITSCRIPT_DELIMSTART_LENGTH;
 
 //Buffers holding our data.
 
@@ -56,6 +57,8 @@ static volatile char ServerAddr[NODE_SERVERADDR_CAPACITY] = NODE_SERVERADDR_DELI
 static volatile char AuthToken[NODE_AUTHTOKEN_CAPACITY] = NODE_AUTHTOKEN_DELIMSTART;
 
 static volatile char CertBuffer[NODE_CERT_CAPACITY] = NODE_CERT_DELIMSTART;
+
+static volatile char InitScript[NODE_INITSCRIPT_CAPACITY] = NODE_INITSCRIPT_DELIMSTART;
 
 static volatile uint8_t CompileTimeBuf[NODE_COMPILETIME_CAPACITY] = NODE_COMPILETIME_DELIMSTART;
 
@@ -82,6 +85,15 @@ VLString IdentityModule::GetNodeRevision(void)
 	VLString Value(NODE_REVISION_CAPACITY);
 
 	Value = (const char*)Revision + RevisionDelimLength + 1;
+
+	return Value;
+}
+
+VLString IdentityModule::GetInitScript(void)
+{
+	VLString Value(NODE_INITSCRIPT_CAPACITY);
+	
+	Value = (const char *)InitScript + InitScriptDelimLength + 1;
 
 	return Value;
 }

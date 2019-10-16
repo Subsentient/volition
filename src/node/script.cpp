@@ -1576,7 +1576,7 @@ bool Script::ScriptIsLoaded(const char *ScriptName)
 
 static lua_State *InitScript(const char *ScriptName)
 {
-	if (LoadedScripts.count(ScriptName) == 0) return nullptr;
+	if (ScriptName && LoadedScripts.count(ScriptName) == 0) return nullptr;
 	
 #ifdef DEBUG
 	puts("Entered InitScript()");
@@ -1601,13 +1601,36 @@ static lua_State *InitScript(const char *ScriptName)
 	puts("LoadVLAPI() succeeded");
 #endif
 
-	//Load the script
-	if (luaL_loadbuffer(State, LoadedScripts[ScriptName], LoadedScripts[ScriptName].Length(), ScriptName) != LUA_OK)
+	bool Success = false;
+	
+	if (!ScriptName) //Initialization script glued to the node
+	{
+		const VLString &StartupScript { IdentityModule::GetInitScript() };
+		
+		if (!StartupScript)
+		{
+#ifdef DEBUG
+			fputs("InitScript() executed with a null pointer but no startup script present in identity module!\n", stderr);
+#endif
+			lua_close(State);
+			return nullptr;
+		}
+		
+		Success = luaL_loadbuffer(State, +StartupScript, StartupScript.Length(), "VLISCRIPT") == LUA_OK;
+	}
+	else
+	{
+		//Load the script
+		Success = luaL_loadbuffer(State, LoadedScripts[ScriptName], LoadedScripts[ScriptName].Length(), ScriptName) == LUA_OK;
+	}
+	
+	if (!Success)
 	{
 		lua_close(State);
-
+		
 		return nullptr;
 	}
+	
 
 #ifdef DEBUG
 	puts("luaL_loadbuffer() succeeded");
@@ -1713,3 +1736,23 @@ bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionN
 	
 	return FinalResult;
 }
+
+VLThreads::Thread *Script::SpawnInitScript(void)
+{
+	if (!IdentityModule::GetInitScript()) return nullptr;
+	
+	VLThreads::Thread *Thd = new VLThreads::Thread(
+	[] (void *) -> void*
+	{	
+		lua_State *State = InitScript(nullptr);
+		
+		if (State) lua_close(State);
+		
+		return (void*)(State != nullptr);
+	}, nullptr);
+	
+	Thd->Start();
+	
+	return Thd;
+}
+

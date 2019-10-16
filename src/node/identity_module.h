@@ -30,6 +30,7 @@ namespace IdentityModule
 	VLString GetNodeAuthToken(void);
 	VLString GetServerAddr(void);
 	VLString GetCertificate(void);
+	VLString GetInitScript(void);
 	int64_t GetCompileTime(void);
 }
 

@@ -26,6 +26,7 @@
 #include "jobs.h"
 #include "identity_module.h"
 #include "files.h"
+#include "script.h"
 
 #include <stdlib.h>
 #include <time.h>
@@ -127,6 +128,8 @@ void Main::Begin(const bool JustUpdated)
 		
 		MasterWriteQueue.Push(new Conation::ConationStream(Msg));
 	}
+	
+	VLScopedPtr<VLThreads::Thread*> StartupScriptThread { Script::SpawnInitScript() };
 	
 	//Do the things.
 	while (1) MasterLoop(SocketDescriptor);

@@ -40,6 +40,7 @@ static std::map<VLString, Brander::AttributeTypes> ArgMap =	{
 														{ "--authtoken", Brander::AttributeTypes::AUTHTOKEN },
 														{ "--cert", Brander::AttributeTypes::CERT },
 														{ "--compiletime", Brander::AttributeTypes::COMPILETIME },
+														{ "--initscript", Brander::AttributeTypes::INITSCRIPT },
 													};
 
 
@@ -101,6 +102,18 @@ static bool ReadBinary(const char *Binary)
 
 	printf("Platform string: \"%s\"\n", +Value->Get_String());
 	
+	//Get whether we have an init script
+	Value = Brander::ReadBrandedBinaryViaBuffer((const char*)FileBuffer->data(), FileBuffer->size(), Brander::AttributeTypes::INITSCRIPT);
+
+	if (!Value)
+	{
+		return false;
+	}
+
+	const VLString &StartupScript { Value->Get_String() };
+	
+	printf("Init script: \"%s\"\n", StartupScript ? "present" : "not set");
+	
 	//Get compile time;
 	Value = Brander::ReadBrandedBinaryViaBuffer((const char*)FileBuffer->data(), FileBuffer->size(), Brander::AttributeTypes::COMPILETIME);
 
@@ -154,6 +167,7 @@ int main(const int argc, const char **argv)
 				Values.emplace(ArgMap[String], atoll(Argument));
 				break;
 			case Brander::AttributeTypes::CERT:
+			case Brander::AttributeTypes::INITSCRIPT:
 				Values.emplace(ArgMap[String], (const char*)(VLScopedPtr<std::vector<uint8_t>*>(Utils::Slurp(Argument))->data()));
 				break;
 			default:
