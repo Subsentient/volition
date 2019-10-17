@@ -31,7 +31,7 @@ function execselftest()
 
 	
 	print "Creating response"
-	local Response = VL.ConationStream.New(Header.cmdcode, bit.bor(Header.flags, VL.IDENT_ISREPORT_BIT), Header.ident)
+	local Response = VL.ConationStream.New(Header.cmdcode, Header.flags | VL.IDENT_ISREPORT_BIT, Header.ident)
 
 	Response:Push(VL.ARGTYPE_ODHEADER, VL.GetIdentity(), Origin)
 	Response:Push(VL.ARGTYPE_STRING, "Script initialized and executed successfully.")
