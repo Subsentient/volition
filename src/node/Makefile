@@ -1,8 +1,8 @@
 PKGCONFIG = pkg-config
 CXXFLAGS = -std=gnu++14 -pedantic -Wall -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing\
-			`$(PKGCONFIG) --cflags luajit` `$(PKGCONFIG) --cflags libcurl` `$(PKGCONFIG) --cflags openssl`
+			`$(PKGCONFIG) --cflags lua` `$(PKGCONFIG) --cflags libcurl` `$(PKGCONFIG) --cflags openssl`
 OBJECTS = processes.o interface.o main.o files.o cmdhandling.o jobs.o updates.o identity_module.o web.o script.o
-LDFLAGS = `$(PKGCONFIG) --libs luajit` `$(PKGCONFIG) --libs libcurl` ./.libvl/libvolition.a `$(PKGCONFIG) --libs openssl`
+LDFLAGS = `$(PKGCONFIG) --libs lua` `$(PKGCONFIG) --libs libcurl` ./.libvl/libvolition.a `$(PKGCONFIG) --libs openssl`
 IDENTITY = ""
 AUTHTOKEN = ""
 OUTFILE = ./volition_node_$(IDENTITY)-$(OS).$(CPU)
