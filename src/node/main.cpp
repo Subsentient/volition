@@ -244,34 +244,3 @@ NetScheduler::WriteQueue &Main::GetWriteQueue(void)
 {
 	return MasterWriteQueue;
 }
-
-VLString Main::GetCurrentBinaryPath(void)
-{
-	VLString SelfBinaryPath(2048);
-	
-#ifdef WIN32
-	GetModuleFileName(nullptr, SelfBinaryPath.GetBuffer(), SelfBinaryPath.GetCapacity() - 1);
-
-#elif defined(LINUX)
-
-	if (readlink("/proc/self/exe", SelfBinaryPath.GetBuffer(), SelfBinaryPath.GetCapacity() - 1) == -1)
-	{
-#ifdef DEBUG
-		puts("Failed to read /proc/self/exe!");
-#endif //DEBUG
-		return VLString();
-	}
-
-#else
-	SelfBinaryPath = Files::GetWorkingDirectory() + PATH_DIVIDER + static_cast<const char*>(*Main::GetArgvData(nullptr));
-#endif //WIN32
-
-#ifdef DEBUG
-	if (!SelfBinaryPath)
-	{
-		puts("Utils::GetCurrentBinaryPath(): WARNING: SelfBinaryPath is an empty string!");
-	}
-#endif //DEBUG
-
-	return SelfBinaryPath;
-}

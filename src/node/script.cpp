@@ -58,7 +58,7 @@ extern "C"
 
 //Prototypes
 static bool LoadVLAPI(lua_State *State);
-static bool VerifyLuaFuncArgs(lua_State *State, std::vector<decltype(LUA_TNONE)> &ToCheck);
+static bool VerifyLuaFuncArgs(lua_State *State, const std::vector<decltype(LUA_TNONE)> &ToCheck);
 
 
 ///Lua functions we provide here
@@ -66,6 +66,9 @@ static int VLAPI_GetIdentity(lua_State *State);
 static int VLAPI_GetRevision(lua_State *State);
 static int VLAPI_GetPlatformString(lua_State *State);
 static int VLAPI_GetServerAddr(lua_State *State);
+static int VLAPI_GetSSLCert(lua_State *State);
+static int VLAPI_GetAuthToken(lua_State *State);
+static int VLAPI_GetInitScript(lua_State *State);
 static int VLAPI_GetArgvData(lua_State *State);
 static int VLAPI_GetCompileTime(lua_State *State);
 static int VLAPI_GetProcesses(lua_State *State);
@@ -81,11 +84,14 @@ static int VLAPI_vl_sleep(lua_State *State);
 static int VLAPI_FileExists(lua_State *State);
 static int VLAPI_GetFileSize(lua_State *State);
 static int VLAPI_StripPathFromFilename(lua_State *State);
-static int VLAPI_GetCurrentBinaryPath(lua_State *State);
+static int VLAPI_GetSelfBinaryPath(lua_State *State);
 static int VLAPI_IntegerToByteString(lua_State *State);
 static int VLAPI_ListDirectory(lua_State *State);
+static int VLAPI_IsDirectory(lua_State *State);
 static int VLAPI_GetCWD(lua_State *State);
 static int VLAPI_Chdir(lua_State *State);
+static int VLAPI_SlurpFile(lua_State *State);
+static int VLAPI_WriteFile(lua_State *State);
 
 ///Lua ConationStream helper functions, the ones that don't go in VLAPIFuncs.
 static void InitConationStreamBindings(lua_State *State);
@@ -113,6 +119,9 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "GetRevision", VLAPI_GetRevision },
 	{ "GetPlatformString", VLAPI_GetPlatformString },
 	{ "GetServerAddr", VLAPI_GetServerAddr },
+	{ "GetSSLCert", VLAPI_GetSSLCert },
+	{ "GetAuthToken", VLAPI_GetAuthToken },
+	{ "GetInitScript", VLAPI_GetInitScript },
 	{ "GetArgvData", VLAPI_GetArgvData },
 	{ "GetCompileTime", VLAPI_GetCompileTime },
 	{ "GetProcesses", VLAPI_GetProcesses },
@@ -128,11 +137,14 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "FileExists", VLAPI_FileExists },
 	{ "GetFileSize", VLAPI_GetFileSize },
 	{ "StripPathFromFilename", VLAPI_StripPathFromFilename },
-	{ "GetCurrentBinaryPath", VLAPI_GetCurrentBinaryPath },
+	{ "GetSelfBinaryPath", VLAPI_GetSelfBinaryPath },
 	{ "IntegerToByteString", VLAPI_IntegerToByteString },
 	{ "ListDirectory", VLAPI_ListDirectory },
+	{ "IsDirectory", VLAPI_IsDirectory },
 	{ "GetCWD", VLAPI_GetCWD },
 	{ "Chdir", VLAPI_Chdir },
+	{ "SlurpFile", VLAPI_SlurpFile },
+	{ "WriteFile", VLAPI_WriteFile },
 };
 
 enum IntNameMapEnum : uint8_t
@@ -165,7 +177,7 @@ std::map<IntNameMapEnum, VLString> IntNameMap
 
 //Function definitions
 
-static bool VerifyLuaFuncArgs(lua_State *State, std::vector<decltype(LUA_TNONE)> &ToCheck)
+static bool VerifyLuaFuncArgs(lua_State *State, const std::vector<decltype(LUA_TNONE)> &ToCheck)
 {
 	const size_t Provided = lua_gettop(State);
 	
@@ -176,7 +188,7 @@ static bool VerifyLuaFuncArgs(lua_State *State, std::vector<decltype(LUA_TNONE)>
 	
 	for (size_t Inc = 0; Inc < ToCheck.size(); ++Inc)
 	{
-		if (lua_type(State, Inc + 1) != ToCheck[Inc]) return false;
+		if (lua_type(State, Inc + 1) != ToCheck.at(Inc)) return false;
 	}
 	
 	return true;
@@ -204,10 +216,54 @@ static int VLAPI_GetPlatformString(lua_State *State)
 	return 1;
 }
 
+static int VLAPI_GetInitScript(lua_State *State)
+{
+	lua_pushstring(State, IdentityModule::GetInitScript());
+	
+	return 1;
+}
+
+static int VLAPI_GetAuthToken(lua_State *State)
+{
+	lua_pushstring(State, IdentityModule::GetNodeAuthToken());
+	
+	return 1;
+}
+
+static int VLAPI_GetSSLCert(lua_State *State)
+{
+	lua_pushstring(State, IdentityModule::GetCertificate());
+	
+	return 1;
+}
 static int VLAPI_GetServerAddr(lua_State *State)
 {
 	lua_pushstring(State, IdentityModule::GetServerAddr());
 	
+	return 1;
+}
+
+static int VLAPI_WriteFile(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING, LUA_TSTRING }))
+	{
+		lua_pushboolean(State, false);
+		return 1;
+	}
+	
+	const VLString Path { lua_tostring(State, 1) };
+	
+	size_t DataLength = 0;
+	
+	const void *const Data = lua_tolstring(State, 2, &DataLength);
+	
+	if (!Data || !Utils::WriteFile(Path, Data, DataLength))
+	{
+		lua_pushboolean(State, false);
+		return 1;
+	}
+	
+	lua_pushboolean(State, true);
 	return 1;
 }
 
@@ -229,6 +285,34 @@ static int VLAPI_GetArgvData(lua_State *State)
 static int VLAPI_GetCompileTime(lua_State *State)
 {
 	lua_pushinteger(State, IdentityModule::GetCompileTime());
+	return 1;
+}
+
+static int VLAPI_SlurpFile(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING })) return 0;
+	
+	uint64_t FileSize = 0;
+	
+	const VLString Path { lua_tostring(State, 1) };
+	
+	if (!Utils::GetFileSize(Path, &FileSize)) return 0;
+	
+	
+	luaL_Buffer Buf{};
+	
+	void *const DataLocation = luaL_buffinitsize(State, &Buf, FileSize);
+	
+	if (!Utils::Slurp(Path, DataLocation, FileSize))
+	{
+		//Where the fuck is the deallocation function for luaL_Buffer? This will have to do.
+		luaL_pushresultsize(&Buf, 0);
+		lua_settop(State, 0);
+		return 0;
+	}
+	
+	luaL_pushresultsize(&Buf, FileSize);
+	
 	return 1;
 }
 
@@ -292,6 +376,21 @@ static int VLAPI_ListDirectory(lua_State *State)
 		//Store subtable in greater table.
 		lua_settable(State, -3);
 	}
+	
+	return 1;
+}
+
+static int VLAPI_IsDirectory(lua_State *State)
+{
+	const size_t ArgCount = lua_gettop(State);
+	
+	if (ArgCount != 1 || lua_type(State, 1) != LUA_TSTRING)
+	{
+		lua_pushnil(State);
+		return 1;
+	}
+	
+	lua_pushboolean(State, Utils::IsDirectory(lua_tostring(State, 1)));
 	
 	return 1;
 }
@@ -363,21 +462,17 @@ static int VLAPI_StripPathFromFilename(lua_State *State)
 	return 1;
 }
 
-static int VLAPI_GetCurrentBinaryPath(lua_State *State)
+static int VLAPI_GetSelfBinaryPath(lua_State *State)
 {
-	lua_pushstring(State, Main::GetCurrentBinaryPath());
+	lua_pushstring(State, Utils::GetSelfBinaryPath());
 	return 1;
 }
 
 static int VLAPI_IntegerToByteString(lua_State *State)
 {
-
-	const size_t ArgCount = lua_gettop(State);
-	
-	if (ArgCount < 2 || ArgCount > 3 ||
-		lua_type(State, 1) != LUA_TNUMBER||
-		lua_type(State, 2) != LUA_TNUMBER ||
-		(ArgCount == 3 && lua_type(State, 3) != LUA_TBOOLEAN))
+	bool HasConvertFlag = false;
+	if (!VerifyLuaFuncArgs(State, { LUA_TNUMBER, LUA_TNUMBER }) &&
+		!(HasConvertFlag = VerifyLuaFuncArgs(State, { LUA_TNUMBER, LUA_TNUMBER, LUA_TBOOLEAN })))
 	{
 	EasyFail:
 		lua_pushnil(State);
@@ -386,7 +481,7 @@ static int VLAPI_IntegerToByteString(lua_State *State)
 	
 	const IntNameMapEnum IntType = static_cast<IntNameMapEnum>(lua_tointeger(State, 1));
 	const uint64_t Integer = lua_tointeger(State, 2);
-	const bool ConvertToNet = ArgCount == 3 ? lua_toboolean(State, 3) : false;
+	const bool ConvertToNet = HasConvertFlag ? lua_toboolean(State, 3) : false;
 	
 	switch (IntType)
 	{
@@ -866,9 +961,16 @@ static bool LoadVLAPI(lua_State *State)
 
 	lua_settable(State, -3);
 	
+	//OS path separator
+	lua_pushstring(State, "ospathdiv");
+	lua_pushstring(State, PATH_DIVIDER_STRING);
+	
+	lua_settable(State, -3);
+	
 	InitConationStreamBindings(State);
 	return true;
 }
+
 static int LuaConationStreamGCFunc(lua_State *State)
 {
 	Conation::ConationStream *Ptr = static_cast<Conation::ConationStream*>(lua_touserdata(State, 1));

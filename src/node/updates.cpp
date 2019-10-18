@@ -232,7 +232,7 @@ static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File)
 	
 	NetCmdStatus RetVal(false);
 	
-	const VLString &SelfBinaryPath = Main::GetCurrentBinaryPath();
+	const VLString &SelfBinaryPath = Utils::GetSelfBinaryPath();
 	
 	if (!SelfBinaryPath)
 	{

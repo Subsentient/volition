@@ -43,9 +43,6 @@ namespace Main
 	
 	NetScheduler::ReadQueue &GetReadQueue(void);
 	NetScheduler::WriteQueue &GetWriteQueue(void);
-	
-	VLString GetCurrentBinaryPath(void);
-
 }
 
 #endif //_VL_NODE_MAIN_H_
