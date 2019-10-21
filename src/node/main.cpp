@@ -31,6 +31,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <dlfcn.h>
+
 #ifdef WIN32
 #include <winsock2.h>
 #endif //WIN32
@@ -53,6 +55,7 @@ static NetScheduler::SchedulerStatusObj ReadQueueStatus;
 static NetScheduler::SchedulerStatusObj WriteQueueStatus;
 
 Net::PingTracker Main::PingTrack;
+Main::DLOpenQueue Main::DLQ;
 
 static inline bool PingedOut(void)
 {
@@ -199,6 +202,8 @@ Restart:
 
 	Jobs::ProcessCompletedJobs();
 	
+	Main::DLQ.ProcessRequests(); //Process requests for dynamic symbols
+	
 	Utils::vl_sleep(50);
 }
 
@@ -243,4 +248,71 @@ NetScheduler::ReadQueue &Main::GetReadQueue(void)
 NetScheduler::WriteQueue &Main::GetWriteQueue(void)
 {
 	return MasterWriteQueue;
+}
+
+void Main::DLOpenQueue::ProcessRequests(void)
+{
+	VLThreads::MutexKeeper G { &this->RequestsLock };
+	
+	while (!this->Requests.empty())
+	{
+		const QueueMember &Ref { this->Requests.back() };
+		
+		VLThreads::MutexKeeper LG { &this->LibsLock };
+		
+		void *const Handle = this->Libs.count(Ref.LibPath) ? this->Libs.at(Ref.LibPath) : dlopen(Ref.LibPath, RTLD_LAZY);
+		
+		if (!Handle)
+		{
+			Ref.Waiter->Post(nullptr);
+			this->Requests.pop();
+			continue;
+		}
+		
+		this->Libs[Ref.LibPath] = Handle;
+		
+		void *FuncPtr = dlsym(Handle, Ref.FuncName);
+		
+		if (!FuncPtr)
+		{
+			Ref.Waiter->Post(nullptr);
+			this->Requests.pop();
+			dlclose(Handle);
+			continue;
+		}
+
+		Ref.Waiter->Post(FuncPtr);
+		
+		this->Requests.pop();
+	}
+}
+
+void *Main::DLOpenQueue::GetFunction(const VLString &LibPath, const VLString &FuncName)
+{
+	VLThreads::MutexKeeper FG { &this->FuncsLock };
+
+	if (this->Functions.count(FuncName))
+	{
+		return this->Functions.at(FuncName);
+	}
+	
+	FG.Unlock();
+	
+	VLThreads::MutexKeeper RG { &this->RequestsLock };
+	
+	VLThreads::ValueWaiter<void*> Waiter;
+	
+	Requests.push({LibPath, FuncName, &Waiter});
+	
+	RG.Unlock();
+	
+	void *const Func = Waiter.Await();
+	
+	if (!Func) return nullptr;
+	
+	FG.Lock();
+	
+	this->Functions[FuncName] = Func;
+	
+	return Func;
 }

@@ -14,7 +14,7 @@ STRIP = strip
 include ../Security.mk
 
 ifeq ($(OS),windows)
-	LDFLAGS += -lws2_32 -lpsapi -static
+	LDFLAGS += -lws2_32 -ldl -lpsapi -static
 ifneq ($(WINRC),0)
 	LDFLAGS +=  ./win32/win.o
 endif

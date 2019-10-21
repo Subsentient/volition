@@ -85,6 +85,9 @@ namespace VLThreads
 			this->Target = nullptr;
 		}
 		
+		void Unlock(void) { this->ReleaseNow(); }
+		void Lock(void) { if (this->Target) this->Target->Lock(); }
+		
 		void Encase(Mutex *const NewTarget)
 		{
 			this->ReleaseNow();
@@ -131,6 +134,31 @@ namespace VLThreads
 		void Start(void);
 		bool Alive(void);
 		bool Kill(void);
+	};
+	
+	template <typename T>
+	class ValueWaiter
+	{
+	private:
+		Mutex Lock;
+		T Value;
+		Semaphore Waiter;
+	public:
+		inline T Await(void)
+		{
+			this->Waiter.Wait();
+			
+			MutexKeeper G { &this->Lock };
+			return this->Value;
+		}
+		
+		inline void Post(const T &ValueIn)
+		{
+			MutexKeeper G { &this->Lock };
+			this->Value = ValueIn;
+			
+			this->Waiter.Post();
+		}
 	};
 }
 #endif //_VL_VLTHREADS_H_

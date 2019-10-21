@@ -92,6 +92,8 @@ static int VLAPI_GetCWD(lua_State *State);
 static int VLAPI_Chdir(lua_State *State);
 static int VLAPI_SlurpFile(lua_State *State);
 static int VLAPI_WriteFile(lua_State *State);
+static int VLAPI_RunningAsJob(lua_State *State);
+static int VLAPI_GetCFunction(lua_State *State);
 
 ///Lua ConationStream helper functions, the ones that don't go in VLAPIFuncs.
 static void InitConationStreamBindings(lua_State *State);
@@ -145,6 +147,8 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "Chdir", VLAPI_Chdir },
 	{ "SlurpFile", VLAPI_SlurpFile },
 	{ "WriteFile", VLAPI_WriteFile },
+	{ "RunningAsJob", VLAPI_RunningAsJob },
+	{ "GetCFunction", VLAPI_GetCFunction },
 };
 
 enum IntNameMapEnum : uint8_t
@@ -192,6 +196,28 @@ static bool VerifyLuaFuncArgs(lua_State *State, const std::vector<decltype(LUA_T
 	}
 	
 	return true;
+}
+
+static int VLAPI_GetCFunction(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING, LUA_TSTRING }))
+	{
+		puts("Arg verification failed");
+		return 0;
+	}
+	
+	int (*CFunc)(lua_State *) = (decltype(CFunc))Main::DLQ.GetFunction(lua_tostring(State, -2), lua_tostring(State, -1));
+	
+	if (!CFunc)
+	{
+		puts("DLQ failed");
+		return 0;
+	}
+	lua_settop(State, 0);
+	
+	lua_pushcfunction(State, CFunc);
+	
+	return 1;
 }
 
 static int VLAPI_GetIdentity(lua_State *State)
@@ -315,6 +341,18 @@ static int VLAPI_SlurpFile(lua_State *State)
 	
 	return 1;
 }
+
+static int VLAPI_RunningAsJob(lua_State *State)
+{
+	lua_getglobal(State, "VL_OurJob_LUSRDTA");
+	
+	const bool RunningAsJob = lua_type(State, -1) == LUA_TLIGHTUSERDATA;
+	
+	lua_pushboolean(State, RunningAsJob);
+	
+	return 1;
+}
+
 
 static int VLAPI_GetTempDirectory(lua_State *State)
 {

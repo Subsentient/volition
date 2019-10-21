@@ -133,7 +133,7 @@ void VLThreads::Thread::Start(void)
 #ifdef WIN32
 	this->ThreadObj = CreateThread(nullptr, 0u, (LPTHREAD_START_ROUTINE)this->EntryPoint, this->DataPointer, 0, nullptr);
 #else
-	this->ThreadObj = new pthread_t;
+	this->ThreadObj = new pthread_t{};
 	pthread_create((pthread_t*)this->ThreadObj, nullptr, this->EntryPoint, this->DataPointer);
 #endif
 }

@@ -38,3 +38,7 @@ src/utils/genauthtoken
 **/*.srl
 **/*.csr
 **/gmon.out
+**/*.so
+**/*.dll
+**/*.dylib
+**/vgcore.*
