@@ -76,7 +76,9 @@ static int VLAPI_KillProcessByName(lua_State *State);
 static int VLAPI_CopyFile(lua_State *State);
 static int VLAPI_DeleteFile(lua_State *State);
 static int VLAPI_MoveFile(lua_State *State);
+#ifndef NOCURL
 static int VLAPI_GetHTTP(lua_State *State);
+#endif //NOCURL
 static int VLAPI_RecvStream(lua_State *State);
 static int VLAPI_SendStream(lua_State *State);
 static int VLAPI_GetTempDirectory(lua_State *State);
@@ -131,7 +133,9 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "CopyFile", VLAPI_CopyFile },
 	{ "DeleteFile", VLAPI_DeleteFile },
 	{ "MoveFile", VLAPI_MoveFile },
+#ifndef NOCURL
 	{ "GetHTTP", VLAPI_GetHTTP },
+#endif //NOCURL
 	{ "RecvStream", VLAPI_RecvStream },
 	{ "SendStream", VLAPI_SendStream },
 	{ "GetTempDirectory", VLAPI_GetTempDirectory },
@@ -164,7 +168,7 @@ enum IntNameMapEnum : uint8_t
 	INTNAME_UINT64,
 };
 
-std::map<IntNameMapEnum, VLString> IntNameMap
+static std::map<IntNameMapEnum, VLString> IntNameMap
 {
 	{ INTNAME_INT8, "int8" },
 	{ INTNAME_UINT8, "uint8" },
@@ -841,6 +845,7 @@ static bool CloneConationStreamToLua(lua_State *State, Conation::ConationStream 
 	return lua_type(State, -1) == LUA_TTABLE;
 }
 
+#ifndef NOCURL
 static int VLAPI_GetHTTP(lua_State *State)
 {
 	const size_t NumArgs = lua_gettop(State);
@@ -896,6 +901,7 @@ static int VLAPI_GetHTTP(lua_State *State)
 	
 	return 1;		
 }
+#endif //NOCURL
 
 static bool LoadVLAPI(lua_State *State)
 {

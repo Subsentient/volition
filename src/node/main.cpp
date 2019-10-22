@@ -260,7 +260,7 @@ void Main::DLOpenQueue::ProcessRequests(void)
 		
 		VLThreads::MutexKeeper LG { &this->LibsLock };
 		
-		void *const Handle = this->Libs.count(Ref.LibPath) ? this->Libs.at(Ref.LibPath) : dlopen(Ref.LibPath, RTLD_LAZY);
+		void *const Handle = this->Libs.count(Ref.LibPath) ? this->Libs.at(Ref.LibPath) : dlopen(Ref.LibPath, RTLD_NOW | RTLD_GLOBAL);
 		
 		if (!Handle)
 		{
@@ -277,7 +277,6 @@ void Main::DLOpenQueue::ProcessRequests(void)
 		{
 			Ref.Waiter->Post(nullptr);
 			this->Requests.pop();
-			dlclose(Handle);
 			continue;
 		}
 

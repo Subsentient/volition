@@ -1,8 +1,8 @@
 PKGCONFIG = pkg-config
 CXXFLAGS = -std=gnu++14 -pedantic -Wall -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing\
-			`$(PKGCONFIG) --cflags lua` `$(PKGCONFIG) --cflags libcurl` `$(PKGCONFIG) --cflags openssl`
-OBJECTS = processes.o interface.o main.o files.o cmdhandling.o jobs.o updates.o identity_module.o web.o script.o
-LDFLAGS = `$(PKGCONFIG) --libs lua` `$(PKGCONFIG) --libs libcurl` ./.libvl/libvolition.a `$(PKGCONFIG) --libs openssl`
+			`$(PKGCONFIG) --cflags lua` `$(PKGCONFIG) --cflags openssl`
+OBJECTS = processes.o interface.o main.o files.o cmdhandling.o jobs.o updates.o identity_module.o script.o
+LDFLAGS = `$(PKGCONFIG) --libs openssl` `$(PKGCONFIG) --libs lua` ./.libvl/libvolition.a
 IDENTITY = ""
 AUTHTOKEN = ""
 OUTFILE = ./volition_node_$(IDENTITY)-$(OS).$(CPU)
@@ -27,8 +27,8 @@ endif
 PLATFORM_CXXFLAGS =
 
 else ifeq ($(OS),linux)
-	PLATFORM_CXXFLAGS += -DLINUX
-	LDFLAGS += -lpthread
+	PLATFORM_CXXFLAGS += -DLINUX -rdynamic
+	LDFLAGS += -lpthread -rdynamic
 else ifeq ($(OS),android)
 	PLATFORM_CXXFLAGS += -DANDROID -DLINUX
 	LDFLAGS += -lpthread
@@ -53,7 +53,7 @@ ifeq ($(FORCE_STATIC),1)
 endif
 
 ifdef DEBUG
-	CXXFLAGS += -DDEBUG -g3
+	CXXFLAGS += -DDEBUG -g3 -Og
 else
 	CXXFLAGS += -O3
 endif
@@ -69,6 +69,14 @@ endif
 
 ifdef EXTRALDFLAGS
 	LDFLAGS += $(EXTRALDFLAGS)
+endif
+
+ifneq ($(NOCURL),1)
+	OBJECTS += web.o
+	CXXFLAGS += `$(PKGCONFIG) --cflags libcurl`
+	LDFLAGS += `$(PKGCONFIG) --libs libcurl`
+else
+	CXXFLAGS += -DNOCURL
 endif
 
 all:
@@ -89,10 +97,15 @@ endif
 	$(MAKE) -C . objects
 	
 
-objects: identity_modulecpp filescpp scriptcpp webcpp interfacecpp jobscpp updatescpp maincpp processescpp cmdhandlingcpp
+objects: identity_modulecpp filescpp scriptcpp interfacecpp jobscpp updatescpp maincpp processescpp cmdhandlingcpp
 ifeq ($(OS),windows)
 	$(MAKE) -C ./win32 all
 endif
+
+ifneq ($(NOCURL),1)
+	$(MAKE) -C . webcpp
+endif
+	
 	mkdir -p .libvl
 	$(MAKE) -C ../libvolition HIDE_GUTS=1 OBJ_OUT_DIR="`pwd`/.libvl" EXTRACXX="$(PLATFORM_CXXFLAGS)"
 	$(MAKE) -C brander

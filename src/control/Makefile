@@ -11,7 +11,7 @@ EXTRA_LDFLAGS =
 include ../Security.mk
 
 ifdef DEBUG
-	CXXFLAGS += -DDEBUG -g3 -pg -O1
+	CXXFLAGS += -DDEBUG -g3 -pg -Og
 	LDFLAGS += -pg
 else
 	CXXFLAGS += -O3
