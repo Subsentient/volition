@@ -99,7 +99,7 @@ NetCmdStatus Processes::ExecuteCmd(const char *Command, VLString &CmdOutput_Out)
 NetCmdStatus Processes::KillProcessByName(const char *ProcessName)
 {
 #if defined(WIN32)
-	HANDLE ProcSnap = CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0lu);
+	VLScopedPtr<HANDLE, decltype(&CloseHandle)> ProcSnap { CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0lu), CloseHandle };
 	
 	if (!ProcSnap) return NetCmdStatus(false, STATUS_IERR);
 	
@@ -116,16 +116,18 @@ NetCmdStatus Processes::KillProcessByName(const char *ProcessName)
 	{
 		if (!strcmp(Entry.szExeFile, ProcessName))
 		{
-			HANDLE Handle = OpenProcess(PROCESS_TERMINATE, 0, (DWORD)Entry.th32ProcessID);
+			VLScopedPtr<HANDLE, decltype(&CloseHandle)> Handle
+			{
+				OpenProcess(PROCESS_TERMINATE, 0, (DWORD)Entry.th32ProcessID),
+				CloseHandle
+			};
 			
 			if (Handle)
 			{
 				TerminateProcess(Handle, 9); //Signal 9, as in UNIX's SIGKILL? Huh.
-				CloseHandle(Handle);
 			}
 			else
 			{
-				CloseHandle(ProcSnap);
 				return NetCmdStatus(false, STATUS_FAILED);
 			}
 			
@@ -134,13 +136,11 @@ NetCmdStatus Processes::KillProcessByName(const char *ProcessName)
 		}
 	}
 	
-	CloseHandle(ProcSnap);
-	
 	return Found ? NetCmdStatus(true) : NetCmdStatus(false, STATUS_MISSING);
 
 #elif defined(LINUX)
 
-	DIR *CurDir = opendir("/proc");
+	VLScopedPtr<DIR*, decltype(&closedir)> CurDir { opendir("/proc"), closedir };
 	
 	if (!CurDir) return NetCmdStatus(false, STATUS_MISSING); // our /proc isn't mounted.
 	
@@ -156,7 +156,7 @@ NetCmdStatus Processes::KillProcessByName(const char *ProcessName)
 		std::vector<char> Buffer;
 		Buffer.reserve(2048);
 	
-		FILE *Desc = fopen(Path, "rb");
+		VLScopedPtr<FILE*, int(*)(FILE*)> Desc { fopen(Path, "rb"), fclose };
 		if (!Desc) continue;
 		
 		int Char = 0;
@@ -166,14 +166,10 @@ NetCmdStatus Processes::KillProcessByName(const char *ProcessName)
 		}
 		Buffer.push_back('\0'); //Null terminate
 		
-		fclose(Desc);
-		
-		
 		if (!strcmp(&Buffer[0], ProcessName))
 		{
 			if (kill(atol(DirPtr->d_name), SIGKILL) != 0)
 			{
-				closedir(CurDir); //Erroring out
 				switch (errno)
 				{
 					case EPERM:
@@ -192,8 +188,6 @@ NetCmdStatus Processes::KillProcessByName(const char *ProcessName)
 		}
 	}
 	
-	closedir(CurDir);
-	
 	return Found ? NetCmdStatus(true) : NetCmdStatus(false, STATUS_FAILED);
 #else
 	return NetCmdStatus(false, STATUS_UNSUPPORTED);
@@ -207,7 +201,7 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 	
 	OutList.clear();
 #if defined(WIN32)
-	HANDLE ProcSnap = CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0lu);
+	VLScopedPtr<HANDLE, decltype(&CloseHandle)> ProcSnap { CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0lu), CloseHandle};
 	
 	if (!ProcSnap) return NetCmdStatus(false, STATUS_IERR);
 	
@@ -231,15 +225,15 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		Ptr->KernelProcess = false;
 		
 		//Now find the user that owns this.
-		HANDLE Handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, (DWORD)Entry.th32ProcessID);
+		VLScopedPtr<HANDLE, decltype(&CloseHandle)> Handle { OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, (DWORD)Entry.th32ProcessID), CloseHandle };
 		
 		if (Handle)
 		{
-			HANDLE TokenHandle{};
+			HANDLE TokenHandle_{};
+			VLScopedPtr<HANDLE, decltype(&CloseHandle)> TokenHandle { TokenHandle_, CloseHandle };
 			
-			if (!OpenProcessToken(Handle, TOKEN_QUERY, &TokenHandle))
+			if (!OpenProcessToken(Handle, TOKEN_QUERY, &TokenHandle_))
 			{
-				CloseHandle(Handle);
 				goto CantGetUser;
 			}
 
@@ -252,18 +246,14 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 			{
 				if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
 				{
-					CloseHandle(Handle);
-					CloseHandle(TokenHandle);
 					goto CantGetUser;
 				}
 			}
 			
-			UserTokenPtr = (TOKEN_USER*)malloc(BufferLength);
+			VLScopedPtr<UserTokenPtr> { (TOKEN_USER*)malloc(BufferLength), ALLOCTYPE_MALLOC };
+			
 			if (!GetTokenInformation(TokenHandle, TokenUser, UserTokenPtr, BufferLength, &BufferLength))
 			{
-				free(UserTokenPtr);
-				CloseHandle(Handle);
-				CloseHandle(TokenHandle);
 				goto CantGetUser;
 			}
 			
@@ -275,15 +265,8 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 			
 			if (!LookupAccountSid(nullptr, UserTokenPtr->User.Sid, Username, &Capacity, Domain, &DomainCapacity, &SIDType))
 			{
-				free(UserTokenPtr);
-				CloseHandle(TokenHandle);
-				CloseHandle(Handle);
 				goto CantGetUser;
 			}
-			
-			free(UserTokenPtr);
-			CloseHandle(TokenHandle);
-			CloseHandle(Handle);
 			
 			Ptr->User = Username;
 		}
@@ -294,12 +277,10 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		}
 	}
 	
-	CloseHandle(ProcSnap);
-	
 	return true; //Everything went perfectly.
 #elif defined(LINUX)
 
-	DIR *CurDir = opendir("/proc");
+	VLScopedPtr<DIR*, decltype(&closedir)> CurDir { opendir("/proc"), closedir }; 
 	
 	if (!CurDir) return NetCmdStatus(false, STATUS_MISSING); // our /proc isn't mounted.
 	
@@ -311,12 +292,11 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		
 		const VLString &CmdlinePath = VLString("/proc/") + const_cast<const char*>(DirPtr->d_name) + "/cmdline";
 		
-		std::vector<uint8_t> *FileBuffer = Utils::Slurp(CmdlinePath);
+		VLScopedPtr<std::vector<uint8_t>*> FileBuffer { Utils::Slurp(CmdlinePath) };
 		
 		if (!FileBuffer)
 		{
 			const NetCmdStatus Ret(false, STATUS_FAILED);
-			closedir(CurDir);
 			OutList.clear();
 			return Ret;
 		}
@@ -328,8 +308,6 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		NewMember->PID = atol(DirPtr->d_name);
 		NewMember->ProcessName = (const char*)&FileBuffer->at(0);
 		
-		delete FileBuffer; //We're done with it, time to recycle it.
-		
 		const VLString &StatusPath = VLString("/proc/") + const_cast<const char*>(DirPtr->d_name) + "/status";
 		
 		FileBuffer = Utils::Slurp(StatusPath);
@@ -337,7 +315,6 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		if (!FileBuffer)
 		{
 			const NetCmdStatus Ret(false, STATUS_FAILED);
-			closedir(CurDir);
 			OutList.clear();
 			return Ret;
 		}
@@ -348,10 +325,8 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		
 		if (!Search)
 		{
-			delete FileBuffer;
 			OutList.clear();
 			const NetCmdStatus Ret(false, STATUS_FAILED);
-			closedir(CurDir);
 			return Ret;
 		}
 		
@@ -377,10 +352,8 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 			
 			if (!Search)
 			{
-				delete FileBuffer;
 				OutList.clear();
 				const NetCmdStatus Ret(false, STATUS_IERR);
-				closedir(CurDir);
 				return Ret;
 			}
 	
@@ -401,13 +374,10 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		else NewMember->KernelProcess = false;
 			
 		
-		delete FileBuffer; //Done with this pointer completely now.
-		
 		if (!*UIDBuf || !Utils::StringAllNumeric(UIDBuf))
 		{
 			OutList.clear();
 			const NetCmdStatus Ret(false, STATUS_FAILED);
-			closedir(CurDir);
 			return Ret;
 		}
 		
@@ -417,14 +387,11 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		{
 			const NetCmdStatus Ret(false, STATUS_FAILED);
 			OutList.clear();
-			closedir(CurDir);
 			return Ret;
 		}
 		
 		NewMember->User = UserLookup->pw_name;
 	}
-	
-	closedir(CurDir);
 	
 	return true;
 #else

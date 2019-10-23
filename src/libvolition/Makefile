@@ -1,4 +1,5 @@
-CXXFLAGS = -std=gnu++14 -pedantic -Wall  -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing `$(PKGCONFIG) --cflags openssl`
+OPENSSL_CFLAGS = `$(PKGCONFIG) --cflags openssl`
+CXXFLAGS = -std=gnu++14 -pedantic -Wall  -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing -Wno-ignored-attributes -Wno-implicit-fallthrough $(OPENSSL_CFLAGS)
 OBJECTS = conation.o vlstrings.o netcore.o utils.o vlthreads.o netscheduler.o common_introspect.o 
 AR = ar
 RANLIB = ranlib

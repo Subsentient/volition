@@ -23,7 +23,7 @@
 #include <time.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <memory>
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -69,7 +69,7 @@ bool Utils::Slurp(const char *FilePath, void *OutBuffer, const size_t OutCapacit
 		return false;
 	}
 	
-	FILE *Desc = fopen(FilePath, "rb");
+	VLScopedPtr<FILE*, int(*)(FILE*)> Desc { fopen(FilePath, "rb"), fclose };
 	
 	if (!Desc)
 	{
@@ -88,7 +88,6 @@ bool Utils::Slurp(const char *FilePath, void *OutBuffer, const size_t OutCapacit
 		{
 			Worker[Inc] = Char;
 		}
-		fclose(Desc);
 		
 		if (Inc < OutCapacity) Worker[Inc] = '\0'; //Null terminate in case it's a text file.
 	}
@@ -96,7 +95,6 @@ bool Utils::Slurp(const char *FilePath, void *OutBuffer, const size_t OutCapacit
 	{
 		
 		fread(Worker, 1, FileStat.st_size, Desc);
-		fclose(Desc);
 		
 		if (OutCapacity - FileStat.st_size > 0) Worker[FileStat.st_size] = '\0';
 	}
@@ -152,10 +150,10 @@ std::vector<uint8_t> *Utils::Slurp(const char *FilePath, const bool Binary)
 	return RetVal;
 }
 
-static inline constexpr bool ArchIsBigEndian(void)
+static inline bool ArchIsBigEndian(void)
 {
-	constexpr uint16_t Test = 1;
-	return *(uint8_t*)&Test == 0;
+	const uint16_t Test = 1;
+	return *(const uint8_t*)&Test == 0;
 }
 
 uint64_t Utils::vl_htonll(const uint64_t Original)
@@ -193,12 +191,11 @@ void Utils::vl_sleep(uint64_t Milliseconds)
 
 bool Utils::WriteFile(const char *OutPath, const void *Buffer, const size_t FileSize)
 {
-	FILE *Descriptor = fopen(OutPath, "wb");
+	VLScopedPtr<FILE*, int(*)(FILE*)> Descriptor { fopen(OutPath, "wb"), fclose };
 
 	if (!Descriptor) return false;
 
 	if (Buffer && FileSize) fwrite(Buffer, 1, FileSize, Descriptor);
-	fclose(Descriptor);
 
 	return true;
 }
@@ -336,17 +333,17 @@ VLString Utils::GetSelfBinaryPath(void)
 	char Buffer[2048]{};
 #ifdef LINUX
 	
-	if (readlink("/proc/self/exe", Buffer, sizeof Buffer) == -1) return {};	
+	if (readlink("/proc/self/exe", Buffer, sizeof Buffer - 1) == -1) return {};	
 #elif defined(NETBSD)
-	if (readlink("/proc/curproc/exe", Buffer, sizeof Buffer) == -1) return {};
+	if (readlink("/proc/curproc/exe", Buffer, sizeof Buffer - 1) == -1) return {};
 #elif defined(FREEBSD)
 	int CallArgs[] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
 	
-	size_t Size = sizeof Buffer;
+	size_t Size = sizeof Buffer - 1;
 	
 	sysctl(CallArgs, sizeof CallArgs / sizeof *CallArgs, Buffer, &Size, nullptr, 0);
 #elif defined(WIN32)
-	GetModuleFileName(nullptr, Buffer, sizeof Buffer);
+	GetModuleFileName(nullptr, Buffer, sizeof Buffer - 1);
 #endif
 	return Buffer;
 

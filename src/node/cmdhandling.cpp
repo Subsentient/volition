@@ -197,7 +197,7 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 
 }
 
-void CmdHandling::HandleReport(Conation::ConationStream *Stream)
+void CmdHandling::HandleReport(Conation::ConationStream *)
 {
 	
 }

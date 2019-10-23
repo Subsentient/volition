@@ -65,7 +65,7 @@ Net::ClientDescriptor Interface::Establish(const char *Hostname)
 	puts("Interface::Establish(): Authentication transmit succeeded. Downloading response.");
 #endif
 	
-	Conation::ConationStream *ResponseStream = nullptr;
+	VLScopedPtr<Conation::ConationStream*> ResponseStream;
 
 	//Get the response.
 	try
@@ -87,7 +87,6 @@ Net::ClientDescriptor Interface::Establish(const char *Hostname)
 #ifdef DEBUG
 		puts("Interface::Establish(): Argument is not ARGTYPE_NETCMDSTATUS or argument missing. Aborting.");
 #endif
-		delete ResponseStream;
 		Net::Close(Connection);
 		return 0;
 	}
@@ -97,12 +96,10 @@ Net::ClientDescriptor Interface::Establish(const char *Hostname)
 #ifdef DEBUG
 		puts("Interface::Establish(): Server reports our authentication failed.");
 #endif
-		delete ResponseStream;
 		Net::Close(Connection);
 		return 0;
 	}
 	
-	delete ResponseStream;
 #ifdef DEBUG
 	puts("Interface::Establish(): Authentication succeeded.");
 #endif

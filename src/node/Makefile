@@ -1,8 +1,19 @@
 PKGCONFIG = pkg-config
-CXXFLAGS = -std=gnu++14 -pedantic -Wall -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing\
-			`$(PKGCONFIG) --cflags lua` `$(PKGCONFIG) --cflags openssl`
+
+LUA_CFLAGS = `$(PKGCONFIG) --cflags lua`
+OPENSSL_CFLAGS = `$(PKGCONFIG) --cflags openssl`
+CURL_CFLAGS = `$(PKGCONFIG) --cflags libcurl`
+OPENSSL_LIBFLAGS = `$(PKGCONFIG) --libs openssl`
+CURL_LIBFLAGS = `$(PKGCONFIG) --libs libcurl`
+LUA_LIBFLAGS = `$(PKGCONFIG) --libs lua`
+
+CXXFLAGS = -std=gnu++14 -pedantic -Wall -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing \
+			$(LUA_CFLAGS) $(OPENSSL_CFLAGS) -Wno-ignored-attributes -Wno-implicit-fallthrough
 OBJECTS = processes.o interface.o main.o files.o cmdhandling.o jobs.o updates.o identity_module.o script.o
-LDFLAGS = `$(PKGCONFIG) --libs openssl` `$(PKGCONFIG) --libs lua` ./.libvl/libvolition.a
+
+
+
+LDFLAGS = $(LUA_LIBFLAGS) -ldl ./.libvl/libvolition.a $(OPENSSL_LIBFLAGS)
 IDENTITY = ""
 AUTHTOKEN = ""
 OUTFILE = ./volition_node_$(IDENTITY)-$(OS).$(CPU)
@@ -27,23 +38,23 @@ endif
 PLATFORM_CXXFLAGS =
 
 else ifeq ($(OS),linux)
-	PLATFORM_CXXFLAGS += -DLINUX -rdynamic
-	LDFLAGS += -lpthread -rdynamic
+	PLATFORM_CXXFLAGS += -DLINUX
+	LDFLAGS += -pthread -rdynamic
 else ifeq ($(OS),android)
 	PLATFORM_CXXFLAGS += -DANDROID -DLINUX
-	LDFLAGS += -lpthread
+	LDFLAGS += -pthread
 else ifeq ($(OS),openbsd)
 	PLATFORM_CXXFLAGS += -DOPENBSD
-	LDFLAGS += -lpthread
+	LDFLAGS += -pthread
 else ifeq ($(OS),freebsd) 
 	PLATFORM_CXXFLAGS += -DFREEBSD
-	LDFLAGS += -lpthread
+	LDFLAGS += -pthread
 else ifeq ($(OS),macosx)
 	PLATFORM_CXXFLAGS += -DMACOSX
-	LDFLAGS += -lpthread
+	LDFLAGS += -pthread
 else ifeq ($(OS),haikuos)
 	PLATFORM_CXXFLAGS += -DHAIKUOS
-	LDFLAGS += -lpthread -lnetwork
+	LDFLAGS += -pthread -lnetwork
 endif
 
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
@@ -73,8 +84,8 @@ endif
 
 ifneq ($(NOCURL),1)
 	OBJECTS += web.o
-	CXXFLAGS += `$(PKGCONFIG) --cflags libcurl`
-	LDFLAGS += `$(PKGCONFIG) --libs libcurl`
+	CXXFLAGS += $(CURL_CFLAGS)
+	LDFLAGS += $(CURL_LIBFLAGS)
 else
 	CXXFLAGS += -DNOCURL
 endif

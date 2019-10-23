@@ -80,6 +80,20 @@
 
 #define TOKEN_KEYVALPAIR(a) a, #a
 
+inline void VL_ASSERT_F(const bool Condition, const int LineNo)
+{
+	if (!Condition)
+	{
+#ifdef DEBUG
+		int printf(const char *Format, ...);
+		printf("Assertion failed on line %d!\n", LineNo);
+#else
+		(void)LineNo;
+#endif
+		exit(31);
+	}
+}
+
 enum StatusCode : uint8_t //I shouldn't need to say it
 {
 	STATUS_INVALID		= 0		, //Invalid obviously.
@@ -145,7 +159,7 @@ struct NetCmdStatus
 	}
 };
 
-template <typename PtrType>
+template <typename PtrType, typename DeallocFuncType = void(*)(PtrType)>
 class VLScopedPtr
 {
 public:
@@ -154,40 +168,54 @@ public:
 		ALLOCTYPE_MALLOC,
 		ALLOCTYPE_NEW,
 		ALLOCTYPE_ARRAYNEW,
+		ALLOCTYPE_LAMBDA,
 		ALLOCTYPE_MAX
 	};
 private:
 	PtrType Ptr;
 	AllocatorType Allocator;
+	DeallocFuncType DeallocFunc;
 
 public:
 	void Release(void)
 	{
 		if (!this->Ptr) return;
 		
-		switch (this->Allocator)
-		{
-			case ALLOCTYPE_NEW:
-				delete this->Ptr;
-				break;
-			case ALLOCTYPE_ARRAYNEW:
-				delete[] this->Ptr;
-				break;
-			case ALLOCTYPE_MALLOC:
-				free((void*)this->Ptr);
-				break;
-			default:
-				break;
-		}
-
+		this->DeallocFunc(this->Ptr);
 		this->Ptr = nullptr;
 		this->Allocator = ALLOCTYPE_NEW;
 	}
 	
-	VLScopedPtr(const PtrType Input = nullptr, const AllocatorType AllocatorIn = ALLOCTYPE_NEW) : Ptr(Input), Allocator(AllocatorIn)
+	VLScopedPtr(const PtrType Input = nullptr, const AllocatorType AllocatorIn = ALLOCTYPE_NEW)
+		: Ptr(Input), Allocator(AllocatorIn), DeallocFunc()
 	{
+		switch (this->Allocator)
+		{
+			case ALLOCTYPE_LAMBDA: //We shouldn't be here but let's try and do something useful
+				abort();
+				break;
+			case ALLOCTYPE_NEW:
+				this->DeallocFunc = [] (PtrType Ptr) { delete Ptr; };
+				break;
+			case ALLOCTYPE_ARRAYNEW:
+				this->DeallocFunc = [] (PtrType Ptr) { delete[] Ptr; };
+				break;
+			case ALLOCTYPE_MALLOC:
+				this->DeallocFunc = [] (PtrType Ptr) { free((void*)Ptr); };
+				break;
+			default:
+				break;
+		}
+				
 	}
 
+	VLScopedPtr(const PtrType Input, const DeallocFuncType DeallocFunc)
+		: Ptr(Input),
+		Allocator(ALLOCTYPE_LAMBDA),
+		DeallocFunc(DeallocFunc)
+	{
+	}
+	
 	~VLScopedPtr(void)
 	{	
 		this->Release();
@@ -199,12 +227,21 @@ public:
 		this->Ptr = Input;
 		this->Allocator = AllocatorIn;
 	}
+	
+	void Encase(const PtrType Input, const DeallocFuncType DeallocFunc)
+	{ //Put an existing pointer under our care
+		this->Release();
+		this->Ptr = Input;
+		this->Allocator = ALLOCTYPE_LAMBDA;
+		this->DeallocFunc = DeallocFunc;
+	}
 
 	PtrType Forget(void)
 	{ //To abort freeing the pointer so something else can take control.
 		const PtrType RetVal = this->Ptr;
 		this->Ptr = nullptr;
 		this->Allocator = ALLOCTYPE_NEW;
+		this->DeallocFunc = nullptr;
 		
 		return RetVal;
 	}
@@ -222,9 +259,11 @@ public:
 	
 	PtrType operator->(void) const { return this->Ptr; }
 	
-	VLScopedPtr(VLScopedPtr &&Ref) : Ptr(Ref.Ptr), Allocator(Ref.Allocator)
+	VLScopedPtr(VLScopedPtr &&Ref) : Ptr(Ref.Ptr), Allocator(Ref.Allocator), DeallocFunc(Ref.DeallocFunc)
 	{
 		Ref.Ptr = nullptr;
+		Ref.Allocator = ALLOCTYPE_NEW;
+		Ref.DeallocFunc = nullptr;
 	}
 
 	VLScopedPtr &operator=(VLScopedPtr &&Ref)
@@ -235,9 +274,11 @@ public:
 		
 		this->Ptr = Ref.Ptr;
 		this->Allocator = Ref.Allocator;
+		this->DeallocFunc = Ref.DeallocFunc;
 		
 		Ref.Ptr = nullptr;
 		Ref.Allocator = ALLOCTYPE_NEW;
+		Ref.DeallocFunc = nullptr;
 		
 		return *this;
 	}
@@ -248,19 +289,7 @@ private: //No copy operations please.
 	VLScopedPtr(const VLScopedPtr&);
 };
 
-inline void VL_ASSERT_F(const bool Condition, const int LineNo)
-{
-	if (!Condition)
-	{
-#ifdef DEBUG
-		int printf(const char *Format, ...);
-		printf("Assertion failed on line %d!\n", LineNo);
-#else
-		(void)LineNo;
-#endif
-		exit(31);
-	}
-}
+
 
 VLString StatusCodeToString(const StatusCode Code);
 StatusCode StringToStatusCode(const VLString &String);

@@ -1,7 +1,7 @@
 PKGCONFIG = pkg-config
 GTKCHOICE = 2
 REVISION = $(shell git rev-parse --short HEAD)
-CXXFLAGS = -std=gnu++14 -pedantic -Wall  `$(PKGCONFIG) --cflags gtk+-$(GTKCHOICE).0` `$(PKGCONFIG) --cflags openssl` -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing -Wno-parentheses -DCTL_REVISION="\"$(REVISION)\""
+CXXFLAGS = -std=gnu++14 -pedantic -Wall -Wno-ignored-attributes -Wno-implicit-fallthrough `$(PKGCONFIG) --cflags gtk+-$(GTKCHOICE).0` `$(PKGCONFIG) --cflags openssl` -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing -Wno-parentheses -DCTL_REVISION="\"$(REVISION)\""
 OUTFILE = ./volition_control
 OBJECTS = main.o gui_base.o gui_icons.o interface.o config.o cmdhandling.o clienttracker.o gui_mainwindow.o gui_menus.o gui_dialogs.o orders.o ticker.o mediarecv.o scriptscanner.o
 LDFLAGS = ./.libvl/libvolition.a `$(PKGCONFIG) --libs gtk+-$(GTKCHOICE).0` `$(PKGCONFIG) --libs openssl`
@@ -22,7 +22,7 @@ ifeq ($(OS),windows)
 	OUTFILE = ./volition_control.exe
 	OBJECTS += ./win32/win.o
 else
-	LDFLAGS += -lpthread
+	LDFLAGS += -pthread
 endif
 
 ifdef EXTRACXX
