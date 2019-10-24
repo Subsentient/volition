@@ -86,16 +86,14 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 	const size_t Size = FileStat->st_size;
 	
 	
-	FILE *InDesc = fopen(Source, "rb");
-	FILE *OutDesc = fopen(Destination, "wb");
+	VLScopedPtr<FILE*, int(*)(FILE*)> InDesc { fopen(Source, "rb"), fclose };
+	VLScopedPtr<FILE*, int(*)(FILE*)> OutDesc { fopen(Destination, "wb"), fclose };
 	
 	if (!InDesc || !OutDesc)
 	{
 #ifdef DEBUG
 		printf("CopyFileSub(): Failed to open a descriptor. InDesc open: %d, OutDesc open: %d\n", (int)(bool)InDesc, (int)(bool)OutDesc);
 #endif
-		if (InDesc) fclose(InDesc);
-		if (OutDesc) fclose(OutDesc);
 		return false;
 	}
 	
@@ -110,18 +108,17 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 		
 		if (ferror(InDesc))
 		{
+	LoopFailed:
+
 #ifdef DEBUG
 			puts("CopyFileSub(): InDesc tripped ferror()");
 #endif
-		LoopFailed:
-			if (InDesc) fclose(InDesc);
-			if (OutDesc) fclose(OutDesc);
 			return false;
 		}
 		
 		if (!Read) goto LoopFailed; //We're using the loop condition to test this, we shouldn't get here!
 		
-		fwrite(Buffer, 1, Read, OutDesc);
+		if (fwrite(Buffer, 1, Read, OutDesc) < 0) goto LoopFailed;
 		
 		if (ferror(OutDesc))
 		{
@@ -133,11 +130,6 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 		
 	}
 		
-		
-	fclose(InDesc);
-	fclose(OutDesc);
-	
-	
 	return true;
 	
 }
@@ -148,7 +140,7 @@ bool Files::Copy(const char *Source, const char *Destination)
 #ifdef DEBUG
 	printf("Files::Copy(): Source = \"%s\", Destination = \"%s\".\n", Source, Destination);
 #endif
-	VLScopedPtr<struct stat *> FileStat = new struct stat();
+	VLScopedPtr<struct stat *> FileStat { new struct stat() };
 	
 	if (stat(Source, FileStat) != 0)
 	{
@@ -175,7 +167,7 @@ bool Files::Copy(const char *Source, const char *Destination)
 		return false;
 	}
 	
-	DIR *CurDir = opendir(Source);
+	VLScopedPtr<DIR*, decltype(&closedir)> CurDir { opendir(Source), closedir };
 	
 	if (!CurDir) return false;
 	
@@ -183,16 +175,15 @@ bool Files::Copy(const char *Source, const char *Destination)
 	
 	while ((DirPtr = readdir(CurDir)))
 	{
-		const VLString &NewOldPath = VLString(Source) + PATHSEP + (const char*)DirPtr->d_name;
-		const VLString &NewNewPath = VLString(Destination) + PATHSEP + (const char*)DirPtr->d_name;
+		const VLString &NewOldPath { VLString(Source) + PATHSEP + (const char*)DirPtr->d_name };
+		const VLString &NewNewPath { VLString(Destination) + PATHSEP + (const char*)DirPtr->d_name };
 		
 		//Reuse the pointer declared in the outer scope.
-		VLScopedPtr<struct stat*> FileStat = new struct stat();
+		VLScopedPtr<struct stat*> FileStat { new struct stat() };
 		
 		//Get file type.
 		if (stat(NewOldPath, FileStat) != 0)
 		{
-			closedir(CurDir);
 			return false;
 		}
 		
@@ -200,7 +191,6 @@ bool Files::Copy(const char *Source, const char *Destination)
 		{ //Directory
 			if (!Files::Copy(NewOldPath, NewNewPath))
 			{
-				closedir(CurDir);
 				return false;
 			}
 		}
@@ -208,13 +198,11 @@ bool Files::Copy(const char *Source, const char *Destination)
 		{
 			if (!CopyFileSub(NewOldPath, NewNewPath))
 			{
-				closedir(CurDir);
 				return false;
 			}
 		}
 	}
 
-	closedir(CurDir);
 	return true;	
 }
 
@@ -258,7 +246,7 @@ std::list<Files::DirectoryEntry> *Files::ListDirectory(const char *Path)
 {
 	if (!Utils::IsDirectory(Path)) return nullptr; //Not a directory, so wtf are you doing
 	
-	DIR *Dir = opendir(Path);
+	VLScopedPtr<DIR*, decltype(&closedir)> Dir { opendir(Path), closedir };
 
 	if (!Dir) return nullptr;
 	
@@ -273,7 +261,5 @@ std::list<Files::DirectoryEntry> *Files::ListDirectory(const char *Path)
 		RetVal->push_back({FullPath, Utils::IsDirectory(FullPath)});
 	}
 
-	closedir(Dir);
-	
 	return RetVal;
 }

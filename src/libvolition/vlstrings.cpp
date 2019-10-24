@@ -420,30 +420,30 @@ bool VLString::operator<(const VLString &Ref) const
 	return strcmp(Ref.SeekPtr, this->SeekPtr) < 0;
 }
 
-const char *VLString::operator++(void)
+char *VLString::operator++(void)
 {
 	if (this->SeekPtr == this->Buffer + this->BufferCapacity) throw Error_InvalidAccess();
 	
-	return ++this->SeekPtr;
+	return const_cast<char*>(++this->SeekPtr);
 }
-const char *VLString::operator++(int)
+char *VLString::operator++(int)
 {
 	if (this->SeekPtr == this->Buffer + this->BufferCapacity) throw Error_InvalidAccess();
 
-	return this->SeekPtr++;
+	return const_cast<char*>(this->SeekPtr++);
 }
 
-const char *VLString::operator--(void)
+char *VLString::operator--(void)
 {
 	if (this->SeekPtr == this->Buffer) throw Error_InvalidAccess();
 	
-	return --this->SeekPtr;
+	return const_cast<char*>(--this->SeekPtr);
 }
-const char *VLString::operator--(int)
+char *VLString::operator--(int)
 {
 	if (this->SeekPtr == this->Buffer) throw Error_InvalidAccess();
 
-	return this->SeekPtr--;
+	return const_cast<char*>(this->SeekPtr--);
 }
 
 const char *VLString::Find(const char *Text) const

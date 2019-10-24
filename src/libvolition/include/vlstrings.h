@@ -153,10 +153,10 @@ public:
 	char &operator[](const size_t Index);
 	const char &operator[](const size_t Index) const;
 	
-	const char *operator++(int);
-	const char *operator++(void);
-	const char *operator--(int);
-	const char *operator--(void);
+	char *operator++(int);
+	char *operator++(void);
+	char *operator--(int);
+	char *operator--(void);
 	
 	bool Empty(void) const { return !this->Buffer[0]; }
 	bool empty(void) const { return this->Empty(); }

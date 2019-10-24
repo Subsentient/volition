@@ -167,10 +167,10 @@ static void *JOB_LISTDIRECTORY_ThreadFunc(Jobs::Job *OurJob)
 
 	VLString RetVal = VLString("Listing for path \"") + Path + (const char*)"\":" + '\n';
 
-	for (auto Iter = Results->begin(); Iter != Results->end(); ++Iter)
+	for (auto &Entry : *Results)
 	{
-		RetVal += Iter->IsDirectory ? "d " : "f ";
-		RetVal += Iter->Path;
+		RetVal += Entry.IsDirectory ? "d " : "f ";
+		RetVal += Entry.Path;
 		RetVal += '\n';
 	}
 
@@ -739,7 +739,7 @@ static void *JOB_CHDIR_ThreadFunc(Jobs::Job *OurJob)
 	InitJobEnv();
 
 	//We need this until we're done with this job. Everything else must wait.
-	JobWorkingDirectory.Mutex.Lock();
+	VLThreads::MutexKeeper Keeper { &JobWorkingDirectory.Mutex };
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
@@ -754,7 +754,6 @@ static void *JOB_CHDIR_ThreadFunc(Jobs::Job *OurJob)
 		
 		Main::PushStreamToWriteQueue(Response);
 
-		JobWorkingDirectory.Mutex.Unlock(); //EXTREMELY IMPORTANT!
 		return nullptr;
 	}
 
@@ -776,8 +775,6 @@ static void *JOB_CHDIR_ThreadFunc(Jobs::Job *OurJob)
 
 	Main::PushStreamToWriteQueue(Response);
 
-	//We're done now.
-	JobWorkingDirectory.Mutex.Unlock();
 	return nullptr;
 }
 	

@@ -29,16 +29,14 @@ namespace Jobs
 	class JobReadQueue
 	{
 	private:
-		std::queue<Conation::ConationStream*> Queue;
+		std::queue<VLScopedPtr<Conation::ConationStream*>> Queue;
 		VLThreads::Mutex Mutex;
 	public:
 		inline void Push(Conation::ConationStream *Stream)
 		{
-			this->Mutex.Lock();
-			
+			VLThreads::MutexKeeper Keeper { &this->Mutex };
+
 			this->Queue.push(Stream);
-			
-			this->Mutex.Unlock();
 		}
 		
 		inline void Push(const Conation::ConationStream &Stream)
@@ -48,32 +46,18 @@ namespace Jobs
 		
 		inline Conation::ConationStream *Pop(const bool ActuallyPop = true)
 		{
-			this->Mutex.Lock();
+			VLThreads::MutexKeeper Keeper { &this->Mutex };
 			
 			Conation::ConationStream *Result = nullptr;
 			if (!this->Queue.empty())
 			{
 				Result = new Conation::ConationStream(*this->Queue.front()); //WE MUST COPY IT!!! If we don't, it will probably get popped afterwards.
 				
-				if (ActuallyPop)
-				{
-					delete this->Queue.front();
-					this->Queue.pop();
-				}
+				if (ActuallyPop) this->Queue.pop();
 				
 			}
 			
-			this->Mutex.Unlock();
 			return Result;
-		}
-			
-		inline ~JobReadQueue(void)
-		{
-			while (!this->Queue.empty())
-			{
-				delete this->Queue.front();
-				this->Queue.pop();
-			}
 		}
 	};
 
@@ -85,13 +69,9 @@ namespace Jobs
 		JobReadQueue Read_Queue; //The main thread puts streams intended for a certain job in this queue.
 		//We don't have a write one cuz we just use Main::PushStreamToWriteQueue() to access the primary one.
 		
-		VLThreads::Thread *JobThread;
+		VLScopedPtr<VLThreads::Thread*> JobThread;
 
-		Job(void) : CmdIdent(), CmdCode(), JobThread() {}
-		~Job(void)
-		{
-			delete JobThread;
-		}
+		Job(void) : JobID(), CmdIdent(), CmdCode(), JobThread() {}
 	};
 	
 	bool StartJob(const CommandCode NewJob, const Conation::ConationStream *Data);

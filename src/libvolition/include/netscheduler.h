@@ -39,8 +39,8 @@ namespace NetScheduler
 		time_t LastActivity;
 		OperationType CurrentOperation;
 		
-		SchedulerStatusObj(const SchedulerStatusObj &);
-		SchedulerStatusObj &operator=(const SchedulerStatusObj &);
+		SchedulerStatusObj(const SchedulerStatusObj &) = delete;
+		SchedulerStatusObj &operator=(const SchedulerStatusObj &) = delete;
 	public:
 		SchedulerStatusObj(const uint64_t InTotal = 0);
 		

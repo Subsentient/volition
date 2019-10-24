@@ -1075,11 +1075,11 @@ const uint8_t *Conation::ConationStream::GetSeekedArgData(void) const
 
 NetCmdStatus Conation::ConationStream::Pop_NetCmdStatus(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_NETCMDSTATUS) throw Err_Misused();
 
-	NetCmdStatusArg *Ptr = static_cast<NetCmdStatusArg*>(Arg);
+	NetCmdStatusArg *Ptr = static_cast<NetCmdStatusArg*>(+Arg);
 
 	NetCmdStatus Result(false);
 
@@ -1087,61 +1087,55 @@ NetCmdStatus Conation::ConationStream::Pop_NetCmdStatus(void)
 	Result.Status = Ptr->Code;
 	Result.Msg = Ptr->Msg;
 
-	delete Arg;
-
 	return Result;
 }
 
 uint64_t Conation::ConationStream::Pop_Uint64(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_UINT64) throw Err_Misused();
 
 	const uint64_t Result = Arg->ReadAs<Uint64Arg>().Value;
 
-	delete Arg;
 	return Result;
 }
 int64_t Conation::ConationStream::Pop_Int64(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_INT64) throw Err_Misused();
 
 	const int64_t Result = Arg->ReadAs<Int64Arg>().Value;
 
-	delete Arg;
 	return Result;
 }
 
 uint32_t Conation::ConationStream::Pop_Uint32(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_UINT32) throw Err_Misused();
 
 	const uint32_t Result = Arg->ReadAs<Int32Arg>().Value;
 
-	delete Arg;
 	return Result;
 }
 
 int32_t Conation::ConationStream::Pop_Int32(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_INT32) throw Err_Misused();
 
 	const int32_t Result = Arg->ReadAs<Int32Arg>().Value;
 
-	delete Arg;
 	return Result;
 }
 
 VLString Conation::ConationStream::Pop_String(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 #ifdef DEBUG
 	if (Arg->Type != ARGTYPE_STRING)
@@ -1153,83 +1147,72 @@ VLString Conation::ConationStream::Pop_String(void)
 
 	const VLString Result = Arg->ReadAs<StringArg>().String;
 
-	delete Arg;
-
 	return Result;
 }
 
 VLString Conation::ConationStream::Pop_Script(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_SCRIPT) throw Err_Misused();
 
 	const VLString Result = Arg->ReadAs<ScriptArg>().String;
-
-	delete Arg;
 
 	return Result;
 }
 
 Conation::ConationStream::ODHeader Conation::ConationStream::Pop_ODHeader(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_ODHEADER) throw Err_Misused();
 
 	ODHeader RetVal = Arg->ReadAs<ODHeaderArg>().Hdr;
 
-	delete Arg;
 	return RetVal;
 }
 
 Conation::ConationStream::BinStreamArg Conation::ConationStream::Pop_BinStream(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_BINSTREAM) throw Err_Misused();
 
 	BinStreamArg RetVal = Arg->ReadAs<BinStreamArg>();
-
-	delete Arg;
 
 	return RetVal;
 }
 
 VLString Conation::ConationStream::Pop_FilePath(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_FILEPATH) throw Err_Misused();
 
 	const VLString Result = Arg->ReadAs<FilePathArg>().Path;
 
-	delete Arg;
 
 	return Result;
 }
 
 bool Conation::ConationStream::Pop_Bool(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_BOOL) throw Err_Misused();
 
 	const bool Result = Arg->ReadAs<BoolArg>().Value;
 
-	delete Arg;
 	return Result;
 }
 
 Conation::ConationStream::FileArg Conation::ConationStream::Pop_File(void)
 {
-	BaseArg *Arg = this->PopArgument();
+	VLScopedPtr<BaseArg*> Arg { this->PopArgument() };
 
 	if (!Arg || Arg->Type != ARGTYPE_FILE) throw Err_Misused();
 
 	const FileArg RetVal = Arg->ReadAs<FileArg>();
-
-	delete Arg;
 
 	return RetVal;
 }

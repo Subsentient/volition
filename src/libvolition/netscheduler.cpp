@@ -68,10 +68,11 @@ bool NetScheduler::QueueBase::StopThread(const size_t WaitInMS, const size_t Pre
 {
 	if (this->Thread.Started() && this->Thread.Alive())
 	{
-		this->Mutex.Lock();
+		VLThreads::MutexKeeper Keeper { &this->Mutex };
+
 		this->ThreadShouldDie = true;
 		this->Semaphore.Post(); //Because if it's waiting on new data we want it to check and see.
-		this->Mutex.Unlock();
+		Keeper.Unlock();
 		
 		if (!WaitInMS)
 		{ //Wait forever.
@@ -108,33 +109,28 @@ bool NetScheduler::QueueBase::KillThread(void)
 
 bool NetScheduler::QueueBase::ClearError(void)
 {
-	this->Mutex.Lock();
+	VLThreads::MutexKeeper Keeper { &this->Mutex };
 	
 	const bool Value = !this->Error;
 	
 	this->Error = false;
-	
-	this->Mutex.Unlock();
 	
 	return Value;
 }
 
 bool NetScheduler::QueueBase::HasError(void)
 {
-	this->Mutex.Lock();
+	VLThreads::MutexKeeper Keeper { &this->Mutex };
 	
 	const bool Value = this->Error;
-	
-	this->Mutex.Unlock();
 	
 	return Value;
 }
 
 void NetScheduler::QueueBase::SetStatusObj(SchedulerStatusObj *const StatusObj)
 {
-	this->Mutex.Lock();
+	VLThreads::MutexKeeper Keeper { &this->Mutex };
 	this->StatusObj = StatusObj;
-	this->Mutex.Unlock();
 }
 
 NetScheduler::WriteQueue::WriteQueue(const Net::ClientDescriptor &DescriptorIn) : QueueBase((VLThreads::Thread::EntryFunc)WriteQueue::ThreadFunc, DescriptorIn)
@@ -146,15 +142,13 @@ void NetScheduler::WriteQueue::Push(Conation::ConationStream *Stream)
 #ifdef DEBUG
 	puts(VLString("NetScheduler::WriteQueue::Push(): Accepted stream with command code ") + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags()));
 #endif
-	this->Mutex.Lock();
+	VLThreads::MutexKeeper Keeper { &this->Mutex };
 	
 	this->Queue.push_back(Stream);
 	
 	if (this->StatusObj) this->StatusObj->SetNumOnQueue(this->Queue.size());
 
 	this->Semaphore.Post(); //Has its own internal mutex.
-	
-	this->Mutex.Unlock();
 }
 
 
@@ -162,18 +156,17 @@ void *NetScheduler::WriteQueue::ThreadFunc(WriteQueue *ThisPointer)
 {
 	while (1)
 	{
-		ThisPointer->Mutex.Lock();
+		VLThreads::MutexKeeper Keeper { &ThisPointer->Mutex };
 		
 		if (ThisPointer->ThreadShouldDie)
 		{ //This thread is done for.
-			ThisPointer->Mutex.Unlock();
 			return nullptr;
 		}
 		
 		//Nothing to do
 		if (ThisPointer->Queue.empty())
 		{
-			ThisPointer->Mutex.Unlock();
+			Keeper.Unlock();
 			ThisPointer->Semaphore.Wait(); //Wait for some new data to show up.
 			continue; //If the semaphore has a higher than one value, we just keep looping until we're done.
 		}
@@ -185,7 +178,7 @@ void *NetScheduler::WriteQueue::ThreadFunc(WriteQueue *ThisPointer)
 
 		/** We have the head, now UNLOCK the mutex since nobody else is able to delete what we're reading right now anyways,
 		* and if we don't, nobody can add to the queue while we're sending data which could take who knows how long. */
-		ThisPointer->Mutex.Unlock();
+		Keeper.Unlock();
 		
 		bool Result = false; //It's important this be initialized to false in case Net::Write throws an exception.
 		
@@ -202,7 +195,7 @@ void *NetScheduler::WriteQueue::ThreadFunc(WriteQueue *ThisPointer)
 		
 		
 		///Potential need to modify, lock mutex.
-		ThisPointer->Mutex.Lock();
+		Keeper.Lock();
 		if (Result)
 		{
 			delete Head;
@@ -215,8 +208,6 @@ void *NetScheduler::WriteQueue::ThreadFunc(WriteQueue *ThisPointer)
 		}
 		
 		if (ThisPointer->StatusObj) ThisPointer->StatusObj->SetValues(0u, 0u, ThisPointer->Queue.size(), SchedulerStatusObj::OPERATION_IDLE);
-
-		ThisPointer->Mutex.Unlock(); //Done again
 	}
 	return nullptr;
 }
@@ -230,15 +221,15 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 {
 	while (1)
 	{
-		ThisPointer->Mutex.Lock();
-		
+		VLThreads::MutexKeeper Keeper { &ThisPointer->Mutex };
+
 		//We're being asked to die.
 		if (ThisPointer->ThreadShouldDie)
 		{
 #ifdef DEBUG
 			puts("NetScheduler::ReadQueue::ThreadFunc(): Thread was told to die. Terminating.");
 #endif //DEBUG
-			ThisPointer->Mutex.Unlock();
+			Keeper.Unlock();
 #ifdef DEBUG
 			puts("NetScheduler::ReadQueue::ThreadFunc(): Thread mutex unlocked, thread can now die.");
 #endif //DEBUG
@@ -247,7 +238,7 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 		
 		SchedulerStatusObj::CallbackStruct CBS = { ThisPointer->StatusObj, ThisPointer->Queue.size() };
 
-		ThisPointer->Mutex.Unlock(); //We don't need access right now.
+		Keeper.Unlock(); //We don't need access right now.
 
 		fd_set Set{};
 		const int IntDesc = Net::ToRawDescriptor(ThisPointer->Descriptor);
@@ -297,7 +288,7 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 			goto ReadError;
 		}
 		
-		ThisPointer->Mutex.Lock();
+		Keeper.Lock();
 
 		if (Stream)
 		{
@@ -320,7 +311,6 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 		
 		if (ThisPointer->StatusObj) ThisPointer->StatusObj->SetValues(0u, 0u, ThisPointer->Queue.size(), SchedulerStatusObj::OPERATION_IDLE);
 
-		ThisPointer->Mutex.Unlock();		
 	}
 	return nullptr;
 }
@@ -356,12 +346,12 @@ void NetScheduler::SchedulerStatusObj::GetValues(uint64_t *TotalOut,
 												uint64_t *NumOnQueueOut,
 												OperationType *CurrentOperationOut)
 {
-	this->Mutex.Lock();
+	VLThreads::MutexKeeper Keeper { &this->Mutex };
+
 	if (TotalOut) *TotalOut = this->Total;
 	if (TransferredOut) *TransferredOut = this->Transferred;
 	if (NumOnQueueOut) *NumOnQueueOut = this->NumOnQueue;
 	if (CurrentOperationOut) *CurrentOperationOut = this->CurrentOperation;
-	this->Mutex.Unlock();
 }
 
 NetScheduler::SchedulerStatusObj::OperationType NetScheduler::SchedulerStatusObj::GetCurrentOperation(void)
@@ -376,18 +366,18 @@ void NetScheduler::SchedulerStatusObj::SetValues(const uint64_t Total,
 												const uint64_t NumOnQueue,
 												const OperationType CurrentOperation)
 {
-	this->Mutex.Lock();
+	VLThreads::MutexKeeper Keeper { &this->Mutex };
+
 	this->Total = Total;
 	this->Transferred = Transferred;
 	this->CurrentOperation = CurrentOperation;
 	this->NumOnQueue = NumOnQueue;
-	this->Mutex.Unlock();
 }
 void NetScheduler::SchedulerStatusObj::SetNumOnQueue(const uint64_t NumOnQueue)
 {
-	this->Mutex.Lock();
+	VLThreads::MutexKeeper Keeper { &this->Mutex };
+
 	this->NumOnQueue = NumOnQueue;
-	this->Mutex.Unlock();
 }
 
 void NetScheduler::SchedulerStatusObj::NetRecvStatusFunc(const int64_t Transferred,

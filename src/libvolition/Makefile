@@ -6,7 +6,9 @@ RANLIB = ranlib
 STRIP = strip
 OBJ_OUT_DIR = ./
 
-include ../Security.mk
+ifneq ($(NO_SEC_CXXFLAGS),1)
+	include ../Security.mk
+endif
 
 ifdef DEBUG
 	CXXFLAGS += -DDEBUG -g3 -Og

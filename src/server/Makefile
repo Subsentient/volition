@@ -5,7 +5,9 @@ OBJECTS = core.o clients.o cmdhandling.o db.o nodeupdates.o logger.o routines.o
 LDFLAGS = ./.libvl/libvolition.a `$(PKGCONFIG) --libs sqlite3` `$(PKGCONFIG) --libs openssl`
 
 #Include security CXXFLAG and LDFLAG options.
-include ../Security.mk
+ifneq ($(NO_SEC_CXXFLAGS),1)
+	include ../Security.mk
+endif
 
 EXTRA_LDFLAGS =
 

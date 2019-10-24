@@ -40,11 +40,12 @@ namespace VLThreads
 	{ //Locks the mutex you feed it and unlocks the mutex when the MutexKeeper falls out of scope.
 	private:
 		Mutex *Target;
+		bool Locked;
 		MutexKeeper(const MutexKeeper&);
 		MutexKeeper &operator=(const MutexKeeper&);
 	public:
 
-		MutexKeeper(MutexKeeper &&Ref) : Target(Ref.Target)
+		MutexKeeper(MutexKeeper &&Ref) : Target(Ref.Target), Locked(Ref.Locked)
 		{
 			Ref.Target = nullptr;
 		}
@@ -52,12 +53,14 @@ namespace VLThreads
 		MutexKeeper &operator=(MutexKeeper &&Ref)
 		{
 			this->Target = Ref.Target;
+			this->Locked = Ref.Locked;
+		
 			Ref.Target = nullptr;
-
+			Ref.Locked = false;
 			return *this;
 		}
 		
-		MutexKeeper(Mutex *const InTarget) : Target(InTarget)
+		MutexKeeper(Mutex *const InTarget) : Target(InTarget), Locked()
 		{
 			if (!this->Target) return;
 			
@@ -66,34 +69,44 @@ namespace VLThreads
 
 		~MutexKeeper(void)
 		{
-			if (!this->Target) return;
-			
 			this->Target->Unlock();
 		}
 
 		void Forget(void)
 		{
 			this->Target = nullptr;
+			this->Locked = false;
 		}
 
-		void ReleaseNow(void)
+		void Unlock(void)
 		{
-			if (!this->Target) return;
+			if (!this->Target || !this->Locked) return;
 			
 			this->Target->Unlock();
 
-			this->Target = nullptr;
+			this->Locked = false;
 		}
 		
-		void Unlock(void) { this->ReleaseNow(); }
-		void Lock(void) { if (this->Target) this->Target->Lock(); }
+		void Lock(void)
+		{
+			if (!this->Target || this->Locked) return;
+			
+			this->Target->Lock();
+			
+			this->Locked = true;
+		}
 		
 		void Encase(Mutex *const NewTarget)
 		{
-			this->ReleaseNow();
+			this->Unlock();
+			
 			this->Target = NewTarget;
+			
+			this->Lock();
 		}
 
+		bool IsLocked(void) const { return this->Locked; }
+		
 		Mutex *GetTarget(void) const
 		{
 			return this->Target;

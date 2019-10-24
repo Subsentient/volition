@@ -22,7 +22,10 @@ EXTRA_LDFLAGS =
 STRIP = strip
 
 #CXXFLAG and LDFLAG appends to harden the binary.
-include ../Security.mk
+
+ifneq ($(NO_SEC_CXXFLAGS),1)
+	include ../Security.mk
+endif
 
 ifeq ($(OS),windows)
 	LDFLAGS += -lws2_32 -ldl -lpsapi -static

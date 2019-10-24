@@ -63,8 +63,7 @@ NetCmdStatus Processes::ExecuteCmd(const char *Command, VLString &CmdOutput_Out)
 
 	int Char = 0;
 
-	VLString Output;
-	Output.ChangeCapacity(128);
+	VLString Output(128);
 
 	size_t Capacity = Output.GetCapacity();
 	size_t Length = 0;
@@ -99,7 +98,7 @@ NetCmdStatus Processes::ExecuteCmd(const char *Command, VLString &CmdOutput_Out)
 NetCmdStatus Processes::KillProcessByName(const char *ProcessName)
 {
 #if defined(WIN32)
-	VLScopedPtr<HANDLE, decltype(&CloseHandle)> ProcSnap { CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0lu), CloseHandle };
+	VLScopedPtr<uint8_t*, decltype(&CloseHandle)> ProcSnap { (uint8_t*)CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0lu), CloseHandle };
 	
 	if (!ProcSnap) return NetCmdStatus(false, STATUS_IERR);
 	
@@ -116,9 +115,9 @@ NetCmdStatus Processes::KillProcessByName(const char *ProcessName)
 	{
 		if (!strcmp(Entry.szExeFile, ProcessName))
 		{
-			VLScopedPtr<HANDLE, decltype(&CloseHandle)> Handle
+			VLScopedPtr<uint8_t*, decltype(&CloseHandle)> Handle
 			{
-				OpenProcess(PROCESS_TERMINATE, 0, (DWORD)Entry.th32ProcessID),
+				(uint8_t*)OpenProcess(PROCESS_TERMINATE, 0, (DWORD)Entry.th32ProcessID),
 				CloseHandle
 			};
 			
@@ -201,7 +200,7 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 	
 	OutList.clear();
 #if defined(WIN32)
-	VLScopedPtr<HANDLE, decltype(&CloseHandle)> ProcSnap { CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0lu), CloseHandle};
+	VLScopedPtr<uint8_t*, decltype(&CloseHandle)> ProcSnap { (uint8_t*)CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0lu), CloseHandle};
 	
 	if (!ProcSnap) return NetCmdStatus(false, STATUS_IERR);
 	
@@ -225,21 +224,19 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		Ptr->KernelProcess = false;
 		
 		//Now find the user that owns this.
-		VLScopedPtr<HANDLE, decltype(&CloseHandle)> Handle { OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, (DWORD)Entry.th32ProcessID), CloseHandle };
+		VLScopedPtr<uint8_t*, decltype(&CloseHandle)> Handle { (uint8_t*)OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, (DWORD)Entry.th32ProcessID), CloseHandle };
 		
 		if (Handle)
 		{
 			HANDLE TokenHandle_{};
-			VLScopedPtr<HANDLE, decltype(&CloseHandle)> TokenHandle { TokenHandle_, CloseHandle };
 			
 			if (!OpenProcessToken(Handle, TOKEN_QUERY, &TokenHandle_))
 			{
 				goto CantGetUser;
 			}
 
+			VLScopedPtr<uint8_t*, decltype(&CloseHandle)> TokenHandle { (uint8_t*)TokenHandle_, CloseHandle };
 
-
-			TOKEN_USER *UserTokenPtr = nullptr;
 			DWORD BufferLength = 0;
 			
 			if (!GetTokenInformation(TokenHandle, TokenUser, nullptr, 0, &BufferLength))
@@ -250,20 +247,22 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 				}
 			}
 			
-			VLScopedPtr<UserTokenPtr> { (TOKEN_USER*)malloc(BufferLength), ALLOCTYPE_MALLOC };
+			VLScopedPtr<TOKEN_USER*> UserTokenPtr { (TOKEN_USER*)malloc(BufferLength), VLScopedPtr<TOKEN_USER*>::ALLOCTYPE_MALLOC };
 			
 			if (!GetTokenInformation(TokenHandle, TokenUser, UserTokenPtr, BufferLength, &BufferLength))
 			{
 				goto CantGetUser;
 			}
 			
-			char Username[1024];
-			char Domain[sizeof Username];
-			DWORD Capacity = sizeof Username, DomainCapacity = Capacity;
+			VLString Username(1024);
+			VLString Domain(Username.GetCapacity());
+			
+			DWORD Capacity = Username.GetCapacity() - 1;
+			DWORD DomainCapacity = Capacity;
 			
 			SID_NAME_USE SIDType{};
 			
-			if (!LookupAccountSid(nullptr, UserTokenPtr->User.Sid, Username, &Capacity, Domain, &DomainCapacity, &SIDType))
+			if (!LookupAccountSid(nullptr, UserTokenPtr->User.Sid, Username.GetBuffer(), &Capacity, Domain.GetBuffer(), &DomainCapacity, &SIDType))
 			{
 				goto CantGetUser;
 			}
@@ -336,7 +335,8 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		
 		size_t Inc = 0;
 		
-		char UIDBuf[64];
+		char UIDBuf[64]{};
+		
 		for (; Search[Inc] && isdigit(Search[Inc]) && Inc < sizeof UIDBuf - 1; ++Inc)
 		{
 			UIDBuf[Inc] = Search[Inc];
@@ -361,12 +361,15 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 			
 			while (isblank(*Search)) ++Search;
 			
-			char KernelThreadNameBuf[1024];
-			for (Inc = 0; Search[Inc] && Search[Inc] != '\n'; ++Inc)
+			VLString KernelThreadNameBuf(1024);
+			
+			for (Inc = 0; Inc < KernelThreadNameBuf.GetCapacity() - 1 && Search[Inc] && Search[Inc] != '\n'; ++Inc)
 			{
-				KernelThreadNameBuf[Inc] = Search[Inc];
+				*(KernelThreadNameBuf++) = Search[Inc];
 			}
-			KernelThreadNameBuf[Inc] = '\0';
+			*KernelThreadNameBuf = '\0';
+			
+			KernelThreadNameBuf.Rewind();
 			
 			NewMember->ProcessName = KernelThreadNameBuf;
 			NewMember->KernelProcess = true;
