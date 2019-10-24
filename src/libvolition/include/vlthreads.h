@@ -52,6 +52,8 @@ namespace VLThreads
 
 		MutexKeeper &operator=(MutexKeeper &&Ref)
 		{
+			this->Unlock();
+			
 			this->Target = Ref.Target;
 			this->Locked = Ref.Locked;
 		
@@ -64,12 +66,12 @@ namespace VLThreads
 		{
 			if (!this->Target) return;
 			
-			this->Target->Lock();
+			this->Lock();
 		}
 
 		~MutexKeeper(void)
 		{
-			this->Target->Unlock();
+			this->Unlock();
 		}
 
 		void Forget(void)

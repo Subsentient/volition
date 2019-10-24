@@ -146,6 +146,8 @@ void NetScheduler::WriteQueue::Push(Conation::ConationStream *Stream)
 	
 	this->Queue.push_back(Stream);
 	
+	Keeper.Unlock();
+	
 	if (this->StatusObj) this->StatusObj->SetNumOnQueue(this->Queue.size());
 
 	this->Semaphore.Post(); //Has its own internal mutex.
@@ -206,6 +208,8 @@ void *NetScheduler::WriteQueue::ThreadFunc(WriteQueue *ThisPointer)
 		WriteFailure:
 			ThisPointer->Error = true;
 		}
+		
+		Keeper.Unlock(); //SetValues uses this mutex
 		
 		if (ThisPointer->StatusObj) ThisPointer->StatusObj->SetValues(0u, 0u, ThisPointer->Queue.size(), SchedulerStatusObj::OPERATION_IDLE);
 	}
@@ -308,6 +312,8 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 			ThisPointer->Error = true;
 			
 		}
+		
+		Keeper.Unlock();
 		
 		if (ThisPointer->StatusObj) ThisPointer->StatusObj->SetValues(0u, 0u, ThisPointer->Queue.size(), SchedulerStatusObj::OPERATION_IDLE);
 
