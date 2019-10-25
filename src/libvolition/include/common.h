@@ -40,7 +40,6 @@
 #define PATH_DIVIDER_STRING "/"
 #endif
 
-#define vlassert(a) VL_ASSERT_F(a, __LINE__);
 
 //These strings have no special meaning, just something unique I could stuff in there. Took some inspiration from a PowerMac's Forth interpreter.
 #define NODE_IDENTITY_DELIMSTART "TBXI://{{SMVLID_BI::"
@@ -76,23 +75,11 @@
 #define NODE_INITSCRIPT_DELIMSTART_LENGTH (sizeof NODE_INITSCRIPT_DELIMSTART - 1)
 #define NODE_INITSCRIPT_CAPACITY (1024 * 128) //128KiB max script size
 
+#include "vldebug.h"
 #include "vlstrings.h"
 
 #define TOKEN_KEYVALPAIR(a) a, #a
 
-inline void VL_ASSERT_F(const bool Condition, const int LineNo)
-{
-	if (!Condition)
-	{
-#ifdef DEBUG
-		int printf(const char *Format, ...);
-		printf("Assertion failed on line %d!\n", LineNo);
-#else
-		(void)LineNo;
-#endif
-		exit(31);
-	}
-}
 
 enum StatusCode : uint8_t //I shouldn't need to say it
 {

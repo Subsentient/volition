@@ -139,9 +139,7 @@ NetScheduler::WriteQueue::WriteQueue(const Net::ClientDescriptor &DescriptorIn) 
 
 void NetScheduler::WriteQueue::Push(Conation::ConationStream *Stream)
 {
-#ifdef DEBUG
-	puts(VLString("NetScheduler::WriteQueue::Push(): Accepted stream with command code ") + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags()));
-#endif
+	VLDEBUG("Accepted stream with command code " + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags()));
 	VLThreads::MutexKeeper Keeper { &this->Mutex };
 	
 	this->Queue.push_back(Stream);
@@ -230,13 +228,11 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 		//We're being asked to die.
 		if (ThisPointer->ThreadShouldDie)
 		{
-#ifdef DEBUG
-			puts("NetScheduler::ReadQueue::ThreadFunc(): Thread was told to die. Terminating.");
-#endif //DEBUG
+			VLDEBUG("Thread was told to die. Terminating.");
+
 			Keeper.Unlock();
-#ifdef DEBUG
-			puts("NetScheduler::ReadQueue::ThreadFunc(): Thread mutex unlocked, thread can now die.");
-#endif //DEBUG
+			
+			VLDEBUG("Thread mutex unlocked, thread can now die.");
 			return nullptr; //Terminate our own thread.
 		}
 		
@@ -264,9 +260,8 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 		
 		if ((SelectStatus < 0 && errno != EINTR) || FD_ISSET(IntDesc, &ErrSet) || !Net::HasRealDataToRead(ThisPointer->Descriptor))
 		{
-#ifdef DEBUG
-			if (SelectStatus < 0) puts(VLString("NetScheduler::ReadQueue::ThreadFunc(): Error detected was ") + (const char*)strerror(errno));
-#endif
+			if (SelectStatus < 0) VLDEBUG("Error detected was " + (const char*)strerror(errno));
+
 			ThisPointer->Error = true;
 			Utils::vl_sleep(10);
 			continue;
@@ -276,9 +271,7 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 		
 		Conation::ConationStream *Stream = nullptr;
 
-#ifdef DEBUG
-		puts("NetScheduler::ReadQueue::ThreadFunc(): Attempting to download stream.");
-#endif
+		VLDEBUG("Attempting to download stream.");
 
 		try
 		{
@@ -296,17 +289,13 @@ void *NetScheduler::ReadQueue::ThreadFunc(ReadQueue *ThisPointer)
 
 		if (Stream)
 		{
-#ifdef DEBUG
-			puts(VLString("NetScheduler::ReadQueue::ThreadFunc(): Success downloading stream, command code is ") + CommandCodeToString(Stream->GetCommandCode()) + " with flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags() ));
-#endif
+			VLDEBUG("Success downloading stream, command code is " + CommandCodeToString(Stream->GetCommandCode()) + " with flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags() ));
 			ThisPointer->Queue.push_back(Stream);
 		}
 		else
 		{
 		ReadError:
-#ifdef DEBUG
-			puts("NetScheduler::ReadQueue::ThreadFunc(): Error downloading stream.");
-#endif
+			VLDEBUG("Error downloading stream.");
 			//We're gonna change stuff now so this is needed again.
 
 			ThisPointer->Error = true;

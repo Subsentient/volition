@@ -77,9 +77,7 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 	if (stat(Source, FileStat) != 0 ||
 		S_ISDIR(FileStat->st_mode))
 	{
-#ifdef DEBUG
-		puts("CopyFileSub(): stat() of source failed.");
-#endif
+		VLDEBUG("stat() of source failed.");
 		return false;
 	}
 	
@@ -91,9 +89,7 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 	
 	if (!InDesc || !OutDesc)
 	{
-#ifdef DEBUG
-		printf("CopyFileSub(): Failed to open a descriptor. InDesc open: %d, OutDesc open: %d\n", (int)(bool)InDesc, (int)(bool)OutDesc);
-#endif
+		VLDEBUG("Failed to open a descriptor. InDesc open: " + VLString::IntToString((bool)InDesc) + " OutDesc open: " + VLString::IntToString((bool)InDesc));
 		return false;
 	}
 	
@@ -110,9 +106,7 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 		{
 	LoopFailed:
 
-#ifdef DEBUG
-			puts("CopyFileSub(): InDesc tripped ferror()");
-#endif
+			VLDEBUG("InDesc tripped ferror()");
 			return false;
 		}
 		
@@ -122,9 +116,7 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 		
 		if (ferror(OutDesc))
 		{
-#ifdef DEBUG
-			puts("CopyFileSub(): OutDesc tripped ferror()");
-#endif
+			VLDEBUG("OutDesc tripped ferror()");
 			goto LoopFailed;
 		}
 		
@@ -137,9 +129,9 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 
 bool Files::Copy(const char *Source, const char *Destination)
 {
-#ifdef DEBUG
-	printf("Files::Copy(): Source = \"%s\", Destination = \"%s\".\n", Source, Destination);
-#endif
+	
+	VLDEBUG("Source: \"" + Source + "\", Destination: \"" + Destination + "\"");
+	
 	VLScopedPtr<struct stat *> FileStat { new struct stat() };
 	
 	if (stat(Source, FileStat) != 0)
@@ -149,9 +141,7 @@ bool Files::Copy(const char *Source, const char *Destination)
 	
 	if (!S_ISDIR(FileStat->st_mode))
 	{ //Regular file.
-#ifdef DEBUG
-		puts(VLString("Files::Copy(): Copying regular file \"") + Source + "\" to \"" + Destination + "\".");
-#endif
+		VLDEBUG("Copying regular file \"" + Source + "\" to \"" + Destination + "\".");
 		return CopyFileSub(Source, Destination);
 	}
 	

@@ -372,7 +372,7 @@ static void ExecuteOnConnectRoutine(Routines::RoutineInfo *Routine, Clients::Cli
 	//Copy in the routine's argument data.
 	NewStream->AppendArgData(OnDiskRoutine->Stream);
 
-	vlassert(NewStream->GetCmdIdentFlags() & Conation::IDENT_ISROUTINE_BIT);
+	VLASSERT(NewStream->GetCmdIdentFlags() & Conation::IDENT_ISROUTINE_BIT);
 	
 	Node->SendStream(NewStream);
 

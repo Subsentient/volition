@@ -76,29 +76,19 @@ int main(int argc, char **argv)
 	
 	const time_t CompileTime = IdentityModule::GetCompileTime();
 	
-#ifdef DEBUG
 	struct tm TimeStruct = *localtime(&CompileTime);
 	char TimeBuf[128]{};
 	
-	strftime(TimeBuf, sizeof TimeBuf, "%a %m/%d/%Y | %I:%M:%S %p", &TimeStruct);
+	strftime(TimeBuf, sizeof TimeBuf, "%a %m/%d/%Y %I:%M:%S %p", &TimeStruct);
 	
-	puts(VLString("Node compiled at ") + (const char*)TimeBuf);
-#else
-	//So the compiler doesn't strip this.
-	if (!CompileTime) puts("Impossible has happened, pigs fly!");
-#endif //DEBUG
+	std::cout << "Volition node software revision " << +IdentityModule::GetNodeRevision() << " starting. Node compiled at " << (const char*)TimeBuf << std::endl << std::endl;
 
 	
 #ifdef WIN32
 	WSADATA WSAData{};
 
-    if (WSAStartup(MAKEWORD(2,2), &WSAData) != 0)
-    { /*Initialize winsock*/
-#ifdef DEBUG
-        fprintf(stderr, "Unable to initialize WinSock2!");
-#endif
-        exit(1);
-    }
+    VLASSERT_ERRMSG(WSAStartup(MAKEWORD(2,2), &WSAData) == 0, "Failed to initialize WinSock2!");
+
 #endif //WIN32
 
 
@@ -159,9 +149,7 @@ Restart:
 	//Poll for it.
 	if (MasterReadQueue.HasError() || MasterWriteQueue.HasError() || PingedOut())
 	{
-#ifdef DEBUG
-		puts("MasterLoop(): Server lost connection. Attempting to reconnect.");
-#endif //DEBUG
+		VLDEBUG("Server lost connection. Attempting to reconnect.");
 		MasterReadQueue.StopThread();
 		MasterWriteQueue.StopThread();
 		
@@ -169,9 +157,7 @@ Restart:
 		
 		while (!(Descriptor = Interface::Establish(IdentityModule::GetServerAddr() ) ).Internal) Utils::vl_sleep(1000);
 
-#ifdef DEBUG
-		puts("MasterLoop(): Reconnect succeeded. Restarting network queues.");
-#endif
+		VLDEBUG("Reconnect succeeded. Restarting network queues.");
 		//Restart network queues.
 		MasterReadQueue.ClearError();
 		MasterWriteQueue.ClearError();
@@ -179,9 +165,8 @@ Restart:
 		MasterReadQueue.Begin(Descriptor);
 		MasterWriteQueue.Begin(Descriptor);
 		
-#ifdef DEBUG
-		puts("MasterLoop(): Queues restarted.");
-#endif
+		VLDEBUG("Queues restarted.");
+		
 		return; //Restart the loop to be sure.
 	}
 	
@@ -190,9 +175,7 @@ Restart:
 	
 	if (Stream)
 	{
-#ifdef DEBUG
-		puts(VLString("MasterLoop(): Acquired stream with command code ") + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags()));
-#endif
+		VLDEBUG("Acquired stream with command code " + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags()));
 		Interface::HandleServerInterface(Stream);
 	}
 	

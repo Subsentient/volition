@@ -93,9 +93,7 @@ static void ExecuteBinary(const VLString &Path, const std::vector<VLString> &Ext
 	
 	SuperArgument.ShrinkToFit();
 
-#ifdef DEBUG
-	puts(VLString("Final value of SuperArgument: ") + SuperArgument);
-#endif //DEBUG
+	VLDEBUG("Final value of SuperArgument: " + SuperArgument);
 
 	STARTUPINFO StartupInfo{};
 	StartupInfo.cb = sizeof StartupInfo;
@@ -116,15 +114,11 @@ static void ExecuteBinary(const VLString &Path, const std::vector<VLString> &Ext
 										nullptr,
 										&StartupInfo,
 										&ProcessInfo);
-#ifdef DEBUG
-	puts(VLString("Call to CreateProcess() ") + (Succeeded ? "succeeded" : "failed"));
-#endif //DEBUG
+	VLDEBUG("Call to CreateProcess() " + (Succeeded ? "succeeded" : "failed"));
 
 	exit(!Succeeded);
 
-#ifdef DEBUG
-	puts("Landed after exit()! This is impossible!");
-#endif //DEBUG
+	VLCRITICAL("Landed after exit()! This is impossible!");
 
 #else //Not win32
 	std::vector<char*> Params;
@@ -166,21 +160,11 @@ void Updates::HandleUpdateRecovery(void)
 	{
 		case UPDATE_X_STAGE1:
 		{ //We're running as the temp binary.
-#ifdef DEBUG
-			puts("Updates::HandleUpdateRecovery(): Detected Stage 1 update action");
-#endif
+			VLDEBUG("Detected Stage 1 update action");
 
 			if (*argc != 5)
 			{
-#ifdef DEBUG
-				puts(VLString("Updates::HandleUpdateRecovery(): Argument count mismatch for stage 1. Got ") + VLString::IntToString(*argc));
-				
-				for (int Inc = 0; Inc < *argc; ++Inc)
-				{
-					puts(VLString("Argument ") + VLString::IntToString(Inc) + ": \"" + (const char*)argv[Inc] + "\".");
-				}
-#endif
-				return;
+				VLCRITICAL("Argument count mismatch for stage 1. Got " + VLString::IntToString(*argc));
 			}
 
 			InitStage2(argv[3], argv[4]);
@@ -191,14 +175,8 @@ void Updates::HandleUpdateRecovery(void)
 			
 			if (*argc != 4)
 			{
-#ifdef DEBUG
-				puts(VLString("Updates::HandleUpdateRecovery(): Argument count mismatch for stage 2. Got ") + VLString::IntToString(*argc));
-				
-				for (int Inc = 0; Inc < *argc; ++Inc)
-				{
-					puts(VLString("Argument ") + VLString::IntToString(Inc) + ": \"" + (const char*)argv[Inc] + "\".");
-				}
-#endif
+				VLCRITICAL("Updates::HandleUpdateRecovery(): Argument count mismatch for stage 2. Got " + VLString::IntToString(*argc));
+
 				return;
 			}
 			
@@ -206,12 +184,8 @@ void Updates::HandleUpdateRecovery(void)
 			break; //Shouldn't really reach here.
 		}
 		default:
-#ifdef DEBUG
 			//Cuz we probably wanna see what happened.
-			puts("Updates::HandleUpdateRecovery(): Recovery mode unknown, aborting.");
-			Utils::vl_sleep(10000);
-			exit(1);
-#endif
+			VLCRITICAL("Recovery mode unknown, aborting.");
 			break;
 	}
 }
@@ -219,16 +193,15 @@ void Updates::HandleUpdateRecovery(void)
 
 static void CompleteUpdate(const VLString &TempBinaryPath)
 {
-#ifdef DEBUG
-	puts("Entered CompleteUpdate()");
-#endif //DEBUG
+	VLDEBUG("Entered");
+	
 	Files::Delete(TempBinaryPath);
 	Main::Begin(true);
 }
 
 static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File)
 {
-	vlassert(File.DataSize > 0 && File.Data);
+	VLASSERT(File.DataSize > 0 && File.Data);
 	
 	NetCmdStatus RetVal(false);
 	
@@ -237,26 +210,17 @@ static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File)
 	if (!SelfBinaryPath)
 	{
 		RetVal = NetCmdStatus(false, STATUS_ACCESSDENIED
-#ifdef DEBUG
-								, "Unable to find location of current binary!"
-#endif
-							);
-#ifdef DEBUG
-		puts("InitStage1(): Unable to find location of current binary!");
-#endif //DEBUG
+								, "Unable to find location of current binary!");
+		VLWARN(RetVal.Msg);
 		return RetVal;
 	}
 
 	if (!Utils::FileExists(SelfBinaryPath))
 	{
-#ifdef DEBUG
-		puts(VLString("InitStage1(): Failed to stat original binary at path \"") + SelfBinaryPath + "\"!");
-#endif //DEBUG
+
 		RetVal = NetCmdStatus(false, STATUS_MISSING
-#ifdef DEBUG
-							, VLString("Our reported binary \"") + SelfBinaryPath + "\" was not found at its reported location!"
-#endif
-							);
+							, VLString("Our reported binary \"") + SelfBinaryPath + "\" was not found at its reported location!");
+		VLWARN(RetVal.Msg);
 		return RetVal;
 	}
 	
@@ -265,13 +229,8 @@ static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File)
 	if (!Utils::WriteFile(TempBinaryPath, File.Data, File.DataSize))
 	{
 		RetVal = NetCmdStatus(false, STATUS_IERR
-#ifdef DEBUG
-							, VLString("Unable to write temporary binary to \"") + TempBinaryPath + "\"!"
-#endif
-							);
-#ifdef DEBUG
-		puts(VLString("InitStage1(): ") + RetVal.Msg);
-#endif
+							, VLString("Unable to write temporary binary to \"") + TempBinaryPath + "\"!");
+		VLWARN(RetVal.Msg);
 		return RetVal;
 	}
 	
@@ -288,15 +247,11 @@ static NetCmdStatus InitStage1(const Conation::ConationStream::FileArg &File)
 										};
 	ExecuteBinary(TempBinaryPath, Arguments);
 	
-	RetVal = NetCmdStatus(false, STATUS_IERR
-#ifdef DEBUG
-	, VLString("Failed to ExecuteBinary(), \"") + TempBinaryPath + "\", we landed after the call!"
-#endif
-						);
+	RetVal = NetCmdStatus(false, STATUS_IERR, 
+						VLString("Failed to ExecuteBinary(), \"")
+						+ TempBinaryPath + "\", we landed after the call!");
 
-#ifdef DEBUG
-	puts(VLString("InitStage1(): ") + RetVal.Msg);
-#endif //DEBUG
+	VLWARN(RetVal.Msg);
 
 	return RetVal;
 }
@@ -322,20 +277,14 @@ static void InitStage2(const VLString &OriginalBinaryPath, const VLString &TempB
 	ExecuteBinary(OriginalBinaryPath, Arguments);
 
 	
-#ifdef DEBUG
-	puts("InitStage2(): Landed after execlp()!");
-#endif //DEBUG
-	exit(1); //Again, nothing we can do about it.
-	
+	VLCRITICAL("Landed after execlp()!");
 }
 
 NetCmdStatus Updates::AttemptUpdate(const Conation::ConationStream::FileArg &File)
 { //Regardless of what we return, it's gonna be failure, cuz this shouldn't return at all.
-#ifdef DEBUG
-	puts("Entering Updates::AttemptUpdate()");
-#endif
-
-	vlassert(File.DataSize > 0 && File.Data);
+	VLDEBUG("Attempting update");
+	
+	VLASSERT(File.DataSize > 0 && File.Data);
 	
 	//Release the mutex by force, otherwise we can't gracefully kill the read queue threads.
 	Main::GetReadQueue().Head_Release(false);

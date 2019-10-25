@@ -134,9 +134,7 @@ bool Net::AcceptClient(const ServerDescriptor &ServerDesc, ClientDescriptor *con
 	
 	if (ClientDesc == -1) //Accept error.
 	{
-#ifdef DEBUG
-		puts("Net::AcceptClient(): Failed to accept.");
-#endif
+		VLWARN("Failed to accept.");
 		return false;
 	}
 	
@@ -187,9 +185,7 @@ Net::ServerDescriptor Net::InitServer(unsigned short PortNum)
 
 	if ((GAIExit = getaddrinfo(nullptr, AsciiPort, &BStruct, &Res)) != 0)
 	{
-#ifdef DEBUG
-		fprintf(stderr, "Failed to getaddrinfo(): %s\n", gai_strerror(GAIExit));
-#endif
+		VLWARN("Failed to getaddrinfo(): " + gai_strerror(GAIExit));
 		return ServerDescriptor();
 	}
 
@@ -198,9 +194,7 @@ Net::ServerDescriptor Net::InitServer(unsigned short PortNum)
 
 	if (Desc.Descriptor <= 0)
 	{
-#ifdef DEBUG
-		fprintf(stderr, "Failed to open a socket on port %hu.\n", PortNum);
-#endif
+		VLWARN("Failed to open a socket on port " + VLString::IntToString(PortNum));
 		return ServerDescriptor();
 	}
 
@@ -241,9 +235,7 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, ClientDescriptor *
 	
 	if (getaddrinfo(InHost, AsciiPort, &Hints, &Res) != 0)
 	{
-#ifdef DEBUG
-		fprintf(stderr, "Failed to resolve hostname \"%s\".\n", InHost);
-#endif
+		VLDEBUG("Failed to resolve hostname \"" + InHost + "\".");
 		return 0;
 	}
 	
@@ -257,9 +249,7 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, ClientDescriptor *
 	
 	if (connect(IntDesc, Res->ai_addr, Res->ai_addrlen) != 0)
 	{
-#ifdef DEBUG
-		fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
-#endif
+		VLDEBUG("Failed to connect to server \"" + InHost + "\".");
 		Net::Close(IntDesc);
 		return false;
 	}
@@ -269,9 +259,7 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, ClientDescriptor *
 
 	if (SSL_connect(New) != 1)
 	{
-#ifdef DEBUG
-		fputs("SSL handshake failed!\n", stderr);
-#endif
+		VLDEBUG("SSL handshake failed!");
 		Net::Close(IntDesc);
 		return false;
 	}
@@ -292,9 +280,7 @@ static bool VerifyCert(SSL *SSLDesc)
 
 	if (!ServerCert)
 	{
-#ifdef DEBUG
-		fputs("Failed to get server SSL certificate!\n", stderr);
-#endif
+		VLDEBUG("Failed to get server SSL certificate!");
 		return false;
 	}
 	
@@ -319,9 +305,7 @@ static bool VerifyCert(SSL *SSLDesc)
 	
 	if (!Verified)
 	{
-#ifdef DEBUG
-		fputs("Server's X509 certificate is invalid! Refusing to connect.\n", stderr);
-#endif
+		VLDEBUG("Server's X509 certificate is invalid! Refusing to connect.");
 		return false;
 	}
 

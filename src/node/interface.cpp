@@ -35,16 +35,14 @@ Net::ClientDescriptor Interface::Establish(const char *Hostname)
 	Main::PingTrack.RegisterPing();
 	
 	Net::ClientDescriptor Connection{};
-#ifdef DEBUG
-	puts(VLString("Interface::Establish(): Connecting to server ") + Hostname + "...");
-#endif //DEBUG
+	
+	VLDEBUG("Connecting to server " + Hostname + "...");
+
 	if (!Net::Connect(Hostname, MASTER_PORT, &Connection))
 	{
 		return 0;
 	}
-#ifdef DEBUG
-	puts("Interface::Establish(): Network connection open. Prepare to authenticate.");
-#endif //DEBUG
+	VLDEBUG("Network connection open. Prepare to authenticate.");
 	
 	Conation::ConationStream LoginStream(CMDCODE_B2S_AUTH, 0, 0u);
 
@@ -61,9 +59,7 @@ Net::ClientDescriptor Interface::Establish(const char *Hostname)
 		return 0;
 	}
 	
-#ifdef DEBUG
-	puts("Interface::Establish(): Authentication transmit succeeded. Downloading response.");
-#endif
+	VLDEBUG("Authentication transmit succeeded. Downloading response.");
 	
 	VLScopedPtr<Conation::ConationStream*> ResponseStream;
 
@@ -78,31 +74,24 @@ Net::ClientDescriptor Interface::Establish(const char *Hostname)
 		return 0;
 	}
 
-#ifdef DEBUG
-	puts("Interface::Establish(): Server response downloaded.");
-#endif
+	VLDEBUG("Server response downloaded.");
+	
 	//Check if the server likes us.
 	if (!ResponseStream->VerifyArgTypes(Conation::ARGTYPE_NETCMDSTATUS, Conation::ARGTYPE_NONE))
 	{
-#ifdef DEBUG
-		puts("Interface::Establish(): Argument is not ARGTYPE_NETCMDSTATUS or argument missing. Aborting.");
-#endif
+		VLDEBUG("Argument is not ARGTYPE_NETCMDSTATUS or argument missing. Aborting.");
 		Net::Close(Connection);
 		return 0;
 	}
 	
 	if (ResponseStream->Pop_NetCmdStatus().Status != STATUS_OK)
 	{
-#ifdef DEBUG
-		puts("Interface::Establish(): Server reports our authentication failed.");
-#endif
+		VLDEBUG("Server reports our authentication failed.");
 		Net::Close(Connection);
 		return 0;
 	}
 	
-#ifdef DEBUG
-	puts("Interface::Establish(): Authentication succeeded.");
-#endif
+	VLDEBUG("Authentication succeeded.");
 
 	return Connection;
 }
@@ -112,11 +101,9 @@ bool Interface::HandleServerInterface(Conation::ConationStream *Stream)
 	
 	Stream->GetCommandIdent(&Flags, nullptr);
 
-	vlassert(Flags == Stream->GetCmdIdentFlags());
-	
-#ifdef DEBUG
-	puts(VLString("Interface::HandleServerInterface(): Processing stream with command code ") + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Flags));
-#endif
+	VLASSERT(Flags == Stream->GetCmdIdentFlags());
+
+	VLDEBUG("Processing stream with command code " + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Flags));
 
 	//Give the scripts whatever they want.
 	Jobs::ForwardToScriptJobs(Stream);

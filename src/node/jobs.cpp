@@ -107,7 +107,7 @@ static void *JOB_FILES_MOVE_ThreadFunc(Jobs::Job *OurJob)
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 	
@@ -139,7 +139,7 @@ static void *JOB_LISTDIRECTORY_ThreadFunc(Jobs::Job *OurJob)
 
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 	
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 	Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
@@ -188,7 +188,7 @@ static void *JOB_MOD_EXECFUNC_ThreadFunc(Jobs::Job *OurJob)
 	Conation::ConationStream *Stream = OurJob->Read_Queue.Pop(false); //Cuz the scripts might want this
 
 	//Make sure nothing's fucky.
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 	
 	Conation::ConationStream Response(OurJob->CmdCode, Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, OurJob->CmdIdent);
 	Response.Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
@@ -240,7 +240,7 @@ static void *JOB_MOD_LOADSCRIPT_ThreadFunc(Jobs::Job *OurJob)
 {
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 	
 	Conation::ConationStream Response(OurJob->CmdCode, Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, OurJob->CmdIdent);
 	
@@ -289,7 +289,7 @@ static void *JOB_MOD_UNLOADSCRIPT_ThreadFunc(Jobs::Job *OurJob)
 {
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 	
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 	
 	Conation::ConationStream Response(OurJob->CmdCode, Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, OurJob->CmdIdent);
 	
@@ -332,7 +332,7 @@ static void *JOB_FILES_FETCH_ThreadFunc(Jobs::Job *OurJob)
 		+Utils::ToBinaryString((Stream->GetCmdIdentComposite() & ~Conation::IDENT_ISREPORT_BIT)),
 		+Utils::ToBinaryString(OurJob->CmdIdent));
 		
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 	
@@ -380,7 +380,7 @@ static void *JOB_FILES_PLACE_ThreadFunc(Jobs::Job *OurJob)
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
@@ -464,7 +464,7 @@ static void *JOB_FILES_COPY_ThreadFunc(Jobs::Job *OurJob)
 
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
@@ -494,7 +494,7 @@ static void *JOB_FILES_DEL_ThreadFunc(Jobs::Job *OurJob)
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 	
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
@@ -541,7 +541,7 @@ static void *JOB_EXECCMD_ThreadFunc(Jobs::Job *OurJob)
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
@@ -572,7 +572,7 @@ static void *JOB_GETCWD_ThreadFunc(Jobs::Job *OurJob)
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
@@ -601,7 +601,7 @@ static void *JOB_GETPROCESSES_ThreadFunc(Jobs::Job *OurJob)
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
@@ -667,7 +667,7 @@ static void *JOB_KILLPROCESS_ThreadFunc(Jobs::Job *OurJob)
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetHeader().CmdIdent);
 
@@ -743,7 +743,7 @@ static void *JOB_CHDIR_ThreadFunc(Jobs::Job *OurJob)
 	
 	VLScopedPtr<Conation::ConationStream*> Stream { OurJob->Read_Queue.Pop() };
 
-	vlassert(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetHeader().CmdIdent);
 
@@ -765,9 +765,7 @@ static void *JOB_CHDIR_ThreadFunc(Jobs::Job *OurJob)
 
 	JobWorkingDirectory.Path = Target;
 
-#ifdef DEBUG
-	puts(VLString("Altering future job's working directories to ") + JobWorkingDirectory.Path);
-#endif
+	VLDEBUG("Altering future job's working directories to " + JobWorkingDirectory.Path);
 
 
 	Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
@@ -791,7 +789,7 @@ bool Jobs::StartJob(const CommandCode ID, const Conation::ConationStream *Data)
 	New.JobID = JobIDCounter++; //Unsigned, doesn't matter if it overflows. First is zero.
 	
 	//Should never be a report.
-	vlassert((Hdr.CmdIdentFlags & Conation::IDENT_ISREPORT_BIT) == 0);
+	VLASSERT((Hdr.CmdIdentFlags & Conation::IDENT_ISREPORT_BIT) == 0);
 	
 	New.CmdIdent = Conation::BuildIdentComposite(Hdr.CmdIdentFlags, Hdr.CmdIdent);
 	
@@ -828,9 +826,7 @@ void Jobs::ProcessCompletedJobs(void)
 		JobsList.erase(Iter);
 		Iter = IterNext;
 
-#ifdef DEBUG
-		puts("Jobs::ProcessCompletedJobs(): Job completed.");
-#endif
+		VLDEBUG("Job completed.");
 	}
 }
 
@@ -839,9 +835,8 @@ static void InitJobEnv(void)
 	JobWorkingDirectory.Mutex.Lock();
 	Files::Chdir(JobWorkingDirectory.Path);
 
-#ifdef DEBUG
-	puts(VLString("InitJobEnv(): Changed working directory to ") + JobWorkingDirectory.Path);
-#endif
+	VLDEBUG("Changed working directory to " + JobWorkingDirectory.Path);
+	
 	JobWorkingDirectory.Mutex.Unlock();
 }
 
@@ -915,9 +910,8 @@ ResetLoop:
 
 Conation::ConationStream *Jobs::BuildRunningJobsReport(const Conation::ConationStream::StreamHeader &Hdr)
 {
-#ifdef DEBUG
-	puts("Executing Jobs::BuildRunningJobsReport()");
-#endif
+	VLDEBUG("Executing");
+	
 	Conation::ConationStream *RetVal = new Conation::ConationStream(Hdr, nullptr);
 	
 	RetVal->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);

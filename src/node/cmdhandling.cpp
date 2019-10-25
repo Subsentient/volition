@@ -32,12 +32,11 @@
 void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 {
 
-#ifdef DEBUG
-	puts(VLString("Entered CmdHandling::HandleRequest() with stream command code ") + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags()));
-#endif
+	VLDEBUG("Entered with stream command code " + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Stream->GetCmdIdentFlags()));
+
 	const Conation::ConationStream::StreamHeader &Hdr = Stream->GetHeader();
 
-	vlassert(Hdr.CmdIdentFlags == Stream->GetCmdIdentFlags());
+	VLASSERT(Hdr.CmdIdentFlags == Stream->GetCmdIdentFlags());
 	
 	
 	switch (Hdr.CmdCode)
@@ -65,9 +64,9 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 		case CMDCODE_A2C_SLEEP:
 		{ //Server asks us to terminate.
 			Conation::ConationStream Response(Hdr.CmdCode, true, Hdr.CmdIdent);
-#ifdef DEBUG
-			puts("CmdHandling::HandleRequest(): Executing sleep command");
-#endif
+			
+			VLDEBUG("Executing sleep command");
+			
 			Response.Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 			Response.Push_NetCmdStatus(true);
 
@@ -81,9 +80,7 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 			
 			exit(0);
 
-#ifdef DEBUG
-			puts("CmdHandling::HandleRequest(): Unexpected failure, did not expect to reach here");
-#endif
+			VLWARN("Unexpected failure, did not expect to reach here");
 			break;
 		}
 		case CMDCODE_B2C_USEUPDATE:
@@ -125,9 +122,7 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 		case CMDCODE_A2C_HOSTREPORT:
 		case CMDCODE_A2C_LISTDIRECTORY:
 		{
-#ifdef DEBUG
-			puts(VLString("CmdHandling::HandleRequest(): Spawning ") + ((Stream->GetCmdIdentFlags() & Conation::IDENT_ISROUTINE_BIT) ? "routine" : "admin ordered") + " job " + CommandCodeToString(Hdr.CmdCode));
-#endif
+			VLDEBUG("Spawning" + ((Stream->GetCmdIdentFlags() & Conation::IDENT_ISROUTINE_BIT) ? "routine" : "admin ordered") + " job " + CommandCodeToString(Hdr.CmdCode));
 			Jobs::StartJob(Hdr.CmdCode, Stream);
 			break;
 		}
@@ -184,11 +179,7 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 		{ //Something we don't understand.
 			Conation::ConationStream Response(Hdr.CmdCode, true, Hdr.CmdIdent);
 
-			Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED
-#ifdef DEBUG
-										, "Command sent from wrong direction by server."
-#endif
-										));
+			Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED, "Command sent from wrong direction by server."));
 
 			Main::PushStreamToWriteQueue(Response);
 			break;
