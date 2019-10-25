@@ -185,7 +185,7 @@ Net::ServerDescriptor Net::InitServer(unsigned short PortNum)
 
 	if ((GAIExit = getaddrinfo(nullptr, AsciiPort, &BStruct, &Res)) != 0)
 	{
-		VLWARN("Failed to getaddrinfo(): " + gai_strerror(GAIExit));
+		VLWARN("Failed to getaddrinfo(): " + (const char*)gai_strerror(GAIExit));
 		return ServerDescriptor();
 	}
 
