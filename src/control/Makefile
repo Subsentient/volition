@@ -8,7 +8,9 @@ LDFLAGS = ./.libvl/libvolition.a `$(PKGCONFIG) --libs gtk+-$(GTKCHOICE).0` `$(PK
 STRIP = strip
 EXTRA_LDFLAGS =
 
-include ../Security.mk
+ifneq ($(NO_SEC_CXXFLAGS),1)
+	include ../Security.mk
+endif
 
 ifdef DEBUG
 	CXXFLAGS += -DDEBUG -g3 -pg -Og
