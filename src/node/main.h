@@ -46,30 +46,6 @@ namespace Main
 	
 	NetScheduler::ReadQueue &GetReadQueue(void);
 	NetScheduler::WriteQueue &GetWriteQueue(void);
-
-	class DLOpenQueue
-	{ //Some platforms act shitty if you dlopen() from another thread
-	public:
-		struct QueueMember
-		{
-			VLString LibPath;
-			VLString FuncName;
-			VLThreads::ValueWaiter<void*> *Waiter;
-		};
-	private:
-		VLThreads::Mutex RequestsLock, FuncsLock, LibsLock;
-		std::queue<QueueMember> Requests;
-		std::map<VLString, void*> Functions;
-		std::map<VLString, void*> Libs;
-		
-	public:
-		void *GetFunction(const VLString &LibPath, const VLString &FuncName);
-
-		
-		void ProcessRequests(void);
-	};
-	
-	extern DLOpenQueue DLQ;
 }
 
 #endif //_VL_NODE_MAIN_H_

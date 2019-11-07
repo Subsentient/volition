@@ -55,7 +55,6 @@ static NetScheduler::SchedulerStatusObj ReadQueueStatus;
 static NetScheduler::SchedulerStatusObj WriteQueueStatus;
 
 Net::PingTracker Main::PingTrack;
-Main::DLOpenQueue Main::DLQ;
 
 static inline bool PingedOut(void)
 {
@@ -185,8 +184,6 @@ Restart:
 
 	Jobs::ProcessCompletedJobs();
 	
-	Main::DLQ.ProcessRequests(); //Process requests for dynamic symbols
-	
 	Utils::vl_sleep(50);
 }
 
@@ -233,68 +230,3 @@ NetScheduler::WriteQueue &Main::GetWriteQueue(void)
 	return MasterWriteQueue;
 }
 
-void Main::DLOpenQueue::ProcessRequests(void)
-{
-	VLThreads::MutexKeeper G { &this->RequestsLock };
-	
-	while (!this->Requests.empty())
-	{
-		const QueueMember &Ref { this->Requests.back() };
-		
-		VLThreads::MutexKeeper LG { &this->LibsLock };
-		
-		void *const Handle = this->Libs.count(Ref.LibPath) ? this->Libs.at(Ref.LibPath) : dlopen(Ref.LibPath ? Ref.LibPath : nullptr, RTLD_NOW | RTLD_GLOBAL);
-		
-		if (!Handle)
-		{
-			Ref.Waiter->Post(nullptr);
-			this->Requests.pop();
-			continue;
-		}
-		
-		this->Libs[Ref.LibPath] = Handle;
-		
-		void *FuncPtr = dlsym(Handle, Ref.FuncName);
-
-		if (!FuncPtr)
-		{
-			Ref.Waiter->Post(nullptr);
-			this->Requests.pop();
-			continue;
-		}
-
-		Ref.Waiter->Post(FuncPtr);
-		
-		this->Requests.pop();
-	}
-}
-
-void *Main::DLOpenQueue::GetFunction(const VLString &LibPath, const VLString &FuncName)
-{
-	VLThreads::MutexKeeper FG { &this->FuncsLock };
-
-	if (this->Functions.count(FuncName))
-	{
-		return this->Functions.at(FuncName);
-	}
-	
-	FG.Unlock();
-	
-	VLThreads::MutexKeeper RG { &this->RequestsLock };
-	
-	VLThreads::ValueWaiter<void*> Waiter;
-	
-	Requests.push({LibPath, FuncName, &Waiter});
-	
-	RG.Unlock();
-	
-	void *const Func = Waiter.Await();
-	
-	if (!Func) return nullptr;
-	
-	FG.Lock();
-	
-	this->Functions[FuncName] = Func;
-	
-	return Func;
-}

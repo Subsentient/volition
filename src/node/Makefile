@@ -7,7 +7,7 @@ OPENSSL_LIBFLAGS = `$(PKGCONFIG) --libs openssl`
 CURL_LIBFLAGS = `$(PKGCONFIG) --libs libcurl`
 LUA_LIBFLAGS = `$(PKGCONFIG) --libs lua`
 
-CXXFLAGS = -std=gnu++14 -pedantic -Wall -fno-rtti -fno-strict-aliasing -Wno-strict-aliasing \
+CXXFLAGS = -std=gnu++14 -pedantic -Wall -fno-strict-aliasing -Wno-strict-aliasing \
 			$(LUA_CFLAGS) $(OPENSSL_CFLAGS) -Wno-ignored-attributes -Wno-implicit-fallthrough
 OBJECTS = processes.o interface.o main.o files.o cmdhandling.o jobs.o updates.o identity_module.o script.o
 
