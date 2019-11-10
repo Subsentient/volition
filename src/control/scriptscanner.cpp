@@ -255,6 +255,8 @@ bool ScriptScanner::ScanScriptsDirectory(void)
 	
 	if (!DirHandle) return false;
 	
+	KnownScripts.clear();
+	
 	struct dirent *DirWorker = nullptr;
 	struct stat FileStat{};
 	

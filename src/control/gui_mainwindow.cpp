@@ -30,7 +30,7 @@
 #include "gui_menus.h"
 #include "gui_dialogs.h"
 #include "gui_icons.h"
-
+#include "scriptscanner.h"
 #include "clienttracker.h"
 #include "main.h"
 #include "interface.h"
@@ -586,8 +586,12 @@ std::vector<VLString> *GuiMainWindow::MainWindowScreen::GetSelectedNodes(void)
 	return RetVal;
 }
 
-void GuiMainWindow::MainWindowScreen::RefreshCallback(MainWindowScreen *)
+void GuiMainWindow::MainWindowScreen::RefreshCallback(MainWindowScreen *ThisPtr)
 {
+	ScriptScanner::ScanScriptsDirectory();
+	GuiBase::NukeContainerChildren((GtkContainer*)ThisPtr->OrdersMenu);
+	GuiMenus::PopulateMWNodeTreeMenus(ThisPtr->OrdersMenu);
+	gtk_widget_show_all(ThisPtr->OrdersMenu);
 	Interface::RequestIndex();
 }
 
