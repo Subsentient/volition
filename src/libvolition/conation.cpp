@@ -134,9 +134,11 @@ Conation::ConationStream::ConationStream(const StreamHeader &Header, const uint8
 
 	memcpy(Buf + sizeof(CommandCode) + sizeof(uint64_t), &NewComposite, sizeof NewComposite);
 
-
 	//Copy the rest of the stream.
-	memcpy(Buf + STREAM_HEADER_SIZE, Stream, Header.StreamArgsSize);
+	if (Stream)
+	{
+		memcpy(Buf + STREAM_HEADER_SIZE, Stream, Header.StreamArgsSize);
+	}
 
 	this->IntegrityCheck();
 }
@@ -608,7 +610,7 @@ uint64_t Conation::ConationStream::GetStreamArgsSize(void) const
 	return Size;
 }
 
-Conation::ConationStream::BaseArg *Conation::ConationStream::PopArgument(void)
+auto Conation::ConationStream::PopArgument(const bool Peek) -> BaseArg*
 {
 	if (Bytes->size() < STREAM_HEADER_SIZE)
 	{
@@ -829,7 +831,7 @@ Conation::ConationStream::BaseArg *Conation::ConationStream::PopArgument(void)
 			break;
 	}
 
-	Index += Size;
+	if (!Peek) Index += Size;
 	if (RetVal) RetVal->Type = Type;
 
 #ifdef DEBUG

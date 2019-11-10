@@ -200,6 +200,104 @@ static bool VerifyLuaFuncArgs(lua_State *State, const std::vector<decltype(LUA_T
 	return true;
 }
 
+static int DoCSIter(lua_State *State)
+{
+	VLDEBUG("Entered");
+	if (lua_type(State, 1) != LUA_TTABLE)
+	{
+		VLDEBUG("First argument not a table");
+		return 0;
+	}
+	
+	//We only want our first argument, make sure there's nothing weird just to be safe.
+	lua_settop(State, 1);
+
+	///Results table that we actually return.
+	lua_newtable(State);
+	const size_t ResultTableIndex = lua_gettop(State);
+	
+	VLDEBUG("Now calling PopArg_LuaConationStream()");
+	
+	//Call this directly. It puts a possible pile of variables on the stack.
+	lua_pushcfunction(State, PopArg_LuaConationStream);
+	lua_pushvalue(State, 1);
+	
+	if (lua_pcall(State, 1, LUA_MULTRET, 0) != LUA_OK)
+	{ //Call NewLuaConationStream() to get a new copy for arguments.
+		VLDEBUG("Call of lua function failed.");
+		return 0;
+	}
+
+	
+	if (lua_type(State, 3) != LUA_TNUMBER)
+	{ //Failure or end of iteration. First argument is always the ARGTYPE
+		VLDEBUG("First result is not a number");
+		lua_settop(State, 0);
+		return 0;
+	}
+	
+	const size_t Top = lua_gettop(State);
+	
+	for (size_t Inc = 3, Index = 1; Inc <= Top; ++Inc, ++Index)
+	{
+		
+		VLDEBUG("Setting table index " + VLString::IntToString(Index) + " to value " + (lua_tostring(State, Inc) ? lua_tostring(State, Inc) : "Bad") + " from stack index " + VLString::IntToString(Inc) + " with type " + VLString::IntToString(lua_type(State, Inc)));
+		lua_pushinteger(State, Index);
+		lua_pushvalue(State, Inc);
+		lua_settable(State, ResultTableIndex);
+	}
+	
+	lua_settop(State, ResultTableIndex);
+	
+	VLDEBUG("Finished successfully, returning new table.");
+	
+	return 1; //Don't return our ConationStream instance table.
+}
+
+static int RewindCS_Lua(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TTABLE }))
+	{
+		VLDEBUG("Parameter mismatch");
+	Exit:
+		lua_pushboolean(State, false);
+		return 1;
+	}
+	
+	lua_getfield(State, -1, "VL_INTRNL");
+	
+	if (lua_type(State, -1) != LUA_TUSERDATA)
+	{
+		VLDEBUG("Not a userdata");
+		goto Exit;
+	}
+	Conation::ConationStream *Stream = static_cast<Conation::ConationStream*>(lua_touserdata(State, -1));
+	
+	if (!Stream)
+	{
+		VLDEBUG("Null stream pointer");
+		goto Exit;
+	}
+	
+	Stream->Rewind();
+	
+	lua_pushboolean(State, true);
+	return 1;
+}
+	
+static int GetCSIter(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TTABLE }))
+	{
+		VLDEBUG("Invalid arguments");
+		return 0;
+	}
+	
+	lua_pushcfunction(State, DoCSIter);
+	lua_pushvalue(State, -2);
+	return 2;
+}
+
 static int VLAPI_GetIdentity(lua_State *State)
 {
 	
@@ -756,7 +854,7 @@ static int VLAPI_RecvStream(lua_State *State)
 	}
 	//Nothing left in the queue.
 	
-	Conation::ConationStream *NewStream = OurJob->Read_Queue.Pop(PopAfterwards);
+	VLScopedPtr<Conation::ConationStream*> NewStream { OurJob->Read_Queue.Pop(PopAfterwards) };
 	
 	if (!NewStream)
 	{
@@ -767,8 +865,6 @@ static int VLAPI_RecvStream(lua_State *State)
 	}
 	
 	CloneConationStreamToLua(State, NewStream);
-	
-	delete NewStream;
 	
 #ifdef DEBUG
 	puts(VLString("VLAPI_RecvStream(): Have table on stack: ") + ((lua_type(State, -1) == LUA_TTABLE) ? "true" : "false"));
@@ -1121,6 +1217,49 @@ static int NewLuaConationStream(lua_State *State)
 	return 1;
 }
 
+static int BuildCSResponse_Lua(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TTABLE }))
+	{
+		return 0;
+	}
+	
+	lua_getfield(State, -1, "VL_INTRNL");
+	
+	if (lua_type(State, -1) != LUA_TUSERDATA) return 0;
+	
+	const Conation::ConationStream *const OriginalPtr = static_cast<Conation::ConationStream*>(lua_touserdata(State, -1));
+
+	if (!OriginalPtr) return 0;
+	
+	Conation::ConationStream::StreamHeader Hdr { OriginalPtr->GetHeader() };
+
+	Conation::ConationStream Original { Hdr, OriginalPtr->GetArgData() };
+
+	//Make it into a report
+	Hdr.CmdIdentFlags |= Conation::IDENT_ISREPORT_BIT;
+	Hdr.StreamArgsSize = 0;
+	
+	//New stream we're gonna use.
+	Conation::ConationStream New { Hdr };
+	
+	lua_settop(State, 0);
+	
+	VLScopedPtr<Conation::ConationStream::BaseArg*> Arg { Original.PopArgument(true) }; //Peek only
+
+	if (Arg && Arg->Type == Conation::ARGTYPE_ODHEADER)
+	{
+		Conation::ConationStream::ODHeaderArg *ODArg = static_cast<Conation::ConationStream::ODHeaderArg*>(+Arg);
+		//Invert origin/destination
+		New.Push_ODHeader(ODArg->Hdr.Destination, ODArg->Hdr.Origin);
+		VLDEBUG("Using OD Destination " +ODArg->Hdr.Destination + " and origin " + +ODArg->Hdr.Origin);
+	}
+	
+	CloneConationStreamToLua(State, &New);
+	
+	return 1;
+}
+	
 static int GetCSHeader_Lua(lua_State *State)
 {
 	const size_t ArgCount = lua_gettop(State);
@@ -1369,35 +1508,49 @@ static int PushArg_LuaConationStream(lua_State *State)
 
 static int PopArg_LuaConationStream(lua_State *State)
 {
-	const size_t ArgCount = lua_gettop(State);
-	
-	if (ArgCount != 1 || lua_type(State, 1) != LUA_TTABLE)
+	const size_t OldStackTop = lua_gettop(State);
+
+	if (lua_type(State, -1) != LUA_TTABLE)
 	{
+		VLDEBUG("Invalid first argument is not a table");
 	EasyFail:
-		lua_settop(State, 0);
-		lua_pushnil(State);
-		return 1;
+		lua_settop(State, OldStackTop);
+		return 0;
 	}
 	
 	//Get the userdata.
-	lua_pushstring(State, "VL_INTRNL");
-	lua_gettable(State, 1);
+	lua_getfield(State, -1, "VL_INTRNL");
 	
-	if (lua_type(State, -1) != LUA_TUSERDATA) goto EasyFail;
+	if (lua_type(State, -1) != LUA_TUSERDATA)
+	{
+		VLDEBUG("No userdata found");
+		goto EasyFail;
+	}
 	
 	Conation::ConationStream *Stream = static_cast<Conation::ConationStream*>(lua_touserdata(State, -1));
+
+	lua_settop(State, OldStackTop);
 	
-	/// !!!! This is important! Everything after this line will be a return value so don't have anything else on the stack!
-	lua_settop(State, 0);
-	
-	if (!Stream) goto EasyFail;
-	
+	if (!Stream)
+	{
+		VLDEBUG("Failed to decode userdata");
+		goto EasyFail;
+	}
+
 	//No arguments.
-	if (!Stream->CountArguments()) goto EasyFail;
+	if (!Stream->CountArguments())
+	{
+		VLDEBUG("No arguments in stream at all, rewound or otherwise");
+		goto EasyFail;
+	}
 	
-	Conation::ConationStream::BaseArg *Arg = Stream->PopArgument();
+	VLScopedPtr<Conation::ConationStream::BaseArg*> Arg { Stream->PopArgument() };
 	
-	if (!Arg) goto EasyFail;
+	if (!Arg)
+	{
+		VLDEBUG("No arguments left");
+		goto EasyFail;
+	}
 	
 	//We also need to return the string name of the argument type for our first return value.
 	lua_pushinteger(State, Arg->Type);
@@ -1475,11 +1628,13 @@ static int PopArg_LuaConationStream(lua_State *State)
 		}
 		default:
 			//Unknown value type.
+			VLDEBUG("Unknown value type " + VLString::IntToString(Arg->Type));
 			goto EasyFail;
 	}
 	
+	VLDEBUG("Success, returning");
 	//Aaaand this is why the stack needs to be empty before we start returning arguments.
-	return lua_gettop(State);
+	return lua_gettop(State) - OldStackTop;
 	
 }
 
@@ -1617,7 +1772,25 @@ static void InitConationStreamBindings(lua_State *State)
 	lua_pushcfunction(State, GetCSHeader_Lua);
 	
 	lua_settable(State, -3);
+	
+	//Build an otherwise empty, ODHeader-inverted, report-flagged response message from the original's stream headers.
+	lua_pushstring(State, "BuildResponse");
+	lua_pushcfunction(State, BuildCSResponse_Lua);
 
+	lua_settable(State, -3);
+
+	//Iterate over stream arguments
+	lua_pushstring(State, "Iter");
+	lua_pushcfunction(State, GetCSIter);
+	
+	lua_settable(State, -3);
+	
+	//Rewind stream
+	lua_pushstring(State, "Rewind");
+	lua_pushcfunction(State, RewindCS_Lua);
+	
+	lua_settable(State, -3);
+	
 	//Pop ConationStream from the stack before we return, for the next binding functions.
 	///This is important!
 	lua_pop(State, 1);
@@ -1845,6 +2018,8 @@ bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionN
 		
 		const VLString Traceback { lua_tostring(State, -1) };
 		
+		VLDEBUG("FAILURE IN SCRIPTING CORE, got traceback: " + Traceback);
+
 		lua_close(State);
 		
 		throw ScriptError { ScriptName, FunctionName

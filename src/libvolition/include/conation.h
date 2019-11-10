@@ -227,7 +227,7 @@ namespace Conation
 		///Constructors
 		ConationStream(const CommandCode Cmd, const uint8_t Flags, const uint64_t Ident, const size_t ExtraBytesAfter = 32);
 		ConationStream(const uint8_t *Stream, const size_t ExtraBytesAfter = 32);
-		ConationStream(const StreamHeader &Header, const uint8_t *Stream, const size_t ExtraBytesAfter = 32);
+		ConationStream(const StreamHeader &Header, const uint8_t *Stream = nullptr, const size_t ExtraBytesAfter = 32);
 		ConationStream(const Net::ClientDescriptor &SocketDescriptor, Net::NetRWStatusForEachFunc StatusFunc = nullptr, void *PassAlongWith = nullptr);
 		ConationStream(void);
 		inline ~ConationStream(void) { delete this->Bytes; }
@@ -243,7 +243,7 @@ namespace Conation
 		
 		inline void Rewind(void) { Index = nullptr; }
 		
-		BaseArg *PopArgument(void);
+		BaseArg *PopArgument(const bool Peek = false);
 		size_t CountArguments(void) const;
 		
 		bool VerifyArgTypes(const std::vector<ArgType> &List) const;

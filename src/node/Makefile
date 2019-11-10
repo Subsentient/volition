@@ -45,13 +45,13 @@ else ifeq ($(OS),linux)
 	LDFLAGS += -pthread -rdynamic
 else ifeq ($(OS),android)
 	PLATFORM_CXXFLAGS += -DANDROID -DLINUX
-	LDFLAGS += -pthread
+	LDFLAGS += -pthread -rdynamic
 else ifeq ($(OS),openbsd)
 	PLATFORM_CXXFLAGS += -DOPENBSD
 	LDFLAGS += -pthread
 else ifeq ($(OS),freebsd) 
 	PLATFORM_CXXFLAGS += -DFREEBSD
-	LDFLAGS += -pthread
+	LDFLAGS += -pthread -rdynamic
 else ifeq ($(OS),macosx)
 	PLATFORM_CXXFLAGS += -DMACOSX
 	LDFLAGS += -pthread
