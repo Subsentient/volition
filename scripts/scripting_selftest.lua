@@ -18,7 +18,17 @@ function execselftest()
 	end
 	
 	local Header = Stream:GetHeader()
-
+	local Incy = 0
+	
+	for Values in Stream:Iter() do
+		Incy = Incy + 1
+		print('new value at index ' .. Incy)
+		for i=1,#Values do
+			print('Subvalue ' .. i .. ' value '  .. Values[i])
+		end
+	end
+	Stream:Rewind()
+	
 	local _, Origin = Stream:Pop()
 
 	-- We don't care about the script name and function name, we're already in it.
@@ -31,11 +41,20 @@ function execselftest()
 
 	
 	print "Creating response"
-	local Response = VL.ConationStream.New(Header.cmdcode, Header.flags | VL.IDENT_ISREPORT_BIT, Header.ident)
+	local Response = Stream:BuildResponse()
 
-	Response:Push(VL.ARGTYPE_ODHEADER, VL.GetIdentity(), Origin)
 	Response:Push(VL.ARGTYPE_STRING, "Script initialized and executed successfully.")
 
+	local NewHdr = Response:GetHeader()
+	
+	print('Got header')
+	for Key, Value in pairs(Header) do
+		print(Key .. '::' .. Value)
+	end
+	for Key, Value in pairs(NewHdr) do
+		print(Key .. '::' .. Value)
+	end
+	
 	if not Response then
 		print("Response stream creation failed")
 	end
@@ -50,6 +69,7 @@ function execselftest()
 
 	Response:Push(VL.ARGTYPE_STRING, string.reverse(StringToReverse))
 
+	print('DirListing time')
 	local DirListing = VL.ListDirectory(".")
 	
 	if not DirListing then
@@ -69,6 +89,7 @@ function execselftest()
 		DirString = DirString .. DirListing[i][1] .. '\n'
 	end
 	
+	print('Pushing dirlist string')
 	Response:Push(VL.ARGTYPE_STRING, DirString)
 	
 	local FilePath = VL.GetHTTP(WebPath);
@@ -81,6 +102,7 @@ function execselftest()
 		FileData = Desc:read("*all")
 		Desc:close()
 	end
+	
 	
 	Response:Push(VL.ARGTYPE_STRING, "Temporary file path for web fetched file is " .. FilePath)
 	Response:Push(VL.ARGTYPE_STRING, FileData)

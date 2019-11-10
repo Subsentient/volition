@@ -363,6 +363,7 @@ static int VLAPI_WriteFile(lua_State *State)
 	
 	if (!Data || !Utils::WriteFile(Path, Data, DataLength))
 	{
+		VLDEBUG("Failure caused by " + (Data ? "Utils::WriteFile()" : "lua_tolstring()"));
 		lua_pushboolean(State, false);
 		return 1;
 	}
