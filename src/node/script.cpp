@@ -49,7 +49,7 @@ extern "C"
 #endif //WIN32
 
 #include <string.h> //For memcpy
-
+#include <dlfcn.h>
 #include <map>
 
 #ifndef LUA_OK
@@ -95,6 +95,7 @@ static int VLAPI_Chdir(lua_State *State);
 static int VLAPI_SlurpFile(lua_State *State);
 static int VLAPI_WriteFile(lua_State *State);
 static int VLAPI_RunningAsJob(lua_State *State);
+static int VLAPI_GetCFunction(lua_State *State);
 
 ///Lua ConationStream helper functions, the ones that don't go in VLAPIFuncs.
 static void InitConationStreamBindings(lua_State *State);
@@ -151,6 +152,9 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "SlurpFile", VLAPI_SlurpFile },
 	{ "WriteFile", VLAPI_WriteFile },
 	{ "RunningAsJob", VLAPI_RunningAsJob },
+#ifndef NO_DLFCN
+	{ "GetCFunction", VLAPI_GetCFunction },
+#endif // !NO_DLFCN
 };
 
 enum IntNameMapEnum : uint8_t
@@ -180,6 +184,76 @@ static std::map<IntNameMapEnum, VLString> IntNameMap
 	{ INTNAME_INT64, "int64" },
 	{ INTNAME_UINT64, "uint64" },
 };
+
+#ifndef NO_DLFCN
+//Internal classes
+class SymLoader
+{ //Once a symbol is loaded, it is NEVER deleted. We're relying on that.
+private:
+	struct Library
+	{
+		VLString LibName;
+		void *LibHandle;
+		std::map<VLString, void*> Functions;
+	};
+	
+	std::map<VLString, VLScopedPtr<Library*> > Libraries;
+	VLThreads::Mutex LibsLock;
+	
+	Library *LoadLibrary(const VLString &LibName);
+	
+public:
+	void *GetCFunction(const VLString &LibName, const VLString &FunctionName);
+};
+
+static SymLoader CSymbols;
+
+SymLoader::Library *SymLoader::LoadLibrary(const VLString &LibName)
+{
+	if (this->Libraries.count(LibName))
+	{ //Don't reload this, whatever you do. Linux in particular takes a shit for some reason.
+		return this->Libraries.at(LibName);
+	}
+	
+	VLScopedPtr<Library*> Lib { new Library { LibName } };
+	
+	Lib->LibHandle = dlopen(LibName ? LibName : nullptr, RTLD_NOW | RTLD_GLOBAL); //Empty string means ourselves. Lua's package.loadlib can't do that.
+	
+	if (!Lib->LibHandle) return nullptr;
+	
+	this->Libraries.emplace(LibName, std::move(Lib));
+	
+	return this->Libraries.at(LibName);
+}
+
+void *SymLoader::GetCFunction(const VLString &LibName, const VLString &FunctionName)
+{
+	VLThreads::MutexKeeper LibsKeeper { &this->LibsLock };
+
+	Library *const Lib = this->LoadLibrary(LibName);
+	
+	if (!Lib)
+	{
+		VLDEBUG("Failed to load library" + LibName);
+		return nullptr; //Library load failed.
+	}
+	
+	if (Lib->Functions.count(FunctionName)) return Lib->Functions.at(FunctionName);
+	
+	void *const Func = dlsym(Lib->LibHandle, FunctionName);
+	
+	if (!Func)
+	{
+		VLDEBUG("Failed to resolve symbol" + LibName + "::" + FunctionName);
+		return nullptr;
+	}
+	
+	Lib->Functions.emplace(FunctionName, Func);
+	
+	return Func;
+}
+
+#endif // !NO_DLFCN
 
 //Function definitions
 
@@ -347,6 +421,27 @@ static int VLAPI_GetServerAddr(lua_State *State)
 	return 1;
 }
 
+#ifndef NO_DLFCN
+static int VLAPI_GetCFunction(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING, LUA_TSTRING }))
+	{
+		return 0;
+	}
+	
+	int (*const FuncHandle)(lua_State *) = (decltype(FuncHandle))CSymbols.GetCFunction(lua_tostring(State, -2), lua_tostring(State, -1));
+	
+	if (!FuncHandle)
+	{
+		return 0;
+	}
+	
+	lua_pushcfunction(State, FuncHandle);
+	
+	return 1;
+}
+#endif // !NO_DLFCN
+	
 static int VLAPI_WriteFile(lua_State *State)
 {
 	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING, LUA_TSTRING }))

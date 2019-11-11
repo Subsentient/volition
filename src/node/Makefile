@@ -13,7 +13,7 @@ OBJECTS = processes.o interface.o main.o files.o cmdhandling.o jobs.o updates.o 
 
 
 
-LDFLAGS = $(LUA_LIBFLAGS) -ldl ./.libvl/libvolition.a $(OPENSSL_LIBFLAGS)
+LDFLAGS = $(LUA_LIBFLAGS) ./.libvl/libvolition.a $(OPENSSL_LIBFLAGS)
 IDENTITY = ""
 AUTHTOKEN = ""
 OUTFILE = ./volition_node_$(IDENTITY)-$(OS).$(CPU)
@@ -28,7 +28,7 @@ ifneq ($(NO_SEC_CXXFLAGS),1)
 endif
 
 ifeq ($(OS),windows)
-	LDFLAGS += -lws2_32 -ldl -lpsapi -static
+	LDFLAGS += -lws2_32 -lpsapi -static
 ifneq ($(WINRC),0)
 	LDFLAGS +=  ./win32/win.o
 endif
@@ -70,6 +70,12 @@ ifdef DEBUG
 	CXXFLAGS += -DDEBUG -g3 -Og
 else
 	CXXFLAGS += -O3
+endif
+
+ifeq ($(NO_DLFCN),1)
+	CXXFLAGS += -DNO_DLFCN
+else
+	LDFLAGS += -ldl
 endif
 
 ifeq ($(ASAN),1)
