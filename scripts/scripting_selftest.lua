@@ -23,9 +23,7 @@ function execselftest()
 	for Values in Stream:Iter() do
 		Incy = Incy + 1
 		print('new value at index ' .. Incy)
-		for i=1,#Values do
-			print('Subvalue ' .. i .. ' value '  .. Values[i])
-		end
+		print(table.unpack(Values))
 	end
 	Stream:Rewind()
 	

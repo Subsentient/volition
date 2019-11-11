@@ -9,7 +9,7 @@ VLSI_END_SPEC
 
 function RunPuts()
 	
-	local puts = package.loadlib('/lib64/libc.so.6', 'puts')
+	local puts = VL.GetCFunction('/lib64/libc.so.6', 'puts')
 	
 	print(puts)
 	
