@@ -3,15 +3,34 @@ VLSI_BEGIN_SPEC
 scriptname::cmodtests
 scriptversion::0.1
 scriptdescription::Lua C/C++ native code module testing
-function::RunPuts|Run puts() with a shitty invalid pointer
+function::SelfDlsym|Load and execute a demo C linkage function from our own binary|~ARGTYPE_STRING
 VLSI_END_SPEC
 ]]
 
-function RunPuts()
+function SelfDlsym()
+	assert(VL.RunningAsJob(), 'Not running as a job!')
 	
-	local puts = VL.GetCFunction('/lib64/libc.so.6', 'puts')
+	local Stream = VL.RecvStream()
 	
-	print(puts)
+	if not Stream then
+		io.stderr:write('Stream missing!\n')
+		return
+	end
 	
-	puts('derp nipples')
+	local Response = Stream:BuildResponse()
+
+	local JobArgs = Stream:PopJobArguments()
+	
+	print(JobArgs.Origin, JobArgs.Destination, JobArgs.ScriptName, JobArgs.FuncName)
+	
+	
+	local vllexec = VL.GetCFunction(nil, 'SelfTestCFunc')
+
+	local _, Stringy = Stream:Pop()
+	
+	if not Stringy then
+		Stringy = 'Testing, no string provided!'
+	end
+	
+	print('Lua got: ' .. vllexec(Stringy))
 end

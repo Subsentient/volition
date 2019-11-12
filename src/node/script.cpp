@@ -109,7 +109,7 @@ static int GetCSArgsList_Lua(lua_State *State);
 static int GetCSData_Lua(lua_State *State);
 static int GetCSArgData_Lua(lua_State *State);
 static int GetCSHeader_Lua(lua_State *State);
-
+static int PopCSJobArgs(lua_State *State);
 
 //Called from C++ only.
 static bool CloneConationStreamToLua(lua_State *State, Conation::ConationStream *Stream);
@@ -257,6 +257,17 @@ void *SymLoader::GetCFunction(const VLString &LibName, const VLString &FunctionN
 
 //Function definitions
 
+extern "C" int SelfTestCFunc(lua_State *State)
+{ ///Used to test loading symbols from our own address space from Lua.
+	const VLString Value { lua_tostring(State, -1) };
+	
+	std::cout << "Echoing back \"" << +Value << "\"." << std::endl;
+	
+	lua_pushstring(State, VLString("You said \"") + Value + "\"");
+	
+	return 1;
+}
+
 static bool VerifyLuaFuncArgs(lua_State *State, const std::vector<decltype(LUA_TNONE)> &ToCheck)
 {
 	const size_t Provided = lua_gettop(State);
@@ -274,6 +285,60 @@ static bool VerifyLuaFuncArgs(lua_State *State, const std::vector<decltype(LUA_T
 	return true;
 }
 
+static int PopCSJobArgs(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TTABLE }))
+	{
+		VLDEBUG("Bad arguments");
+		return 0;
+	}
+	
+	lua_pushstring(State, "VL_INTRNL");
+	lua_gettable(State, -2);
+	
+	if (lua_type(State, -1) != LUA_TUSERDATA)
+	{
+		VLDEBUG("Not a userdata");
+		return 0;
+	}
+	
+	Conation::ConationStream *Stream = static_cast<Conation::ConationStream*>(lua_touserdata(State, -1));
+	
+	if (!Stream)
+	{
+		VLDEBUG("Null stream pointer after userdata access");
+		return 0;
+	}
+	
+	Stream->Rewind(); //In case you're extra stupid
+	
+	lua_newtable(State);
+	
+	const Conation::ConationStream::ODHeader ODH { Stream->Pop_ODHeader() };
+	
+	lua_pushstring(State, "Origin");
+	lua_pushstring(State, ODH.Origin);
+	
+	lua_settable(State, -3);
+	
+	lua_pushstring(State, "Destination");
+	lua_pushstring(State, ODH.Destination);
+	
+	lua_settable(State, -3);
+	
+	lua_pushstring(State, "ScriptName");
+	lua_pushstring(State, Stream->Pop_String());
+	
+	lua_settable(State, -3);
+	
+	lua_pushstring(State, "FuncName");
+	lua_pushstring(State, Stream->Pop_String());
+	
+	lua_settable(State, -3);
+	
+	return 1;
+}
+	
 static int DoCSIter(lua_State *State)
 {
 	VLDEBUG("Entered");
@@ -424,12 +489,16 @@ static int VLAPI_GetServerAddr(lua_State *State)
 #ifndef NO_DLFCN
 static int VLAPI_GetCFunction(lua_State *State)
 {
-	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING, LUA_TSTRING }))
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING, LUA_TSTRING }) && !VerifyLuaFuncArgs(State, { LUA_TNIL, LUA_TSTRING }))
 	{
 		return 0;
 	}
 	
-	int (*const FuncHandle)(lua_State *) = (decltype(FuncHandle))CSymbols.GetCFunction(lua_tostring(State, -2), lua_tostring(State, -1));
+	
+	const VLString LibName { (lua_type(State, -2) == LUA_TNIL) ? "" : lua_tostring(State, -2) };
+	const VLString FuncName { lua_tostring(State, -1) };
+	
+	int (*const FuncHandle)(lua_State *) = (decltype(FuncHandle))CSymbols.GetCFunction(LibName, FuncName);
 	
 	if (!FuncHandle)
 	{
@@ -574,13 +643,13 @@ static int VLAPI_ListDirectory(lua_State *State)
 		lua_newtable(State);
 
 		//Store path
-		lua_pushinteger(State, 1);
+		lua_pushstring(State, "FilePath");
 		lua_pushstring(State, Iter->Path);
 
 		lua_settable(State, -3);
 
 		//Store boolean
-		lua_pushinteger(State, 2);
+		lua_pushstring(State, "IsDirectory");
 		lua_pushboolean(State, Iter->IsDirectory);
 
 		lua_settable(State, -3);
@@ -775,22 +844,22 @@ static int VLAPI_GetProcesses(lua_State *State)
 		///Populate the subtable.
 		
 		//Process name
-		lua_pushstring(State, "name");
+		lua_pushstring(State, "Name");
 		lua_pushstring(State, Iter->ProcessName);
 		lua_settable(State, -3);
 		
 		//User
-		lua_pushstring(State, "user");
+		lua_pushstring(State, "User");
 		lua_pushstring(State, Iter->User);
 		lua_settable(State, -3);
 		
 		//PID
-		lua_pushstring(State, "pid");
+		lua_pushstring(State, "PID");
 		lua_pushinteger(State, Iter->PID);
 		lua_settable(State, -3);
 		
 		//Kernel process?
-		lua_pushstring(State, "iskernel");
+		lua_pushstring(State, "IsKernel");
 		lua_pushboolean(State, Iter->KernelProcess);
 		lua_settable(State, -3);
 
@@ -1358,9 +1427,7 @@ static int BuildCSResponse_Lua(lua_State *State)
 	
 static int GetCSHeader_Lua(lua_State *State)
 {
-	const size_t ArgCount = lua_gettop(State);
-	
-	if (ArgCount != 1 || lua_type(State, 1) != LUA_TTABLE)
+	if (!VerifyLuaFuncArgs(State, { LUA_TTABLE}))
 	{
 	EasyFail:
 		lua_settop(State, 0);
@@ -1384,19 +1451,19 @@ static int GetCSHeader_Lua(lua_State *State)
 	//We return this in a table.
 	lua_newtable(State);
 	
-	lua_pushstring(State, "argssize");
+	lua_pushstring(State, "ArgsSize");
 	lua_pushinteger(State, Hdr.StreamArgsSize);
 	lua_settable(State, -3);
 	
-	lua_pushstring(State, "flags");
+	lua_pushstring(State, "Flags");
 	lua_pushinteger(State, Hdr.CmdIdentFlags);
 	lua_settable(State, -3);
 	
-	lua_pushstring(State, "ident");
+	lua_pushstring(State, "Ident");
 	lua_pushinteger(State, Hdr.CmdIdent);
 	lua_settable(State, -3);
 	
-	lua_pushstring(State, "cmdcode");
+	lua_pushstring(State, "CmdCode");
 	lua_pushinteger(State, Hdr.CmdCode);
 	lua_settable(State, -3);
 	
@@ -1848,6 +1915,12 @@ static void InitConationStreamBindings(lua_State *State)
 	//Returns a table of argument types.
 	lua_pushstring(State, "GetArgTypes");
 	lua_pushcfunction(State, GetCSArgsList_Lua);
+	
+	lua_settable(State, -3);
+	
+	//Returns a table containing the headers for our job that usually get prepended to a stream.
+	lua_pushstring(State, "PopJobArguments");
+	lua_pushcfunction(State, PopCSJobArgs);
 	
 	lua_settable(State, -3);
 	

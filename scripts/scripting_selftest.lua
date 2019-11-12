@@ -27,11 +27,7 @@ function execselftest()
 	end
 	Stream:Rewind()
 	
-	local _, Origin = Stream:Pop()
-
-	-- We don't care about the script name and function name, we're already in it.
-	Stream:Pop() --Script name
-	Stream:Pop() --Function name
+	Stream:PopJobArguments()
 	
 	local StringToReverse, WebPath
 	_, StringToReverse = Stream:Pop()
@@ -49,6 +45,7 @@ function execselftest()
 	for Key, Value in pairs(Header) do
 		print(Key .. '::' .. Value)
 	end
+	
 	for Key, Value in pairs(NewHdr) do
 		print(Key .. '::' .. Value)
 	end
@@ -76,15 +73,14 @@ function execselftest()
 	
 	local DirString = "Directory listing is as follows:\n"
 	
-	for i=1,#DirListing
-	do
-		if DirListing[i][2] then
+	for _, Entry in ipairs(DirListing) do
+		if Entry.IsDirectory then
 			DirString = DirString .. "d "
 		else
 			DirString = DirString .. "f "
 		end
 
-		DirString = DirString .. DirListing[i][1] .. '\n'
+		DirString = DirString .. Entry.FilePath .. '\n'
 	end
 	
 	print('Pushing dirlist string')

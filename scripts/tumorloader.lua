@@ -109,10 +109,8 @@ function StripTumor()
 	end
 	
 	local Response = Stream:BuildResponse()
-
-	Stream:Pop() --ODHeader
-	Stream:Pop() --Script name
-	Stream:Pop() --Function name
+	
+	Stream:PopJobArguments()
 	
 	local BinaryVarType, BinaryPath = Stream:Pop()
 	
@@ -168,10 +166,8 @@ function WriteTumor()
 	end
 	
 	local Response = Stream:BuildResponse()
-
-	Stream:Pop() --ODHeader
-	Stream:Pop() --Script name
-	Stream:Pop() --Function name
+	
+	Stream:PopJobArguments()
 	
 	local TumorVarType, TumorName, TumorData = Stream:Pop()
 	
