@@ -26,11 +26,21 @@ function SelfDlsym()
 	
 	local vllexec = VL.GetCFunction(nil, 'SelfTestCFunc')
 
+	if not vllexec then
+		Response:Push(VL.ARGTYPE_STRING, 'Failed to load C function!')
+		VL.SendStream(Response)
+		return
+	end
+	
 	local _, Stringy = Stream:Pop()
 	
 	if not Stringy then
 		Stringy = 'Testing, no string provided!'
 	end
 	
-	print('Lua got: ' .. vllexec(Stringy))
+	local ResultString = vllexec(Stringy)
+	
+	Response:Push(VL.ARGTYPE_STRING, ResultString)
+	VL.SendStream(Response)
+	
 end
