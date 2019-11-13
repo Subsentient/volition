@@ -72,9 +72,7 @@ void NodeUpdates::HandleUpdatesForNode(Clients::ClientObj *Client)
 
 	if (!Brander::BrandBinaryViaBuffer((char*)NewBinary.data(), NewBinary.size(), Values))
 	{
-#ifdef DEBUG
-		puts(VLString("NodeUpdates::HandleUpdatesForNode(): Failed to brand new binary in RAM for node ") + Client->GetID());
-#endif
+		VLDEBUG("Failed to brand new binary in RAM for node " + Client->GetID());
 		return;
 	}
 	
@@ -86,13 +84,11 @@ void NodeUpdates::HandleUpdatesForNode(Clients::ClientObj *Client)
 	//So we don't have potentially 3 copies in memory at once.
 	NewBinary.clear();
 	
-#ifdef DEBUG
-	puts(VLString("NodeUpdates::HandleUpdatesForNode(): Sending new binary to node ") + Client->GetID());
-#endif
+	VLDEBUG("Sending new binary to node " + Client->GetID());
+	
 	Client->SendStream(Order);
-#ifdef DEBUG
-	puts("NodeUpdates::HandleUpdatesForNode(): Transmission succeeded");
-#endif
+	
+	VLDEBUG("Transmission succeeded");
 	
 }
 

@@ -79,7 +79,7 @@ VLString Logger::TailLog(const size_t NumLinesFromLast)
 	
 	if (!Utils::Slurp(LOG_FILENAME, RetVal.GetBuffer(), RetVal.GetCapacity())) return VLString();
 	
-	std::vector<VLString> *Lines = Utils::SplitTextByCharacter(RetVal, '\n');
+	VLScopedPtr<std::vector<VLString>*> Lines { Utils::SplitTextByCharacter(RetVal, '\n') };
 	
 	RetVal.Wipe(false);
 
@@ -89,8 +89,6 @@ VLString Logger::TailLog(const size_t NumLinesFromLast)
 	{
 		RetVal += Lines->at(Inc) + '\n';
 	}
-	
-	delete Lines;
 	
 	return RetVal;
 }

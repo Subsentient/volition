@@ -38,6 +38,7 @@
 //Prototypes for static functions
 static Conation::ConationStream *HandleNodeInfoRequest(Clients::ClientObj *Client, Conation::ConationStream *Stream,
 														const char *RequestedID);
+static void ProcessN2N(Clients::ClientObj *Client, Conation::ConationStream *Stream);
 
 //Function definitions
 void CmdHandling::HandleReport(Clients::ClientObj *Client, Conation::ConationStream *Stream)
@@ -129,6 +130,11 @@ void CmdHandling::HandleReport(Clients::ClientObj *Client, Conation::ConationStr
 			
 			break;
 		}
+		case CMDCODE_N2N_GENERIC:
+		{ ///Node to node communications. Destinations are forwarded directly.
+			ProcessN2N(Client, Stream);
+			break;
+		}
 		default:
 		{
 			if (Stream->GetCommandCode() >= CMDCODE_MAX)
@@ -208,7 +214,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 	if (!IsAdmin)
 	{ ///Node? Get the permissions for it.
-		DB::AuthTokensDBEntry *Entry = DB::LookupAuthToken(Client->GetAuthToken());
+		VLScopedPtr<DB::AuthTokensDBEntry*> Entry { DB::LookupAuthToken(Client->GetAuthToken()) };
 
 		if (!Entry)
 		{ //Shouldn't happen, but I'd be stupid not to check for it.
@@ -217,8 +223,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 		}
 
 		NodePermissions = Entry->Permissions;
-
-		delete Entry;
 	}
 
 	
@@ -303,7 +307,8 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			const VLString &RequestedID = Stream->Pop_String();
 			
-			Conation::ConationStream *Result = nullptr;
+			VLScopedPtr<Conation::ConationStream*> Result;
+			
 			if (!(Result = HandleNodeInfoRequest(Client, Stream, RequestedID)))
 			{
 				Conation::ConationStream NotFoundMsg(CMDCODE_A2S_INFO, Conation::IDENT_ISREPORT_BIT, Ident);
@@ -314,7 +319,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			}
 
 			Client->SendStream(Result);
-			delete Result;
 			return;
 		}
 		case CMDCODE_A2S_CHGNODEGROUP:
@@ -492,13 +496,12 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			const VLString &Key = Stream->Pop_String();
 
-			DB::VaultDBEntry *Exists = DB::LookupVaultDBEntry(Key, "Key");
+			VLScopedPtr<DB::VaultDBEntry*> Exists { DB::LookupVaultDBEntry(Key, "Key") };
 
 			if (Exists || (!IsAdmin && !(NodePermissions & DB::ATP_VAULT_ADD)))
 			{
 				Response->Push_NetCmdStatus(false);
 				Client->SendStream(Response);
-				delete Exists;
 				break;
 			}
 
@@ -532,7 +535,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			const VLString &ItemName = Stream->Pop_String();
 			
-			DB::VaultDBEntry *Entry = DB::LookupVaultDBEntry(ItemName, "OriginNode");
+			VLScopedPtr<DB::VaultDBEntry*> Entry { DB::LookupVaultDBEntry(ItemName, "OriginNode") };
 			
 			if (!Entry)
 			{
@@ -543,7 +546,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			const bool BelongsToNode = Entry->OriginNode == Client->GetID();
 			
-			delete Entry;
 			Entry = DB::LookupVaultDBEntry(ItemName); //Now get all of it.
 			
 			if (IsAdmin || (BelongsToNode && (NodePermissions & DB::ATP_VAULT_READ_OUR)) || (NodePermissions & DB::ATP_VAULT_READ_ANY))
@@ -557,7 +559,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			Client->SendStream(Response);
 			
-			delete Entry;
 			break;
 		}
 		case CMDCODE_B2S_VAULT_UPDATE:
@@ -573,7 +574,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			const VLString &Filename = Stream->Pop_String();
 
-			DB::VaultDBEntry *Find = DB::LookupVaultDBEntry(Filename, "OriginNode");
+			VLScopedPtr<DB::VaultDBEntry*> Find { DB::LookupVaultDBEntry(Filename, "OriginNode") };
 
 			if (!Find)
 			{
@@ -583,11 +584,12 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			}
 
 			const bool BelongsToNode = Find->OriginNode == Client->GetID();
-			delete Find;
+			
+			Find.Release();
 			
 			if (IsAdmin || (BelongsToNode && (NodePermissions & DB::ATP_VAULT_CHG_OUR)) || (NodePermissions & DB::ATP_VAULT_CHG_ANY))
 			{
-				const Conation::ConationStream::FileArg File = Stream->Pop_File();
+				const Conation::ConationStream::FileArg &File { Stream->Pop_File() };
 	
 				DB::VaultDBEntry Entry{};
 				Entry.Key = Filename;
@@ -622,7 +624,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			const VLString &Key = Stream->Pop_String();
 			
-			DB::VaultDBEntry *Entry = DB::LookupVaultDBEntry(Key, "OriginNode");
+			VLScopedPtr<DB::VaultDBEntry*> Entry { DB::LookupVaultDBEntry(Key, "OriginNode") };
 
 			///We're careful not to let them know whether such an item exists or not in case the node has been seized by a hostile force.
 			if (!Entry)
@@ -633,8 +635,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			}
 
 			const bool BelongsToNode = Entry->OriginNode == Client->GetID();
-
-			delete Entry;
 
 			if (IsAdmin || (BelongsToNode && (NodePermissions & DB::ATP_VAULT_CHG_OUR)) || (NodePermissions & DB::ATP_VAULT_CHG_ANY))
 			{
@@ -667,7 +667,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				break;
 			}
 			
-			std::vector<DB::VaultDBEntry> *VaultItems = DB::GetVaultItemsInfo();
+			VLScopedPtr<std::vector<DB::VaultDBEntry>*> VaultItems { DB::GetVaultItemsInfo() };
 			
 			VLString ReportBuf(VaultItems->size() * 256);
 			
@@ -684,8 +684,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				
 				ReportBuf += VLString("\"") + Item.Key + "\", created by " + Item.OriginNode + " on " + TimeBuf + '\n';
 			}
-			
-			delete VaultItems;
 			
 			ReportBuf.ShrinkToFit();
 			
@@ -710,7 +708,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				break;
 			}
 
-			DB::GlobalConfigDBEntry *Entry = DB::LookupGlobalConfigDBEntry(Stream->Pop_String());
+			VLScopedPtr<DB::GlobalConfigDBEntry*> Entry { DB::LookupGlobalConfigDBEntry(Stream->Pop_String()) };
 
 			if (!Entry)
 			{
@@ -720,8 +718,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			}
 
 			Response->Push_String(Entry->Value);
-
-			delete Entry;
 
 			Client->SendStream(Response);
 			break;
@@ -863,13 +859,12 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			const VLString &Token = Stream->Pop_String();
 			const DB::AuthTokenPermissions Permissions = static_cast<DB::AuthTokenPermissions>(Stream->Pop_Uint32());
 			
-			DB::AuthTokensDBEntry *Lookup = DB::LookupAuthToken(Token);
+			VLScopedPtr<DB::AuthTokensDBEntry*> Lookup { DB::LookupAuthToken(Token) };
 
 			if (Lookup)
 			{
 				Response->Push_NetCmdStatus({false, STATUS_FAILED, "Authentication token already present"});
 				Client->SendStream(Response);
-				delete Lookup;
 				break;
 			}
 
@@ -946,7 +941,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			const VLString &Token = Stream->Pop_String();
 			const uint32_t NewPermissions = Stream->Pop_Uint32();
 			
-			DB::AuthTokensDBEntry *Lookup = DB::LookupAuthToken(Token);
+			VLScopedPtr<DB::AuthTokensDBEntry*> Lookup { DB::LookupAuthToken(Token) };
 
 			if (!Lookup)
 			{
@@ -958,7 +953,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			Lookup->Permissions = static_cast<DB::AuthTokenPermissions>(NewPermissions);
 
 			const bool Result = DB::UpdateAuthTokensDB(Lookup);
-			delete Lookup;
 
 			Response->Push_NetCmdStatus(Result);
 			Client->SendStream(Response);
@@ -981,7 +975,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				break;
 			}
 
-			std::vector<DB::AuthTokensDBEntry> *Tokens = DB::GetAllAuthTokens();
+			VLScopedPtr<std::vector<DB::AuthTokensDBEntry>*> Tokens { DB::GetAllAuthTokens() };
 
 			VLString Collated(16384);
 
@@ -993,8 +987,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			}
 
 			Collated.ShrinkToFit();
-
-			delete Tokens;
 
 			Response->Push_String(Collated);
 			Client->SendStream(Response);
@@ -1036,7 +1028,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				}
 			}
 			
-			DB::AuthTokensDBEntry *Find = DB::LookupAuthToken(Token);
+			VLScopedPtr<DB::AuthTokensDBEntry*> Find { DB::LookupAuthToken(Token) };
 
 			if (!Find)
 			{
@@ -1049,7 +1041,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 					Collated = "No such token found, and no such token in use by any node.";
 				}
 			}
-			else delete Find;
 
 			Collated.ShrinkToFit();
 
@@ -1306,6 +1297,11 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 		TripleRoutineAlterExit:
 			break;
 		}
+		case CMDCODE_N2N_GENERIC:
+		{ ///Node to node communications. Destinations are forwarded directly.
+			ProcessN2N(Client, Stream);
+			break;
+		}
 		default:
 		{
 			VLScopedPtr<std::vector<Conation::ArgType>*> Types { Stream->GetArgTypes() };
@@ -1357,7 +1353,7 @@ static Conation::ConationStream *HandleNodeInfoRequest(Clients::ClientObj *Clien
 		return nullptr;
 	}
 
-	Clients::ClientObj *Lookup = Clients::LookupClient(RequestedID);
+	Clients::ClientObj *const Lookup = Clients::LookupClient(RequestedID);
 
 	if (!Lookup)
 	{
@@ -1368,7 +1364,7 @@ static Conation::ConationStream *HandleNodeInfoRequest(Clients::ClientObj *Clien
 
 	Stream->GetCommandIdent(nullptr, &Ident);
 
-	Conation::ConationStream *Result = new Conation::ConationStream(CMDCODE_A2S_INFO, Conation::IDENT_ISREPORT_BIT, Ident);
+	Conation::ConationStream *const Result = new Conation::ConationStream(CMDCODE_A2S_INFO, Conation::IDENT_ISREPORT_BIT, Ident);
 
 	//What OS are they running on
 	Result->Push_String(Lookup->GetPlatformString());
@@ -1394,7 +1390,7 @@ Conation::ConationStream *CmdHandling::HandleIndexRequest(Conation::ConationStre
 		Stream->GetCommandIdent(nullptr, &Ident);
 	}
 
-	Conation::ConationStream *Result = new Conation::ConationStream(CMDCODE_A2S_INDEXDL, Conation::IDENT_ISREPORT_BIT, Ident);
+	Conation::ConationStream *const Result = new Conation::ConationStream(CMDCODE_A2S_INDEXDL, Conation::IDENT_ISREPORT_BIT, Ident);
 	
 	const std::list<Clients::ClientObj> &OnlineList = Clients::GetList();
 
@@ -1483,21 +1479,19 @@ bool CmdHandling::NotifyAdmin_NodeChange(const char *NodeID, const bool Online)
 {
 	if (!Clients::LookupCurAdmin()) return false;
 	
-	Conation::ConationStream *Result = new Conation::ConationStream(CMDCODE_S2A_NOTIFY_NODECHG, 0, 0u);
+	VLScopedPtr<Conation::ConationStream*> Result { new Conation::ConationStream(CMDCODE_S2A_NOTIFY_NODECHG, 0, 0u) };
 
-
-	Clients::ClientObj *Client = Online ? Clients::LookupClient(NodeID) : nullptr;
+	Clients::ClientObj *const Client = Online ? Clients::LookupClient(NodeID) : nullptr;
 
 	assert(Client || !Online);
 	
 	if (Client && Client == Clients::LookupCurAdmin()) return false; //Why the hell did you ask for this?!?
 	
 	//For offline we get information from the DB.
-	DB::NodeDBEntry *Entry = DB::LookupNodeInfo(NodeID);
+	VLScopedPtr<DB::NodeDBEntry*> Entry { DB::LookupNodeInfo(NodeID) };
 	
 	if (!Entry)
 	{
-		delete Result;
 		return false;
 	}
 	
@@ -1525,10 +1519,58 @@ bool CmdHandling::NotifyAdmin_NodeChange(const char *NodeID, const bool Online)
 	//This node is online.
 	Result->Push_Bool(Online);
 
-	Clients::LookupCurAdmin()->SendStream(Result);
-	
-	delete Entry;
+	Clients::LookupCurAdmin()->SendStream(Result.Forget());
 	
 	return true;
 	
+}
+
+static void ProcessN2N(Clients::ClientObj *Client, Conation::ConationStream *Stream)
+{
+	VLScopedPtr<std::vector<Conation::ArgType>*> Types { Stream->GetArgTypes() };
+	
+	if (!Types || Types->at(0) != Conation::ARGTYPE_ODHEADER)
+	{
+		Logger::WriteLogLine(Logger::LOGITEM_SECUREWARN, VLString{"Invalid node-to-node message sent from node "} + Client->GetID());
+		
+		return;
+	}
+	
+	const Conation::ConationStream::ODHeader &ODObj { Stream->Pop_ODHeader() };
+	
+	if (ODObj.Origin != Client->GetID())
+	{ ///If you *really* want to, I see no reason not to let you send shit to yourself, so there's no checks for that here.
+		Logger::WriteLogLine(Logger::LOGITEM_SECUREERROR, VLString{"Node "} + Client->GetID() + " attempted to masquerade as node \"" + ODObj.Origin + "\". Killing node.");
+		ProcessNodeDisconnect(Client, Clients::NODE_DEAUTH_EVIL);
+		return;
+	}
+	
+	Clients::ClientObj *const DestClient = Clients::LookupClient(ODObj.Destination);
+	
+	if (!DestClient)
+	{ //Eat the message since it has no home.
+		return;
+	}
+	
+	const VLScopedPtr<DB::AuthTokensDBEntry*> OurToken { DB::LookupAuthToken(Client->GetAuthToken()) };
+	const VLScopedPtr<DB::AuthTokensDBEntry*> TheirToken { DB::LookupAuthToken(DestClient->GetAuthToken()) };
+	
+	if (!OurToken || !TheirToken)
+	{ //Umm, just don't let them send messages, I guess?
+		return;
+	}
+	
+	if ((!(OurToken->Permissions & DB::ATP_N2NCOMM_ANY) || !(TheirToken->Permissions & DB::ATP_N2NCOMM_ANY)) &&
+		((!(OurToken->Permissions & DB::ATP_N2NCOMM_GROUP) || !(TheirToken->Permissions & DB::ATP_N2NCOMM_GROUP)) ||
+		Client->GetGroup() != DestClient->GetGroup()))
+	{
+		Logger::WriteLogLine(Logger::LOGITEM_SECUREWARN,
+							VLString{"Node "} + ODObj.Origin +
+							" attempted to send an N2N to " + ODObj.Destination +
+							" but they lack the required permissions.");
+		return;
+	}
+	
+	//Now we're ready to send it.
+	DestClient->SendStream(*Stream);
 }
