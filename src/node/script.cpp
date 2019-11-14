@@ -81,6 +81,7 @@ static int VLAPI_GetHTTP(lua_State *State);
 #endif //NOCURL
 static int VLAPI_RecvStream(lua_State *State);
 static int VLAPI_RecvN2N(lua_State *State);
+static int VLAPI_WaitN2N(lua_State *State);
 static int VLAPI_SendStream(lua_State *State);
 static int VLAPI_GetTempDirectory(lua_State *State);
 static int VLAPI_vl_sleep(lua_State *State);
@@ -142,6 +143,7 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 #endif //NOCURL
 	{ "RecvStream", VLAPI_RecvStream },
 	{ "RecvN2N", VLAPI_RecvN2N },
+	{ "WaitN2N", VLAPI_WaitN2N },
 	{ "SendStream", VLAPI_SendStream },
 	{ "SendN2N", VLAPI_SendStream }, //Same function, just an alias
 	{ "GetTempDirectory", VLAPI_GetTempDirectory },
@@ -1087,6 +1089,40 @@ static int VLAPI_RecvN2N(lua_State *State)
 	//Nothing left in the queue.
 	
 	VLScopedPtr<Conation::ConationStream*> NewStream { OurJob->N2N_Queue.Pop(true) };
+	
+	if (!NewStream)
+	{
+		VLDEBUG("No data in N2N queue, returning nil.");
+		return 0;
+	}
+	
+	CloneConationStreamToLua(State, NewStream);
+	
+	VLDEBUG("Have new table on stack: " + ((lua_type(State, -1) == LUA_TTABLE) ? "true" : "false"));
+
+	return 1;
+}
+static int VLAPI_WaitN2N(lua_State *State)
+{
+	lua_getglobal(State, "VL_OurJob_LUSRDTA");
+	
+	if (lua_type(State, -1) != LUA_TLIGHTUSERDATA)
+	{
+		VLWARN("Internal userdata is not actually a userdata!");
+		return 0;
+	}
+	
+	Jobs::Job *OurJob = static_cast<Jobs::Job*>(lua_touserdata(State, -1));
+	
+	if (!OurJob)
+	{
+		VLWARN("VL_OurJob_LUSRDTA is null!");
+		return 0;
+	}
+	//Nothing left in the queue.
+	
+	///This is a blocking call in the initializer. It will suspend the calling thread until it receives a stream.
+	VLScopedPtr<Conation::ConationStream*> NewStream { OurJob->N2N_Queue.WaitPop() };
 	
 	if (!NewStream)
 	{

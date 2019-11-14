@@ -31,12 +31,16 @@ namespace Jobs
 	private:
 		std::queue<VLScopedPtr<Conation::ConationStream*>> Queue;
 		VLThreads::Mutex Mutex;
+		VLThreads::Semaphore PushEvent;
+		
 	public:
 		inline void Push(Conation::ConationStream *Stream)
 		{
 			VLThreads::MutexKeeper Keeper { &this->Mutex };
 
 			this->Queue.push(Stream);
+			
+			this->PushEvent.Post();
 		}
 		
 		inline void Push(const Conation::ConationStream &Stream)
@@ -48,14 +52,34 @@ namespace Jobs
 		{
 			VLThreads::MutexKeeper Keeper { &this->Mutex };
 			
+			if (this->Queue.empty()) return nullptr;
+
 			Conation::ConationStream *Result = nullptr;
-			if (!this->Queue.empty())
+			
+			if (ActuallyPop)
+			{
+				Result = this->Queue.front().Forget();
+				this->Queue.pop();
+			}
+			else
 			{
 				Result = new Conation::ConationStream(*this->Queue.front()); //WE MUST COPY IT!!! If we don't, it will probably get popped afterwards.
-				
-				if (ActuallyPop) this->Queue.pop();
-				
 			}
+			
+		
+			return Result;
+		}
+		
+		inline Conation::ConationStream *WaitPop(void)
+		{
+			this->PushEvent.Wait();
+			
+			VLThreads::MutexKeeper Keeper { &this->Mutex };
+			
+			//Steal the pointer.
+			Conation::ConationStream *const Result = this->Queue.front().Forget();
+			
+			this->Queue.pop();
 			
 			return Result;
 		}
