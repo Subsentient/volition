@@ -73,8 +73,9 @@ namespace Conation
 	const size_t STREAM_HEADER_SIZE = (sizeof(CommandCode) + sizeof(uint64_t) + sizeof(uint64_t));
 	
 	
-	const uint8_t IDENT_ISREPORT_BIT = 1; ///This is just 1 so we can use "true" in flags and have it be valid, since this is by far the most used flag.
-	const uint8_t IDENT_ISROUTINE_BIT = 1 << 1; //We only use these two flags atm.
+	const uint8_t IDENT_ISREPORT_BIT = 1 << 0; ///This is just 1 so we can use "true" in flags and have it be valid, since this is by far the most used flag.
+	const uint8_t IDENT_ISROUTINE_BIT = 1 << 1; //It's a routine
+	const uint8_t IDENT_ISN2N_BIT = 1 << 2; //Node to node communications
 	
 	//Written with sizeof for clarity.
 	const uint8_t IDENT_NUM_FLAGS_BITS = sizeof(uint8_t) * 8; /**8**/ //Number of bits used for the flags section.
@@ -251,6 +252,8 @@ namespace Conation
 		
 		bool VerifyArgTypePattern(const size_t ArgOffset, const std::vector<ArgType> &List) const;
 		bool VerifyArgTypePattern(const size_t ArgOffset, ...) const;
+		
+		bool VerifyArgTypesStartWith(const std::vector<ArgType> &List) const;
 		
 		std::vector<ArgType> *GetArgTypes(void) const;
 		bool Transmit(const Net::ClientDescriptor &Descriptor, Net::NetRWStatusForEachFunc StatusFunc = nullptr, void *PassAlongWith = nullptr) const;

@@ -28,6 +28,7 @@ namespace CmdHandling
 {
 	void HandleReport(Clients::ClientObj *Client, Conation::ConationStream *Stream);
 	void HandleRequest(Clients::ClientObj *Client, Conation::ConationStream *Stream);
+	void HandleN2N(Clients::ClientObj *Client, Conation::ConationStream *Stream);
 
 	Conation::ConationStream *HandleIndexRequest(Conation::ConationStream *Stream);
 	bool NotifyAdmin_NodeChange(const char *NodeID, const bool Online);

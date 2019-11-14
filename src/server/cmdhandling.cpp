@@ -38,7 +38,6 @@
 //Prototypes for static functions
 static Conation::ConationStream *HandleNodeInfoRequest(Clients::ClientObj *Client, Conation::ConationStream *Stream,
 														const char *RequestedID);
-static void ProcessN2N(Clients::ClientObj *Client, Conation::ConationStream *Stream);
 
 //Function definitions
 void CmdHandling::HandleReport(Clients::ClientObj *Client, Conation::ConationStream *Stream)
@@ -128,11 +127,6 @@ void CmdHandling::HandleReport(Clients::ClientObj *Client, Conation::ConationStr
 				NotifyAdmin_NodeChange(Client->GetID(), true);
 			}
 			
-			break;
-		}
-		case CMDCODE_N2N_GENERIC:
-		{ ///Node to node communications. Destinations are forwarded directly.
-			ProcessN2N(Client, Stream);
 			break;
 		}
 		default:
@@ -1297,11 +1291,6 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 		TripleRoutineAlterExit:
 			break;
 		}
-		case CMDCODE_N2N_GENERIC:
-		{ ///Node to node communications. Destinations are forwarded directly.
-			ProcessN2N(Client, Stream);
-			break;
-		}
 		default:
 		{
 			VLScopedPtr<std::vector<Conation::ArgType>*> Types { Stream->GetArgTypes() };
@@ -1525,7 +1514,7 @@ bool CmdHandling::NotifyAdmin_NodeChange(const char *NodeID, const bool Online)
 	
 }
 
-static void ProcessN2N(Clients::ClientObj *Client, Conation::ConationStream *Stream)
+void CmdHandling::HandleN2N(Clients::ClientObj *Client, Conation::ConationStream *Stream)
 {
 	VLScopedPtr<std::vector<Conation::ArgType>*> Types { Stream->GetArgTypes() };
 	

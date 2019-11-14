@@ -371,8 +371,12 @@ bool Clients::HandleClientInterface(ClientObj *Client, Conation::ConationStream 
 	uint64_t Ident = 0u;
 	
 	Stream->GetCommandIdent(&Flags, &Ident);
-
-	if (Flags & Conation::IDENT_ISREPORT_BIT) //This is just a status report.
+	
+	if		(Flags & Conation::IDENT_ISN2N_BIT) //Node to node communications are mostly just passed through after a brief permissions check.
+	{
+		CmdHandling::HandleN2N(Client, Stream);
+	}
+	else if (Flags & Conation::IDENT_ISREPORT_BIT) //This is just a status report.
 	{
 		CmdHandling::HandleReport(Client, Stream);
 	}

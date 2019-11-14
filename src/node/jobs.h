@@ -66,18 +66,22 @@ namespace Jobs
 		uint64_t JobID; //The number of the job according to this node.
 		uint64_t CmdIdent;
 		CommandCode CmdCode;
-		JobReadQueue Read_Queue; //The main thread puts streams intended for a certain job in this queue.
+		JobReadQueue Read_Queue, N2N_Queue; //The main thread puts streams intended for a certain job in this queue.
+		bool CaptureIncomingStreams : 1;
+		bool ReceiveN2N : 1;
+		
 		//We don't have a write one cuz we just use Main::PushStreamToWriteQueue() to access the primary one.
 		
 		VLScopedPtr<VLThreads::Thread*> JobThread;
 
-		Job(void) : JobID(), CmdIdent(), CmdCode(), JobThread() {}
+		Job(void) : JobID(), CmdIdent(), CmdCode(), CaptureIncomingStreams(), ReceiveN2N(), JobThread() {}
 	};
 	
 	bool StartJob(const CommandCode NewJob, const Conation::ConationStream *Data);
 	void ProcessCompletedJobs(void);
 	VLString GetWorkingDirectory(void);
-	void ForwardToScriptJobs(Conation::ConationStream *Stream);
+	void ForwardToScriptJobs(Conation::ConationStream *const Stream);
+	void ForwardN2N(Conation::ConationStream *const Stream);
 	void KillAllJobs(void);
 	bool KillJobByID(const uint64_t JobID);
 	bool KillJobByCmdCode(const CommandCode CmdCode);

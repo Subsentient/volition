@@ -80,6 +80,7 @@ static int VLAPI_MoveFile(lua_State *State);
 static int VLAPI_GetHTTP(lua_State *State);
 #endif //NOCURL
 static int VLAPI_RecvStream(lua_State *State);
+static int VLAPI_RecvN2N(lua_State *State);
 static int VLAPI_SendStream(lua_State *State);
 static int VLAPI_GetTempDirectory(lua_State *State);
 static int VLAPI_vl_sleep(lua_State *State);
@@ -96,6 +97,9 @@ static int VLAPI_SlurpFile(lua_State *State);
 static int VLAPI_WriteFile(lua_State *State);
 static int VLAPI_RunningAsJob(lua_State *State);
 static int VLAPI_GetCFunction(lua_State *State);
+static int VLAPI_SetN2NState(lua_State *const State);
+static int VLAPI_SetCaptureIncomingStreams(lua_State *const State);
+static int VLAPI_GetJobID(lua_State *const State);
 
 ///Lua ConationStream helper functions, the ones that don't go in VLAPIFuncs.
 static void InitConationStreamBindings(lua_State *State);
@@ -137,7 +141,9 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "GetHTTP", VLAPI_GetHTTP },
 #endif //NOCURL
 	{ "RecvStream", VLAPI_RecvStream },
+	{ "RecvN2N", VLAPI_RecvN2N },
 	{ "SendStream", VLAPI_SendStream },
+	{ "SendN2N", VLAPI_SendStream }, //Same function, just an alias
 	{ "GetTempDirectory", VLAPI_GetTempDirectory },
 	{ "vl_sleep", VLAPI_vl_sleep },
 	{ "FileExists", VLAPI_FileExists },
@@ -152,6 +158,9 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "SlurpFile", VLAPI_SlurpFile },
 	{ "WriteFile", VLAPI_WriteFile },
 	{ "RunningAsJob", VLAPI_RunningAsJob },
+	{ "SetN2NState", VLAPI_SetN2NState },
+	{ "SetCaptureIncomingStreams", VLAPI_SetCaptureIncomingStreams },
+	{ "GetJobID", VLAPI_GetJobID },
 #ifndef NO_DLFCN
 	{ "GetCFunction", VLAPI_GetCFunction },
 #endif // !NO_DLFCN
@@ -676,6 +685,89 @@ static int VLAPI_IsDirectory(lua_State *State)
 	return 1;
 }
 
+static int VLAPI_SetN2NState(lua_State *const State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TBOOLEAN }))
+	{
+		return 0;
+	}
+	
+	const bool N2NEnabled = lua_toboolean(State, -1);
+	
+	lua_getglobal(State, "VL_OurJob_LUSRDTA");
+	
+	if (lua_type(State, -1) != LUA_TLIGHTUSERDATA)
+	{
+		VLWARN("Internal userdata is not actually a userdata!");
+		return 0;
+	}
+	
+	Jobs::Job *OurJob = static_cast<Jobs::Job*>(lua_touserdata(State, -1));
+	
+	if (!OurJob)
+	{
+		VLWARN("VL_OurJob_LUSRDTA is null!");
+		return 0;
+	}
+	
+	OurJob->ReceiveN2N = N2NEnabled;
+	
+	return 0;
+}
+
+static int VLAPI_GetJobID(lua_State *const State)
+{
+	lua_getglobal(State, "VL_OurJob_LUSRDTA");
+	
+	if (lua_type(State, -1) != LUA_TLIGHTUSERDATA)
+	{
+		VLWARN("Internal userdata is not actually a userdata!");
+		return 0;
+	}
+	
+	Jobs::Job *OurJob = static_cast<Jobs::Job*>(lua_touserdata(State, -1));
+	
+	if (!OurJob)
+	{
+		VLWARN("VL_OurJob_LUSRDTA is null!");
+		return 0;
+	}
+	
+	lua_pushinteger(State, OurJob->JobID);
+	
+	return 1;
+}
+
+static int VLAPI_SetCaptureIncomingStreams(lua_State *const State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TBOOLEAN }))
+	{
+		return 0;
+	}
+	
+	const bool CaptureEnabled = lua_toboolean(State, -1);
+	
+	lua_getglobal(State, "VL_OurJob_LUSRDTA");
+	
+	if (lua_type(State, -1) != LUA_TLIGHTUSERDATA)
+	{
+		VLWARN("Internal userdata is not actually a userdata!");
+		return 0;
+	}
+	
+	Jobs::Job *OurJob = static_cast<Jobs::Job*>(lua_touserdata(State, -1));
+	
+	if (!OurJob)
+	{
+		VLWARN("VL_OurJob_LUSRDTA is null!");
+		return 0;
+	}
+	
+	OurJob->CaptureIncomingStreams = CaptureEnabled;
+	
+	return 0;
+}
+
 static int VLAPI_FileExists(lua_State *State)
 {
 	const size_t ArgCount = lua_gettop(State);
@@ -975,6 +1067,40 @@ static int VLAPI_DeleteFile(lua_State *State)
 	return Count;
 }
 
+static int VLAPI_RecvN2N(lua_State *State)
+{
+	lua_getglobal(State, "VL_OurJob_LUSRDTA");
+	
+	if (lua_type(State, -1) != LUA_TLIGHTUSERDATA)
+	{
+		VLWARN("Internal userdata is not actually a userdata!");
+		return 0;
+	}
+	
+	Jobs::Job *OurJob = static_cast<Jobs::Job*>(lua_touserdata(State, -1));
+	
+	if (!OurJob)
+	{
+		VLWARN("VL_OurJob_LUSRDTA is null!");
+		return 0;
+	}
+	//Nothing left in the queue.
+	
+	VLScopedPtr<Conation::ConationStream*> NewStream { OurJob->N2N_Queue.Pop(true) };
+	
+	if (!NewStream)
+	{
+		VLDEBUG("No data in N2N queue, returning nil.");
+		return 0;
+	}
+	
+	CloneConationStreamToLua(State, NewStream);
+	
+	VLDEBUG("Have new table on stack: " + ((lua_type(State, -1) == LUA_TTABLE) ? "true" : "false"));
+
+	return 1;
+}
+
 static int VLAPI_RecvStream(lua_State *State)
 {
 	const size_t ArgCount = lua_gettop(State);
@@ -1239,6 +1365,12 @@ static bool LoadVLAPI(lua_State *State)
 	//Routine bit
 	lua_pushstring(State, "IDENT_ISROUTINE_BIT");
 	lua_pushinteger(State, Conation::IDENT_ISROUTINE_BIT);
+
+	lua_settable(State, -3);
+	
+	//Node-to-node communications bit
+	lua_pushstring(State, "IDENT_ISN2N_BIT");
+	lua_pushinteger(State, Conation::IDENT_ISN2N_BIT);
 
 	lua_settable(State, -3);
 	

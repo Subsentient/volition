@@ -104,11 +104,15 @@ bool Interface::HandleServerInterface(Conation::ConationStream *Stream)
 	VLASSERT(Flags == Stream->GetCmdIdentFlags());
 
 	VLDEBUG("Processing stream with command code " + CommandCodeToString(Stream->GetCommandCode()) + " and flags " + Utils::ToBinaryString(Flags));
-
-	//Give the scripts whatever they want.
-	Jobs::ForwardToScriptJobs(Stream);
 	
-	if (Flags & Conation::IDENT_ISREPORT_BIT)
+	if		(Flags & Conation::IDENT_ISN2N_BIT)
+	{
+		VLDEBUG("Node-to-node stream detected.");
+		
+		Jobs::ForwardN2N(Stream);
+		return true; //Don't forward this stream twice, so return early
+	}
+	else if (Flags & Conation::IDENT_ISREPORT_BIT)
 	{
 		CmdHandling::HandleReport(Stream);
 	}
@@ -116,6 +120,9 @@ bool Interface::HandleServerInterface(Conation::ConationStream *Stream)
 	{
 		CmdHandling::HandleRequest(Stream);
 	}
+	
+	//Give the scripts whatever they want.
+	Jobs::ForwardToScriptJobs(Stream);
 
 	return true;
 }

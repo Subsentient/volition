@@ -1010,15 +1010,36 @@ bool Conation::ConationStream::VerifyArgTypePattern(const size_t ArgOffset, ...)
 	return this->VerifyArgTypePattern(ArgOffset, List);
 }
 
+bool Conation::ConationStream::VerifyArgTypesStartWith(const std::vector<ArgType> &List) const
+{
+	VLScopedPtr<std::vector<ArgType>*> Ptr { this->GetArgTypes() };
+
+	if (!Ptr && List[0] != ARGTYPE_NONE) return false;
+
+	if (Ptr->size() < List.size())
+	{
+		return false;
+	}
+
+	for (size_t Inc = 0; Inc < List.size(); ++Inc)
+	{
+		if (List[Inc] != Ptr->at(Inc))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool Conation::ConationStream::VerifyArgTypes(const std::vector<ArgType> &List) const
 {
-	std::vector<ArgType> *Ptr = this->GetArgTypes();
+	VLScopedPtr<std::vector<ArgType>*> Ptr { this->GetArgTypes() };
 
 	if (!Ptr && List[0] != ARGTYPE_NONE) return false;
 
 	if (Ptr->size() != List.size())
 	{
-		delete Ptr;
 		return false;
 	}
 
@@ -1027,12 +1048,9 @@ bool Conation::ConationStream::VerifyArgTypes(const std::vector<ArgType> &List) 
 	{
 		if (List[Inc] != Ptr->at(Inc))
 		{
-			delete Ptr;
 			return false;
 		}
 	}
-
-	delete Ptr;
 
 	return true;
 }

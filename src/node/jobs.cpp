@@ -832,28 +832,55 @@ void Jobs::ProcessCompletedJobs(void)
 
 static void InitJobEnv(void)
 {
-	JobWorkingDirectory.Mutex.Lock();
+	const VLThreads::MutexKeeper Keeper { &JobWorkingDirectory.Mutex };
+
 	Files::Chdir(JobWorkingDirectory.Path);
 
 	VLDEBUG("Changed working directory to " + JobWorkingDirectory.Path);
-	
-	JobWorkingDirectory.Mutex.Unlock();
 }
 
 VLString Jobs::GetWorkingDirectory(void)
 { //Returns the working directory that jobs use, which might be different from the main thread's working directory.
-	JobWorkingDirectory.Mutex.Lock();
-	const VLString RetVal = JobWorkingDirectory;
-	JobWorkingDirectory.Mutex.Unlock();
+	const VLThreads::MutexKeeper Keeper { &JobWorkingDirectory.Mutex };
 	
-	return RetVal;
+	return JobWorkingDirectory;
 }
 
-void Jobs::ForwardToScriptJobs(Conation::ConationStream *Stream)
+
+void Jobs::ForwardN2N(Conation::ConationStream *const Stream)
+{
+	bool HasJobIDs = false;
+	
+	if ( !(HasJobIDs = Stream->VerifyArgTypesStartWith({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_UINT64, Conation::ARGTYPE_UINT64})) &&
+		!Stream->VerifyArgTypesStartWith({Conation::ARGTYPE_ODHEADER}))
+	{ //Origin-destination job IDs as well as node IDs.
+		VLWARN("Invalid N2N message received!");
+		return;
+	}
+	
+	const Conation::ConationStream::ODHeader &ODObj { Stream->Pop_ODHeader() };
+	const uint64_t OriginJob = HasJobIDs ? Stream->Pop_Uint64() : 0ul;
+	const uint64_t DestinationJob = HasJobIDs ? Stream->Pop_Uint64() : 0ul;
+	
+	(void)OriginJob; //Not really useful atm.
+	
+	Stream->Rewind();
+	
+	for (Job &Ref : JobsList)
+	{
+		if (DestinationJob && Ref.JobID != DestinationJob) continue;
+		
+		if (!Ref.ReceiveN2N) continue; //Must be explicitly enabled, probably by a script job
+		
+		Ref.N2N_Queue.Push(*Stream);
+	}
+}
+
+void Jobs::ForwardToScriptJobs(Conation::ConationStream *const Stream)
 {
 	for (auto Iter = JobsList.begin(); Iter != JobsList.end(); ++Iter)
 	{
-		if (Iter->CmdCode == CMDCODE_A2C_MOD_EXECFUNC) //Script jobs should be given access to EVERYTHING that comes from the server.
+		if (Iter->CaptureIncomingStreams) //Script jobs should be given access to EVERYTHING that comes from the server.
 		{
 			Iter->Read_Queue.Push(*Stream);
 		}
