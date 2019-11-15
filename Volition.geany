@@ -28,7 +28,7 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=95
+current_page=104
 FILE_NAME_0=6161;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Fcommon.h;0;4
 FILE_NAME_1=1301;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Futils.h;0;4
 FILE_NAME_2=520;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Fnetcore.h;0;4
@@ -68,7 +68,7 @@ FILE_NAME_35=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fcontrol%2Fgui
 FILE_NAME_36=4353;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Fvlthreads.cpp;0;4
 FILE_NAME_37=2013;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Fvlthreads.h;0;4
 FILE_NAME_38=708;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Ffiles.cpp;0;4
-FILE_NAME_39=29420;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fjobs.cpp;0;4
+FILE_NAME_39=2332;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fjobs.cpp;0;4
 FILE_NAME_40=1817;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fjobs.h;0;4
 FILE_NAME_41=571;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fserver%2Fdb.h;0;4
 FILE_NAME_42=1051;Make;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fserver%2FMakefile;0;4
@@ -100,7 +100,7 @@ FILE_NAME_67=12172;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvoliti
 FILE_NAME_68=1930;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fweb.cpp;0;4
 FILE_NAME_69=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fweb.h;0;4
 FILE_NAME_70=1234;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fscript.h;0;4
-FILE_NAME_71=5289;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fscript.cpp;0;4
+FILE_NAME_71=9929;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fscript.cpp;0;4
 FILE_NAME_72=178;Make;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Futils%2FMakefile;0;4
 FILE_NAME_73=674;None;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2F.gitignore;0;4
 FILE_NAME_74=756;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Fcommon_introspect.cpp;0;4
@@ -121,14 +121,18 @@ FILE_NAME_88=4484;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fserver%2Fl
 FILE_NAME_89=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fserver%2Flogger.h;0;4
 FILE_NAME_90=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Futils%2Fgenauthtoken.cpp;0;4
 FILE_NAME_91=365;Make;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2FSecurity.mk;0;4
-FILE_NAME_92=2129;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Fscripting_selftest.lua;0;4
+FILE_NAME_92=1588;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Fscripting_selftest.lua;0;4
 FILE_NAME_93=4268;C++;0;EUTF-8;1;1;0;%2Fusr%2Finclude%2Fc%2B%2B%2F9%2Fext%2Fnew_allocator.h;0;4
 FILE_NAME_94=951;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fnode%2Fcmdhandling.h;0;4
-FILE_NAME_95=387;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Ftumorloader.lua;0;4
+FILE_NAME_95=4119;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Ftumorloader.lua;0;4
 FILE_NAME_96=263;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fluatest.c;0;4
 FILE_NAME_97=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2Finclude%2Fvlstrings.h;0;4
 FILE_NAME_98=90;Make;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Flibvolition%2FMakefile;0;4
-FILE_NAME_99=317;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Fcmodtests.lua;0;4
+FILE_NAME_99=590;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Fcmodtests.lua;0;4
+FILE_NAME_100=0;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Fn2ntest.lua;0;4
+FILE_NAME_101=587;Lua;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fscripts%2Floadtest.lua;0;4
+FILE_NAME_102=867;CMake;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fextensions%2Fziggurat%2FCMakeLists.txt;0;4
+FILE_NAME_103=180;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Fvolition%2Fsrc%2Fextensions%2Fziggurat%2Fzigmain.cpp;0;4
 
 [VTE]
 last_dir=/home/ben/volition
@@ -142,7 +146,7 @@ CFT_00_LB=_Compile
 CFT_00_CM=g++ -std=gnu++14 -pedantic -Wall -g3 -O0 -c "%f"
 CFT_00_WD=
 C++FT_00_LB=_Compile
-C++FT_00_CM=g++ -Wno-ignored-attributes -Wno-delete-incomplete -std=c++14 -Wall -pedantic -g3 -O0  `pkg-config --cflags gtk+-2.0` -DLINUX -DDEBUG -c `pkg-config --cflags lua` -Wno-parentheses "%f"
+C++FT_00_CM=g++ -Wno-ignored-attributes -Wno-delete-incomplete -std=c++14 -Wall -pedantic -g3 -O0  `pkg-config --cflags gtk+-2.0` -DLINUX -DDEBUG -c `pkg-config --cflags lua` -Wno-parentheses "%f" -I/dh/volition/src/ `pkg-config --cflags Qt5Widgets` -fPIC
 C++FT_00_WD=
 NF_00_LB=_Make
 NF_00_CM=make

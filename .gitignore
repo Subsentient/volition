@@ -1,14 +1,6 @@
-src/*.o
-src/*.gch
-src/libvolition/*.o
-src/libvolition/*.gch
-src/libvolition/*.a
-src/libvolition/include/*.o
-src/libvolition/include/*.gch
-src/node/*.o
-src/node/*.gch
-src/node/generated/*.h
-src/node/generated/*.gch
+**/*.o
+**/*.a
+**/*.gch
 src/node/win32/*.o
 src/node/volition_node_*
 src/node/vgcore.*
@@ -42,3 +34,7 @@ src/utils/genauthtoken
 **/*.dll
 **/*.dylib
 **/vgcore.*
+**/build
+**/winbuild
+**/*autogen*
+**/CMakeCache.txt

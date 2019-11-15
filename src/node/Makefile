@@ -60,6 +60,12 @@ else ifeq ($(OS),haikuos)
 	LDFLAGS += -pthread -lnetwork
 endif
 
+
+ifneq ($(OS),windows)
+	CXXFLAGS += -fPIC
+	LDFLAGS += -fPIC
+endif
+
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 
 ifeq ($(FORCE_STATIC),1)

@@ -20,6 +20,11 @@ ifndef HIDE_GUTS
 	OBJECTS += brander.o 
 endif
 
+ifneq ($(OS),windows)
+	CXXFLAGS += -fPIC
+	LDFLAGS += -fPIC
+endif
+
 ifeq ($(IPV6),1)
 	CXXFLAGS += -DVL_IPV6
 endif

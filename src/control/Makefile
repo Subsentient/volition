@@ -24,7 +24,8 @@ ifeq ($(OS),windows)
 	OUTFILE = ./volition_control.exe
 	OBJECTS += ./win32/win.o
 else
-	LDFLAGS += -pthread
+	LDFLAGS += -pthread -fPIC
+	CXXFLAGS += -fPIC
 endif
 
 ifdef EXTRACXX

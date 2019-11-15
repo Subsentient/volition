@@ -45,7 +45,11 @@ else
 	LDFLAGS += -pthread 
 endif
 
-	
+ifneq ($(OS),windows)
+	CXXFLAGS += -fPIC
+	LDFLAGS += -fPIC
+endif
+
 all: corecpp clientscpp dbcpp cmdhandlingcpp nodeupdatescpp routinescpp loggercpp
 	mkdir -p .libvl
 	$(MAKE) -C ../libvolition OBJ_OUT_DIR=`pwd`/.libvl
