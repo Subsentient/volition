@@ -69,6 +69,12 @@ VLString IdentityModule::GetNodeIdentity(void)
 
 	Value = (const char*)Identity + IdentityDelimLength + 1;
 
+	if (!Value)
+	{
+		strcpy(const_cast<char*>(Identity + IdentityDelimLength + 1), VLString("vltmpnode_") + VLString::IntToString(time(nullptr) ^ clock()));
+		return GetNodeIdentity();
+	}
+	
 	return Value;
 }
 
