@@ -24,7 +24,7 @@ find_package(Qt5 COMPONENTS Widgets Core)
 
 message("== Ok, found Qt5Widgets")
 
-set(sourcefiles zigmain.cpp zigapp.h)
+set(sourcefiles zigmain.cpp zigapp.h zigresources.qrc)
 qt5_wrap_ui(sourcefiles zigui.ui)
 
 add_library(Ziggurat SHARED ${sourcefiles})

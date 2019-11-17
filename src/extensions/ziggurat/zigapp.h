@@ -4,6 +4,8 @@
 
 #include <QtWidgets>
 
+#define qs2vls(String) (VLString{String.toUtf8().constData()})
+
 namespace Ziggurat
 {
 	class LuaDelegate;
@@ -12,8 +14,8 @@ namespace Ziggurat
 	{
 		Q_OBJECT
 	private:
-		VLScopedPtr<QStringListModel*> MessageListModel;
-		VLScopedPtr<QStringList*> MessageList;
+		VLScopedPtr<QStandardItemModel*> MessageListModel;
+		std::list<VLString> MessageList;
 		void ThreadFunc(void);
 		static void *ThreadFuncInit(void *Waiter_);
 

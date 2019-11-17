@@ -3,6 +3,7 @@
 #include "node/script.h"
 #include "zigapp.h"
 
+#include <atomic>
 
 extern "C"
 {
@@ -14,13 +15,21 @@ extern "C"
 static const char *fakeargv[] = { "vl", nullptr };
 static int fakeargc = 1;
 
-static VLScopedPtr<QApplication*> App;
-
 Ziggurat::ZigMainWindow *Ziggurat::ZigMainWindow::Instance;
 
-extern "C" int vlltumorexec(lua_State *State)
+extern "C" int InitLibZiggurat(lua_State *State)
 {
+	static std::atomic_bool AlreadyRunning;
+	
+	if (AlreadyRunning)
+	{
+		VLWARN("Ziggurat shared library is already running, allowing request to fail gracefully.");
+		return 0;
+	}
+	
 	Ziggurat::LuaDelegate *Delegate = Ziggurat::LuaDelegate::Fireup();
+	
+	AlreadyRunning = true;
 	
 	lua_newtable(State);
 	
@@ -58,7 +67,7 @@ void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 	VLThreads::ValueWaiter<ZigMainWindow*> *const Waiter = static_cast<VLThreads::ValueWaiter<ZigMainWindow*>*>(Waiter_);
 
 	VLDEBUG("Constructing QApplication");
-	if (!QApplication::instance()) App = new QApplication { fakeargc, (char**)fakeargv };
+	if (!QApplication::instance()) new QApplication { fakeargc, (char**)fakeargv };
 	
 	VLDEBUG("Constructing ZigWin");
 	ZigMainWindow *const ZigWin = new ZigMainWindow;
@@ -77,18 +86,18 @@ void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 
 void Ziggurat::ZigMainWindow::OnNewMessage(const QString &Data)
 {
-	*this->MessageList << Data;
-	this->MessageListModel->setStringList(*this->MessageList);
+	this->MessageList.push_back(qs2vls(Data));
+	
+	this->MessageListModel->appendRow(new QStandardItem(Data));
 }
 
 void Ziggurat::ZigMainWindow::ThreadFunc(void)
 {
-	this->MessageListModel = new QStringListModel;
-	this->MessageList = new QStringList { "No messages present" };
-	
-	this->MessageListModel->setStringList(*this->MessageList);
+	this->MessageListModel = new QStandardItemModel;
 	
 	this->ZigMessageList->setModel(this->MessageListModel);
+	
+	this->setWindowIcon(QIcon(":ziggurat.png"));
 	
 	QEventLoop Loop;
 	
