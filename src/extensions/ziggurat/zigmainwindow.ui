@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ZigMainWindow</class>
+ <widget class="QMainWindow" name="ZigMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>480</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Ziggurat</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QTabWidget" name="ZigMsgTabs">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <property name="documentMode">
+       <bool>false</bool>
+      </property>
+      <property name="tabsClosable">
+       <bool>true</bool>
+      </property>
+      <property name="movable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="ZigMenuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>480</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuZiggurat">
+    <property name="title">
+     <string>Ziggurat</string>
+    </property>
+    <addaction name="actionOpen_session_with_new_node"/>
+    <addaction name="separator"/>
+    <addaction name="actionMinimize_to_Tray"/>
+    <addaction name="actionPreferences"/>
+    <addaction name="actionQuit_Ziggurat"/>
+   </widget>
+   <addaction name="menuZiggurat"/>
+  </widget>
+  <action name="actionOpen_session_with_new_node">
+   <property name="text">
+    <string>Open session with new node</string>
+   </property>
+   <property name="toolTip">
+    <string>Add another Ziggurat client on the Volition network</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::TextHeuristicRole</enum>
+   </property>
+  </action>
+  <action name="actionQuit_Ziggurat">
+   <property name="text">
+    <string>Quit Ziggurat</string>
+   </property>
+  </action>
+  <action name="actionMinimize_to_Tray">
+   <property name="text">
+    <string>Minimize to Tray</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Preferences</string>
+   </property>
+   <property name="toolTip">
+    <string>Unimplemented</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::PreferencesRole</enum>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
