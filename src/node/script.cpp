@@ -68,7 +68,7 @@ static int VLAPI_GetPlatformString(lua_State *State);
 static int VLAPI_GetServerAddr(lua_State *State);
 static int VLAPI_GetSSLCert(lua_State *State);
 static int VLAPI_GetAuthToken(lua_State *State);
-static int VLAPI_GetInitScript(lua_State *State);
+static int VLAPI_GetStartupScript(lua_State *State);
 static int VLAPI_GetArgvData(lua_State *State);
 static int VLAPI_GetCompileTime(lua_State *State);
 static int VLAPI_GetProcesses(lua_State *State);
@@ -130,7 +130,7 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "GetServerAddr", VLAPI_GetServerAddr },
 	{ "GetSSLCert", VLAPI_GetSSLCert },
 	{ "GetAuthToken", VLAPI_GetAuthToken },
-	{ "GetInitScript", VLAPI_GetInitScript },
+	{ "GetStartupScript", VLAPI_GetStartupScript },
 	{ "GetArgvData", VLAPI_GetArgvData },
 	{ "GetCompileTime", VLAPI_GetCompileTime },
 	{ "GetProcesses", VLAPI_GetProcesses },
@@ -470,9 +470,9 @@ static int VLAPI_GetPlatformString(lua_State *State)
 	return 1;
 }
 
-static int VLAPI_GetInitScript(lua_State *State)
+static int VLAPI_GetStartupScript(lua_State *State)
 {
-	lua_pushstring(State, IdentityModule::GetInitScript());
+	lua_pushstring(State, IdentityModule::GetStartupScript());
 	
 	return 1;
 }
@@ -1260,6 +1260,7 @@ static int VLAPI_GetHTTP(lua_State *State)
 	int Attempts = 3;
 	VLString UserAgent;
 	VLString Referrer;
+	bool ReturnBlob = false;
 	
 	if (NumArgs >= 2 && lua_type(State, 2) == LUA_TNUMBER)
 	{ //Set number of attempts.
@@ -1276,6 +1277,11 @@ static int VLAPI_GetHTTP(lua_State *State)
 		Referrer = lua_tostring(State, 4);
 	}
 	
+	if (NumArgs >= 5 && lua_type(State, 5) == LUA_TBOOLEAN)
+	{
+		ReturnBlob = lua_toboolean(State, 5);
+	}
+	
 	lua_settop(State, 0);
 	
 	VLString FilePath;
@@ -1285,20 +1291,29 @@ static int VLAPI_GetHTTP(lua_State *State)
 									Referrer ? +Referrer : nullptr);
 	if (Result && FilePath)
 	{
-#ifdef DEBUG
-		puts("VLAPI_GetHTTP(): Succeeded in call to Web::GetHTTP().");
-#endif
+		VLDEBUG("Succeeded in call to Web::GetHTTP().");
+		
+		if (ReturnBlob)
+		{
+			VLScopedPtr<std::vector<uint8_t> *> Blob { Utils::Slurp(FilePath, true) };
+			
+			if (!Blob) return 0;
+			
+			Files::Delete(FilePath);
+			
+			lua_pushlstring(State, (const char*)Blob->data(), Blob->size());
+			return 1;
+		}
+		
 		lua_pushstring(State, FilePath);
-	}
-	else
-	{
-#ifdef DEBUG
-		puts("VLAPI_GetHTTP(): Failed in call to Web::GetHTTP()!");
-#endif
-		lua_pushnil(State);
+		
+		return 1;
 	}
 	
-	return 1;		
+	VLWARN("Failed in call to Web::GetHTTP()!");
+	
+	lua_settop(State, 0);
+	return 0;
 }
 #endif //NOCURL
 
@@ -2205,18 +2220,18 @@ bool Script::ScriptIsLoaded(const char *ScriptName)
 	return LoadedScripts.count(ScriptName);
 }
 
-static lua_State *InitScript(const char *ScriptName)
+static lua_State *InitScript(const char *ScriptName, lua_State *const InState = nullptr)
 {
+	VLDEBUG("Entered");
+
 	if (ScriptName && LoadedScripts.count(ScriptName) == 0) return nullptr;
 	
-#ifdef DEBUG
-	puts("Entered InitScript()");
-#endif
-	lua_State *State = luaL_newstate();
-
-#ifdef DEBUG
-	puts("luaL_newstate() succeeded");
-#endif
+	lua_State *const State = InState ? InState : luaL_newstate();
+	VLScopedPtr<lua_State *, decltype(&lua_close)> StateGuard { State, &lua_close };
+	
+	if (InState) StateGuard.Forget();
+	
+	VLDEBUG("Entered with custom state: " + (InState ? "true" : "false"));
 
 	//Load standard Lua libraries.
 	luaL_openlibs(State);
@@ -2236,14 +2251,11 @@ static lua_State *InitScript(const char *ScriptName)
 	
 	if (!ScriptName) //Initialization script glued to the node
 	{
-		const VLString &StartupScript { IdentityModule::GetInitScript() };
+		const VLString &StartupScript { IdentityModule::GetStartupScript() };
 		
 		if (!StartupScript)
 		{
-#ifdef DEBUG
-			fputs("InitScript() executed with a null pointer but no startup script present in identity module!\n", stderr);
-#endif
-			lua_close(State);
+			VLWARN("Called with a null pointer but no startup script present in identity module!");
 			return nullptr;
 		}
 		
@@ -2257,7 +2269,7 @@ static lua_State *InitScript(const char *ScriptName)
 	
 	if (!Success)
 	{
-		lua_close(State);
+		VLWARN("Failed to load buffer, got error from Lua interpreter: \"" + (const char*)lua_tostring(State, -1) + "\"");
 		
 		return nullptr;
 	}
@@ -2273,7 +2285,7 @@ static lua_State *InitScript(const char *ScriptName)
 
 	if (lua_pcall(State, 0, 0, 0) != LUA_OK)
 	{
-		lua_close(State);
+		VLWARN("Failed to execute script body, got error from Lua interpreter: \"" + (const char*)lua_tostring(State, -1) + "\"");
 
 		return nullptr;
 	}
@@ -2290,29 +2302,35 @@ static lua_State *InitScript(const char *ScriptName)
 
 bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionName, Conation::ConationStream *Stream, Jobs::Job *OurJob)
 {
-#ifdef DEBUG
-	puts("Script::ExecuteScriptFunction(): Attempting to InitScript()");
-#endif
-
-	lua_State *State = InitScript(ScriptName);
+	VLScopedPtr<lua_State*, decltype(&lua_close)> State { luaL_newstate(), &lua_close };
 	
-	if (!State) throw ScriptError { ScriptName, FunctionName, "Failed to call InitScript() for script" };
-
-#ifdef DEBUG
-	puts("Script::ExecuteScriptFunction(): InitScript() succeeded");
-#endif
-
 	if (OurJob != nullptr)
 	{ //Store our job pointer for C/C++ functions that want it.
 		lua_pushlightuserdata(State, OurJob);
 		lua_setglobal(State, "VL_OurJob_LUSRDTA");
 	}
 	
+	lua_State *const RetState = InitScript(ScriptName, State);
+	
+	if (!RetState)
+	{
+		throw ScriptError	{
+								ScriptName, FunctionName,
+								VLString{"Failed to call InitScript() for script, got Lua error \""} + lua_tostring(State, -1) + "\""
+							};
+	}
+	
+	VLASSERT(RetState == State);
+	
+#ifdef DEBUG
+	puts("Script::ExecuteScriptFunction(): InitScript() succeeded");
+#endif
+
+	
 	///All this is to create a duplicated Lua-ified ConationStream for the argument to FunctionName.
 	
 	if (!CloneConationStreamToLua(State, Stream))
 	{ //Call the Lua function VL.ConationStream:New() to get a new copy for arguments. Pushes the Lua ConationStream onto the stack.
-		lua_close(State);
 		throw ScriptError { ScriptName, FunctionName
 #ifdef DEBUG
 						, "Failed to lua_pcall() required C prerequesite function NewLuaConationStream()."
@@ -2322,7 +2340,6 @@ bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionN
 	
 	if (lua_type(State, -1) != LUA_TTABLE)
 	{ //NewLuaConationStream() should return a table (a lua ConationStream)
-		lua_close(State);
 		throw ScriptError { ScriptName, FunctionName
 
 #ifdef DEBUG
@@ -2338,7 +2355,6 @@ bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionN
 	
 	if (lua_type(State, -1) != LUA_TFUNCTION)
 	{
-		lua_close(State);
 		throw ScriptError { ScriptName, FunctionName
 #ifdef DEBUG
 						, "Requested Lua script function is not actually a function or does not exist."
@@ -2357,8 +2373,6 @@ bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionN
 		
 		VLDEBUG("FAILURE IN SCRIPTING CORE, got traceback: " + Traceback);
 
-		lua_close(State);
-		
 		throw ScriptError { ScriptName, FunctionName
 #ifdef DEBUG
 						, VLString("Lua error while calling lua_pcall() for function: ") + Traceback
@@ -2369,27 +2383,24 @@ bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionN
 	//If it returns some weird value, I guess just assume it worked.
 	const bool FinalResult = lua_type(State, -1) == LUA_TBOOLEAN ? lua_toboolean(State, -1) : true;
 	
-	lua_close(State);
-	
 	return FinalResult;
 }
 
-VLThreads::Thread *Script::SpawnInitScript(void)
-{
-	if (!IdentityModule::GetInitScript()) return nullptr;
-	
-	VLThreads::Thread *Thd = new VLThreads::Thread(
-	[] (void *) -> void*
-	{	
-		lua_State *State = InitScript(nullptr);
-		
-		if (State) lua_close(State);
-		
-		return (void*)(State != nullptr);
-	}, nullptr);
-	
-	Thd->Start();
-	
-	return Thd;
-}
+void Script::ExecuteStartupScript(Jobs::Job *const OurJob)
+{ //The job object we get is kinda butchered and limited compared to what we get via executing a script function
+	if (!IdentityModule::GetStartupScript()) return;
 
+	VLScopedPtr<lua_State*, decltype(&lua_close)> State { luaL_newstate(), &lua_close };
+	
+	if (OurJob != nullptr)
+	{ //Store our job pointer for C/C++ functions that want it.
+		lua_pushlightuserdata(State, OurJob);
+		lua_setglobal(State, "VL_OurJob_LUSRDTA");
+	}
+
+	lua_State *const RetState = InitScript(nullptr, State);
+	
+	if (!RetState) throw ScriptError { {}, {}, "Failed to call InitScript() for startup script?" };
+	
+	VLASSERT(RetState == State);
+}

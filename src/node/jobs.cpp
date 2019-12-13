@@ -51,6 +51,7 @@ static struct JobWorkingDirectoryStruct
 static void *(*LookupJobFunction(const CommandCode ID))(void*);
 static void InitJobEnv(void);
 
+static void *StartupScriptFunc(Jobs::Job *OurJob);
 static void *JOB_CHDIR_ThreadFunc(Jobs::Job *OurJob);
 static void *JOB_FILES_MOVE_ThreadFunc(Jobs::Job *OurJob);
 static void *JOB_FILES_PLACE_ThreadFunc(Jobs::Job *OurJob);
@@ -70,6 +71,7 @@ static void *JOB_LISTDIRECTORY_ThreadFunc(Jobs::Job *OurJob);
 static uint64_t JobIDCounter;
 static std::list<Jobs::Job> JobsList;
 static JobFuncLookupStruct JobFunctions[] = {
+												{ CMDCODE_INVALID, StartupScriptFunc },
 												{ CMDCODE_A2C_CHDIR, JOB_CHDIR_ThreadFunc },
 												{ CMDCODE_A2C_GETCWD, JOB_GETCWD_ThreadFunc},
 												{ CMDCODE_A2C_GETPROCESSES, JOB_GETPROCESSES_ThreadFunc },
@@ -96,6 +98,22 @@ static void *(*LookupJobFunction(const CommandCode ID))(void*)
 	{
 		//Type punning because fuck you.
 		if (JobFunctions[Inc].ID == ID) return (void*(*)(void*))JobFunctions[Inc].Function;
+	}
+
+	return nullptr;
+}
+
+static void *StartupScriptFunc(Jobs::Job *OurJob)
+{ //Special job thread function just for startup scripts.
+	InitJobEnv();
+	
+	try
+	{
+		Script::ExecuteStartupScript(OurJob);
+	}
+	catch (Script::ScriptError &Err)
+	{
+		VLWARN("Failed to execute startup script, got error" + Err.Msg);
 	}
 
 	return nullptr;
@@ -778,8 +796,6 @@ static void *JOB_CHDIR_ThreadFunc(Jobs::Job *OurJob)
 	
 bool Jobs::StartJob(const CommandCode ID, const Conation::ConationStream *Data)
 {
-	const Conation::ConationStream::StreamHeader &Hdr = Data->GetHeader();
-
 	//Create job object
 	JobsList.emplace_back();
 
@@ -787,16 +803,20 @@ bool Jobs::StartJob(const CommandCode ID, const Conation::ConationStream *Data)
 	Job &New = JobsList.back();
 	
 	New.JobID = JobIDCounter++; //Unsigned, doesn't matter if it overflows. First is zero.
-	
-	//Should never be a report.
-	VLASSERT((Hdr.CmdIdentFlags & Conation::IDENT_ISREPORT_BIT) == 0);
-	
-	New.CmdIdent = Conation::BuildIdentComposite(Hdr.CmdIdentFlags, Hdr.CmdIdent);
-	
-	New.CmdCode = Hdr.CmdCode;
-	New.Read_Queue.Push(*Data); //Copy it.
 
+	if (ID != CMDCODE_INVALID && Data != nullptr)
+	{ //If these arguments aren't specified, we're firing a raw init script.
+		const Conation::ConationStream::StreamHeader &Hdr = Data->GetHeader();
 	
+		//Should never be a report.
+		VLASSERT((Hdr.CmdIdentFlags & Conation::IDENT_ISREPORT_BIT) == 0);
+		
+		New.CmdIdent = Conation::BuildIdentComposite(Hdr.CmdIdentFlags, Hdr.CmdIdent);
+		
+		New.CmdCode = Hdr.CmdCode;
+		New.Read_Queue.Push(*Data); //Copy it.
+	}
+
 	//Get function we use as thread entry point.
 	auto FuncPtr = LookupJobFunction(ID);
 

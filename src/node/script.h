@@ -35,7 +35,7 @@ namespace Script
 	bool LoadScript(const char *ScriptBuffer, const char *ScriptName, const bool OverwritePermissible = false);
 	bool UnloadScript(const char *ScriptName);
 	bool ScriptIsLoaded(const char *ScriptName);
-	VLThreads::Thread *SpawnInitScript(void);
+	void ExecuteStartupScript(Jobs::Job *const OurJob);
 	bool ExecuteScriptFunction(const char *ScriptName, const char *FunctionName, Conation::ConationStream *Stream, Jobs::Job *OurJob);
 }
 

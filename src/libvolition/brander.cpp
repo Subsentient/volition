@@ -40,7 +40,7 @@ static std::map<Brander::AttributeTypes, VLString> DelimMap =	{
 																	{ Brander::AttributeTypes::PLATFORMSTRING, NODE_PLATFORM_STRING_DELIMSTART },
 																	{ Brander::AttributeTypes::AUTHTOKEN, NODE_AUTHTOKEN_DELIMSTART },
 																	{ Brander::AttributeTypes::CERT, NODE_CERT_DELIMSTART },
-																	{ Brander::AttributeTypes::INITSCRIPT, NODE_INITSCRIPT_DELIMSTART },
+																	{ Brander::AttributeTypes::STARTUPSCRIPT, NODE_STARTUPSCRIPT_DELIMSTART },
 																	{ Brander::AttributeTypes::COMPILETIME, NODE_COMPILETIME_DELIMSTART },
 																};
 																
@@ -51,7 +51,7 @@ static std::map<Brander::AttributeTypes, size_t> CapacityMap =	{
 																	{ Brander::AttributeTypes::PLATFORMSTRING, NODE_PLATFORM_STRING_CAPACITY },
 																	{ Brander::AttributeTypes::AUTHTOKEN, NODE_AUTHTOKEN_CAPACITY },
 																	{ Brander::AttributeTypes::CERT, NODE_CERT_CAPACITY },
-																	{ Brander::AttributeTypes::INITSCRIPT, NODE_INITSCRIPT_CAPACITY },
+																	{ Brander::AttributeTypes::STARTUPSCRIPT, NODE_STARTUPSCRIPT_CAPACITY },
 																	{ Brander::AttributeTypes::COMPILETIME, NODE_COMPILETIME_CAPACITY },
 																};
 

@@ -9,7 +9,7 @@ extern "C"
 }
 #include <QtWidgets>
 
-static int ZigPushTextMessage(lua_State *State)
+static int ZigRenderTextMessage(lua_State *State)
 {
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
 	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
@@ -18,13 +18,13 @@ static int ZigPushTextMessage(lua_State *State)
 	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
 	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(lua_tostring(State, 2), lua_tostring(State, 3));
 	
-	Delegate->PushIncomingMessage(Msg);
+	Delegate->RenderDisplayMessage(Msg);
 	
 	lua_pushboolean(State, true);
 	return 1;
 }
 
-static int ZigPushLinkMessage(lua_State *State)
+static int ZigRenderLinkMessage(lua_State *State)
 {
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
 	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
@@ -33,13 +33,13 @@ static int ZigPushLinkMessage(lua_State *State)
 	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
 	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(lua_tostring(State, 2), lua_tostring(State, 3), Ziggurat::ZigMessage::ZIGMSG_LINK);
 	
-	Delegate->PushIncomingMessage(Msg);
+	Delegate->RenderDisplayMessage(Msg);
 	
 	lua_pushboolean(State, true);
 	return 1;
 }
 
-static int ZigPushImageMessage(lua_State *State)
+static int ZigRenderImageMessage(lua_State *State)
 {
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
 	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
@@ -47,7 +47,7 @@ static int ZigPushImageMessage(lua_State *State)
 	
 	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
 	
-	const VLString TargetNode { lua_tostring(State, 2) };
+	const VLString Node { lua_tostring(State, 2) };
 	
 	size_t ImageSize = 0u;
 	const char *ImageData = lua_tolstring(State, 3, &ImageSize);
@@ -57,9 +57,9 @@ static int ZigPushImageMessage(lua_State *State)
 	
 	memcpy(Image.data(), ImageData, ImageSize);
 	
-	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(TargetNode, std::move(Image));
+	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(Node, std::move(Image));
 	
-	Delegate->PushIncomingMessage(Msg);
+	Delegate->RenderDisplayMessage(Msg);
 	
 	lua_pushboolean(State, true);
 	return 1;
@@ -77,21 +77,6 @@ static int ZigAddNode(lua_State *State)
 	
 	return 0;
 }
-
-static int ZigPopOutgoingMessage(lua_State *State)
-{
-	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
-	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
-	
-	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
-	
-	const VLString &Msg { Delegate->PopOutgoingMessage(lua_tostring(State, 2)) };
-	
-	if (!Msg) return 0;
-	
-	lua_pushstring(State, Msg);
-	return 1;
-}
 	
 extern "C" int InitLibZiggurat(lua_State *State)
 {
@@ -105,11 +90,11 @@ extern "C" int InitLibZiggurat(lua_State *State)
 	
 	AlreadyRunning = true;
 
-	Ziggurat::LuaDelegate *Delegate = Ziggurat::LuaDelegate::Fireup(State);
+	Ziggurat::LuaDelegate *const Delegate = Ziggurat::LuaDelegate::Fireup(State);
 	
 	VLASSERT_ERRMSG(Delegate != nullptr, "Fireup failed, returned null somehow!");
 	
-	lua_newtable(State);
+	lua_getglobal(State, "Ziggurat");
 	
 	lua_pushstring(State, "Delegate");
 	lua_pushlightuserdata(State, Delegate);
@@ -121,23 +106,18 @@ extern "C" int InitLibZiggurat(lua_State *State)
 	
 	lua_settable(State, -3);
 	
-	lua_pushstring(State, "PushTextMessage");
-	lua_pushcfunction(State, ZigPushTextMessage);
+	lua_pushstring(State, "RenderTextMessage");
+	lua_pushcfunction(State, ZigRenderTextMessage);
 	
 	lua_settable(State, -3);
 	
-	lua_pushstring(State, "PushLinkMessage");
-	lua_pushcfunction(State, ZigPushLinkMessage);
+	lua_pushstring(State, "RenderLinkMessage");
+	lua_pushcfunction(State, ZigRenderLinkMessage);
 	
 	lua_settable(State, -3);
 	
-	lua_pushstring(State, "PushImageMessage");
-	lua_pushcfunction(State, ZigPushImageMessage);
-	
-	lua_settable(State, -3);
-	
-	lua_pushstring(State, "PopNextOutgoing");
-	lua_pushcfunction(State, ZigPopOutgoingMessage);
+	lua_pushstring(State, "RenderImageMessage");
+	lua_pushcfunction(State, ZigRenderImageMessage);
 	
 	lua_settable(State, -3);
 
@@ -155,9 +135,7 @@ extern "C" int InitLibZiggurat(lua_State *State)
 
 	lua_settable(State, -3);
 	
-	lua_setglobal(State, "Ziggurat");
-	lua_getglobal(State, "Ziggurat"); //Because we just popped it off the stack.
-	
+	lua_pushboolean(State, true);
 	return 1;
 }
 
@@ -186,31 +164,12 @@ auto Ziggurat::LuaDelegate::Fireup(lua_State *State) -> LuaDelegate*
 	return Delegate;
 }
 
-void Ziggurat::LuaDelegate::PushIncomingMessage(const ZigMessage *const Msg)
+void Ziggurat::LuaDelegate::RenderDisplayMessage(const ZigMessage *const Msg)
 {
-	this->Window->AddIncomingMessage(Msg);
+	this->Window->RenderDisplayMessage(Msg);
 }
 
-VLString Ziggurat::LuaDelegate::PopOutgoingMessage(const VLString &TargetNode)
-{
-	VLThreads::MutexKeeper MessengersKeeper { &this->Window->MessengersLock };
-	
-	if (!this->Window->Messengers.count(TargetNode)) return {};
-	
-	ZigMessengerWidget *const Messenger = this->Window->Messengers.at(TargetNode);
-	
-	VLThreads::MutexKeeper OutKeeper { &Messenger->OutLock };
-	
-	if (Messenger->OutgoingMessageList.empty()) return {};
-	
-	const VLString Msg { Messenger->OutgoingMessageList.front() };
-	
-	Messenger->OutgoingMessageList.pop_front();
-	
-	return Msg;
-}
-	
-void Ziggurat::LuaDelegate::OnMessageToSend(const QString &TargetNode, const QString &Msg)
+void Ziggurat::LuaDelegate::OnMessageToSend(const QString &Node, const QString &Msg)
 {
 	lua_settop(this->LuaState, 0);
 	lua_getglobal(this->LuaState, "Ziggurat");
@@ -222,16 +181,16 @@ void Ziggurat::LuaDelegate::OnMessageToSend(const QString &TargetNode, const QSt
 		return;
 	}
 	
-	lua_pushstring(this->LuaState, "OnIncomingMessage");
+	lua_pushstring(this->LuaState, "OnMessageToSend");
 	lua_gettable(this->LuaState, -2);
 	
 	if (lua_type(this->LuaState, -1) != LUA_TFUNCTION)
 	{
-		VLDEBUG("No function for OnIncomingMessage detected, exiting method.");
+		VLDEBUG("No function for OnMessageToSend detected, exiting method.");
 		return;
 	}
 	
-	lua_pushstring(this->LuaState, qs2vls(TargetNode));
+	lua_pushstring(this->LuaState, qs2vls(Node));
 	lua_pushstring(this->LuaState, qs2vls(Msg));
 	
 	if (lua_pcall(this->LuaState, 2, 0, 0) != LUA_OK)
@@ -248,7 +207,7 @@ void Ziggurat::LuaDelegate::ProcessQtEvents(void) const
 	this->EventLoop->processEvents();
 }
 
-void Ziggurat::LuaDelegate::AddNode(const VLString &TargetNode)
+void Ziggurat::LuaDelegate::AddNode(const VLString &Node)
 {
-	emit this->Window->NodeAdded(+TargetNode);
+	emit this->Window->NodeAdded(+Node);
 }

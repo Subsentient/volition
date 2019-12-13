@@ -37,7 +37,7 @@ namespace Brander
 		COMPILETIME,
 		AUTHTOKEN,
 		CERT,
-		INITSCRIPT,
+		STARTUPSCRIPT,
 		ATTR_MAX
 	};
 	

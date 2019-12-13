@@ -121,7 +121,10 @@ void Main::Begin(const bool JustUpdated)
 		MasterWriteQueue.Push(new Conation::ConationStream(Msg));
 	}
 	
-	VLScopedPtr<VLThreads::Thread*> StartupScriptThread { Script::SpawnInitScript() };
+	if (IdentityModule::GetStartupScript())
+	{
+		Jobs::StartJob(CMDCODE_INVALID, nullptr);
+	}
 	
 	//Do the things.
 	while (1) MasterLoop(SocketDescriptor);

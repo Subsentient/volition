@@ -29,20 +29,20 @@ namespace Ziggurat
 		};
 	private:
 		MessageType MsgType;
-		VLString TargetNode;
+		VLString Node;
 		std::vector<uint8_t> MsgData;
 		
 	public:
-		inline ZigMessage(const VLString &TargetNode, const VLString &String, MessageType MsgType = ZIGMSG_TEXT) : MsgType(MsgType), TargetNode(TargetNode)
+		inline ZigMessage(const VLString &Node, const VLString &String, MessageType MsgType = ZIGMSG_TEXT) : MsgType(MsgType), Node(Node)
 		{
 			this->MsgData.resize(String.Length() + 1);
 			memcpy(this->MsgData.data(), +String, String.Length() + 1); //Copy null terminator.
 		}
 		
-		inline ZigMessage(const VLString &TargetNode, const std::vector<uint8_t> &ImageData) : MsgType(ZIGMSG_IMAGE), TargetNode(TargetNode), MsgData(ImageData) {}
-		inline ZigMessage(const VLString &TargetNode, std::vector<uint8_t> &&ImageData) : MsgType(ZIGMSG_IMAGE), TargetNode(TargetNode), MsgData(ImageData) {}
+		inline ZigMessage(const VLString &Node, const std::vector<uint8_t> &ImageData) : MsgType(ZIGMSG_IMAGE), Node(Node), MsgData(ImageData) {}
+		inline ZigMessage(const VLString &Node, std::vector<uint8_t> &&ImageData) : MsgType(ZIGMSG_IMAGE), Node(Node), MsgData(ImageData) {}
 		
-		inline const VLString &GetTargetNode(void) const { return this->TargetNode; }
+		inline const VLString &GetNode(void) const { return this->Node; }
 		
 		inline QLabel *AsImage(void) const
 		{
@@ -92,20 +92,17 @@ namespace Ziggurat
 	{
 		Q_OBJECT
 	private:
-		VLString TargetNode;
-		std::list<VLScopedPtr<const ZigMessage*> > IncomingMessageList;
-		std::list<VLString> OutgoingMessageList;
-		VLThreads::Mutex InLock, OutLock;
+		VLString Node;
 		
 	public:
-		ZigMessengerWidget(const VLString &TargetNode);
+		ZigMessengerWidget(const VLString &Node);
 		
-		inline const VLString GetTargetNode(void) const { return this->TargetNode; }
+		inline const VLString GetNode(void) const { return this->Node; }
 	public slots:
-		void OnNewIncomingMessage(const ZigMessage *const Item);
+		void OnNewDisplayMessage(const ZigMessage *const Item);
 	signals:
-		void SendClicked(const QString &TargetNode, const QString &Msg);
-		void NewIncomingMessage(const ZigMessage *Msg);
+		void SendClicked(const QString &Node, const QString &Msg);
+		void NewDisplayMessage(const ZigMessage *Msg);
 		
 		/*	LuaDelegate is your friend.
 		* 	You trust LuaDelegate.
@@ -130,16 +127,16 @@ namespace Ziggurat
 		
 		ZigMainWindow(void);
 		
-		inline void AddIncomingMessage(const ZigMessage *const Msg) { emit NewIncomingMessage(Msg); }
+		inline void RenderDisplayMessage(const ZigMessage *const Msg) { emit NewDisplayMessage(Msg); }
 		
 	public slots:
-		void OnNewIncomingMessage(const ZigMessage *const Msg);
-		void OnNodeAdded(const QString &TargetNode);
+		void OnNewDisplayMessage(const ZigMessage *const Msg);
+		void OnNodeAdded(const QString &Node);
 	signals:
 		void ZigDies(void);
-		void NewIncomingMessage(const ZigMessage *Msg);
-		void SendClicked(const QString &TargetNode, const QString &Msg);
-		void NodeAdded(const QString &TargetNode);
+		void NewDisplayMessage(const ZigMessage *Msg);
+		void SendClicked(const QString &Node, const QString &Msg);
+		void NodeAdded(const QString &Node);
 		friend class LuaDelegate;
 	};
 	
@@ -153,18 +150,17 @@ namespace Ziggurat
 		lua_State *LuaState;
 
 	public slots:
-		void OnMessageToSend(const QString &TargetNode, const QString &Msg);
+		void OnMessageToSend(const QString &Node, const QString &Msg);
 	signals:
-		void MessageToSend(const QString &TargetNode, const QString &Msg);
+		void MessageToSend(const QString &Node, const QString &Msg);
 	public:
 		LuaDelegate(ZigMainWindow *Win, VLThreads::Thread *ThreadObj, lua_State *State);
 	public:
 		static LuaDelegate *Fireup(lua_State *State);
 		void ProcessQtEvents(void) const;
 		
-		void PushIncomingMessage(const ZigMessage *const Msg);
-		VLString PopOutgoingMessage(const VLString &TargetNode);
-		void AddNode(const VLString &TargetNode);
+		void RenderDisplayMessage(const ZigMessage *const Msg);
+		void AddNode(const VLString &Node);
 	};
 }
 
