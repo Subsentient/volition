@@ -398,7 +398,7 @@ void NetScheduler::SchedulerStatusObj::NetSendStatusFunc(const int64_t Transferr
 		Sub->ThisPointer->SetValues(0u, 0u, Sub->NumOnQueue, OPERATION_IDLE); //Completed.
 		return;
 	}
-
+	
 	Sub->ThisPointer->RegisterActivity();
 	Sub->ThisPointer->SetValues(Total, Transferred, Sub->NumOnQueue, OPERATION_SEND);
 }

@@ -326,9 +326,9 @@ bool Net::Write(const ClientDescriptor &Descriptor, const void *const Bytes, con
 	{
 		//Force frequent iterations so status functions actually work.
 		const size_t ChunkSize = ToTransfer - TotalTransferred > NET_MAX_CHUNK_SIZE ? NET_MAX_CHUNK_SIZE : ToTransfer - TotalTransferred;
-
-		Transferred = SSL_write(Desc, (const char*)Bytes + TotalTransferred, ChunkSize);
 		
+		Transferred = SSL_write(Desc, (const char*)Bytes + TotalTransferred, ChunkSize);
+	
 		if (Transferred == (uint64_t)-1) /*This is ugly I know, but it's converted implicitly, so shut up.*/
 		{
 			throw Net::Errors::IOError();
@@ -369,6 +369,7 @@ bool Net::Read(const ClientDescriptor &Descriptor, void *const OutStream_, const
 		const size_t ChunkSize = MaxLength - TotalReceived > NET_MAX_CHUNK_SIZE ? NET_MAX_CHUNK_SIZE : MaxLength - TotalReceived;
 		
 		Received = SSL_read(Desc, (char*)OutStream, ChunkSize);
+
 		if (Received > 0)
 		{
 			OutStream += Received;

@@ -991,25 +991,6 @@ bool Conation::ConationStream::VerifyArgTypePattern(const size_t ArgOffset, cons
 	return true;
 }
 
-bool Conation::ConationStream::VerifyArgTypePattern(const size_t ArgOffset, ...) const
-{ ///LISTEN: You must put ARGTYPE_NONE as the last parameter in any call to this function, or you'll get a segfault!
-	va_list VaArgType;
-	std::vector<ArgType> List;
-
-	va_start(VaArgType, ArgOffset);
-
-	ArgType Arg{};
-
-	while ((Arg = (ArgType)va_arg(VaArgType, int)) != ARGTYPE_NONE)
-	{
-		List.push_back(Arg);
-	}
-
-	va_end(VaArgType);
-
-	return this->VerifyArgTypePattern(ArgOffset, List);
-}
-
 bool Conation::ConationStream::VerifyArgTypesStartWith(const std::vector<ArgType> &List) const
 {
 	VLScopedPtr<std::vector<ArgType>*> Ptr { this->GetArgTypes() };
@@ -1053,30 +1034,6 @@ bool Conation::ConationStream::VerifyArgTypes(const std::vector<ArgType> &List) 
 	}
 
 	return true;
-}
-
-
-bool Conation::ConationStream::VerifyArgTypes(const ArgType One, ...) const
-{ ///LISTEN: You must put ARGTYPE_NONE as the last parameter in any call to this function, or you'll get a segfault!
-	va_list VaArgType;
-	std::vector<ArgType> List;
-
-	if (One == ARGTYPE_NONE) return !this->GetStreamArgsSize();
-
-	List.push_back(One);
-
-	va_start(VaArgType, (int)One); //STFU clang...
-
-	ArgType Arg{};
-
-	while ((Arg = (ArgType)va_arg(VaArgType, int)) != ARGTYPE_NONE) //Promoted to int implicitly so deal with that hehe
-	{
-		List.push_back(Arg);
-	}
-
-	va_end(VaArgType);
-
-	return this->VerifyArgTypes(List);
 }
 
 const uint8_t *Conation::ConationStream::GetArgData(void) const

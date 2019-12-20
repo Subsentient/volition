@@ -248,10 +248,8 @@ namespace Conation
 		size_t CountArguments(void) const;
 		
 		bool VerifyArgTypes(const std::vector<ArgType> &List) const;
-		bool VerifyArgTypes(const ArgType One, ...) const;
 		
 		bool VerifyArgTypePattern(const size_t ArgOffset, const std::vector<ArgType> &List) const;
-		bool VerifyArgTypePattern(const size_t ArgOffset, ...) const;
 		
 		bool VerifyArgTypesStartWith(const std::vector<ArgType> &List) const;
 		

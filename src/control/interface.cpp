@@ -67,7 +67,7 @@ bool Interface::Establish(const VLString &Username, const VLString &Password, co
 		return false;
 	}
 
-	if (!Response->VerifyArgTypes(Conation::ARGTYPE_NETCMDSTATUS, Conation::ARGTYPE_NONE))
+	if (!Response->VerifyArgTypes({Conation::ARGTYPE_NETCMDSTATUS}))
 	{
 		delete Response;
 		return false;

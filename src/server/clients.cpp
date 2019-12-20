@@ -173,13 +173,12 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 	Stream->GetCommandIdent(&Flags, &Ident);
 
 	//We determine what kind of client they are by what argument sequence they send us.
-	const bool IsNodeArgSequence = Stream->VerifyArgTypes(Conation::ARGTYPE_INT32, Conation::ARGTYPE_STRING,
+	const bool IsNodeArgSequence = Stream->VerifyArgTypes({Conation::ARGTYPE_INT32, Conation::ARGTYPE_STRING,
 														Conation::ARGTYPE_STRING, Conation::ARGTYPE_STRING,
-														Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE);
+														Conation::ARGTYPE_STRING});
 														
-	const bool IsAdminArgSequence = Stream->VerifyArgTypes(Conation::ARGTYPE_INT32, Conation::ARGTYPE_STRING,
-														Conation::ARGTYPE_STRING,
-														Conation::ARGTYPE_NONE);
+	const bool IsAdminArgSequence = Stream->VerifyArgTypes({Conation::ARGTYPE_INT32, Conation::ARGTYPE_STRING,
+														Conation::ARGTYPE_STRING});
 
 	if ((!IsAdminArgSequence && !IsNodeArgSequence) ||
 		Stream->GetCommandCode() != CMDCODE_B2S_AUTH || (Flags & Conation::IDENT_ISREPORT_BIT) || Ident != 0)

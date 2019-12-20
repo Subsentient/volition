@@ -129,7 +129,7 @@ static void *JOB_FILES_MOVE_ThreadFunc(Jobs::Job *OurJob)
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 	
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_FILEPATH}))
 	{
 		Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 		Response->Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
@@ -162,7 +162,7 @@ static void *JOB_LISTDIRECTORY_ThreadFunc(Jobs::Job *OurJob)
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 	Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILEPATH}))
 	{
 		Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 		Response->Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
@@ -264,11 +264,10 @@ static void *JOB_MOD_LOADSCRIPT_ThreadFunc(Jobs::Job *OurJob)
 	
 	Response.Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 	
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER,
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER,
 								Conation::ARGTYPE_STRING,
 								Conation::ARGTYPE_SCRIPT,
-								Conation::ARGTYPE_BOOL,
-								Conation::ARGTYPE_NONE))
+								Conation::ARGTYPE_BOOL}))
 	{
 		Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
 		Main::PushStreamToWriteQueue(Response);
@@ -313,9 +312,8 @@ static void *JOB_MOD_UNLOADSCRIPT_ThreadFunc(Jobs::Job *OurJob)
 	
 	Response.Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 	
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER,
-								Conation::ARGTYPE_STRING,
-								Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER,
+								Conation::ARGTYPE_STRING}))
 	{
 		Response.Push_NetCmdStatus(false, STATUS_MISUSED);
 		
@@ -356,7 +354,7 @@ static void *JOB_FILES_FETCH_ThreadFunc(Jobs::Job *OurJob)
 	
 	Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 
-	if (!Stream->VerifyArgTypePattern(1, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypePattern(1, {Conation::ARGTYPE_FILEPATH}))
 	{
 		Response->Push_NetCmdStatus({false, STATUS_MISUSED});
 		Main::PushStreamToWriteQueue(Response);
@@ -486,7 +484,7 @@ static void *JOB_FILES_COPY_ThreadFunc(Jobs::Job *OurJob)
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_FILEPATH}))
 	{
 		Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 		Response->Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
@@ -563,7 +561,7 @@ static void *JOB_EXECCMD_ThreadFunc(Jobs::Job *OurJob)
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_STRING}))
 	{
 		Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 		Response->Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
@@ -594,7 +592,7 @@ static void *JOB_GETCWD_ThreadFunc(Jobs::Job *OurJob)
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER}))
 	{
 		Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 		Response->Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
@@ -623,7 +621,7 @@ static void *JOB_GETPROCESSES_ThreadFunc(Jobs::Job *OurJob)
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_BOOL, Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_BOOL}))
 	{
 		Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 		Response->Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
@@ -765,7 +763,7 @@ static void *JOB_CHDIR_ThreadFunc(Jobs::Job *OurJob)
 
 	Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, Stream->GetHeader().CmdIdent);
 
-	if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILEPATH, Conation::ARGTYPE_NONE))
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILEPATH}))
 	{
 		Response->Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
 		Response->Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));

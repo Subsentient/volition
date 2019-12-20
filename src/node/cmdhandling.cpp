@@ -85,7 +85,7 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 		}
 		case CMDCODE_B2C_USEUPDATE:
 		{ //Server's ordering us to self-update.
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_FILE, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_FILE}))
 			{ //corrupted, I guess just ignore it.
 				break;
 			}

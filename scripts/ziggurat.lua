@@ -12,22 +12,23 @@ Ziggurat = { StayAlive = true }
 --Command codes internal to and exclusively used by Ziggurat
 ZIGCMD_PING = 1
 ZIGCMD_GREET = 2
-ZIGCMD_EXIT = 3
+ZIGCMD_UNGREET = 3
 ZIGCMD_MSG = 4
 ZIGCMD_SETNICK = 5
 
-MsgIDCounter = 1 --Separate message IDs for every client's incoming messages.
+MsgIDCounter = 0 --Separate message IDs for every client's incoming messages.
 
 Peers = {} --Full of ZigPeers
 
 ZigPeer = { Message = {} }
 
-function ZigPeer.New(Node)
+function ZigPeer.New(Node, ForeignJobID)
 	local Table =	{
-						LastActivity = 0,
+						LastActivity = os.time(),
 						ID = Node,
 						DisplayName = Node, --Changeable by the user
-						Messages = {}
+						Messages = {},
+						ForeignJobID = ForeignJobID
 					}
 					
 	setmetatable(Table, { __index = ZigPeer })
@@ -71,7 +72,7 @@ end
 
 function ZigPeer:RenderMessage(Msg)
 	if Msg:IsImageMsg() then
-		local Blob = VL.GetHTTP(Msg.Body, 1, nil, nil, true); --Get a blob of binary data back.
+		local Blob = VL.GetHTTP(Msg.Body, 1, nil, nil, true) --Get a blob of binary data back.
 		
 		if not Blob then
 			ZigWarn('Unable to download file at "' .. Msg.Body .. '".')
@@ -81,11 +82,29 @@ function ZigPeer:RenderMessage(Msg)
 	elseif Msg:IsLinkMsg() then
 		Ziggurat:RenderLinkMessage(self.DisplayName, Msg.Body)
 	else
-		Ziggurat:RenderTextMessage(self.DisplayName, Msg.Body)
+		local Color
+		
+		if self == Peers.Us then
+			Color = '#00cd00'
+		else
+			Color = '#0000cd'
+		end
+		
+		Ziggurat:RenderTextMessage(self.DisplayName, '<font color="' .. Color .. '">' .. self.DisplayName .. ':</font> ' .. Msg.Body)
 	end
 end
 
-function Ziggurat:NewEmptyStream(Destination, Subcommand, IsReport)
+function Ziggurat:NewEmptyStream(Destination, Subcommand, IsReport, MsgID)
+	--[[
+		Format:
+		
+		Origin uint64 job IS
+		Destination uint64 job ID
+		ODHeader, origin/destination (node ID, NOT nickname)
+		uint32 Message ID counter, used for the LOCAL node to keep track, not foreign nodes!
+		uint16 Subcommand code, used by just Ziggurat
+	]]
+
 	local Flags = VL.IDENT_ISN2N_BIT
 	
 	if IsReport then
@@ -94,16 +113,27 @@ function Ziggurat:NewEmptyStream(Destination, Subcommand, IsReport)
 	
 	local Msg = VL.ConationStream.New(VL.CMDCODE_N2N_GENERIC, Flags, 0)
 	
-	Msg:Push(VL.ARGTYPE_ODHEADER, VL.GetIdentity())
-	--We don't care about Job IDs here.
-	Msg:Push(VL.ARGTYPE_UINT64, 0)
-	Msg:Push(VL.ARGTYPE_UINT64, 0)
-	
-	Msg:Push(VL.ARGTYPE_UINT32, MsgIDCounter)
+	Msg:Push(VL.ARGTYPE_ODHEADER, VL.GetIdentity(), Destination)
 
-	MsgIDCounter = MsgIDCounter + 1 --Increment counter
+	Msg:Push(VL.ARGTYPE_UINT64, VL.GetJobID()) --Our job ID
 	
-	Msg:Push(VL.ARGTYPE_UINT16, Subcommand)
+	local Peer = Peers[Destination]
+	
+	Msg:Push(VL.ARGTYPE_UINT64, Peer and Peer.ForeignJobID or 0) --Their job ID
+	
+	local CounterID
+	
+	--If we're a report, we reply with the same message ID the other guy sent.
+	if IsReport then
+		CounterID = MsgID
+	else
+		CounterID = MsgIDCounter
+		MsgIDCounter = MsgIDCounter + 1
+	end
+	
+	Msg:Push(VL.ARGTYPE_UINT32, CounterID) --Local message ID, not used by foreign nodes
+
+	Msg:Push(VL.ARGTYPE_UINT16, Subcommand) --Sub-command code used by Ziggurat exclusively
 	
 	return Msg
 end
@@ -135,17 +165,19 @@ function ZigPeer:SendMsg(Body)
 	VL.SendN2N(OutMsg)
 end
 
-
 function ZigDebug(String)
-	io.stdout:write('Ziggurat messenger: DEBUG: ' .. String .. '\n')
+	local Dbg = debug.getinfo(2, 'lf')
+	io.stdout:write('Ziggurat messenger: DEBUG: ' .. Dbg.func .. ':' .. Dbg.currentline .. ': '.. String .. '\n')
 end
 
 function ZigError(String)
-	io.stdout:write('Ziggurat messenger: !!ERROR!!: ' .. String .. '\n')
+	local Dbg = debug.getinfo(2, 'lf')
+	io.stdout:write('Ziggurat messenger: !!ERROR!!: ' .. Dbg.func .. ':' .. Dbg.currentline .. ': '.. String .. '\n')
 end
 
 function ZigWarn(String)
-	io.stdout:write('Ziggurat messenger: ~WARNING~: ' .. String .. '\n')
+	local Dbg = debug.getinfo(2, 'lf')
+	io.stdout:write('Ziggurat messenger: ~WARNING~: ' .. Dbg.func .. ':' .. Dbg.currentline .. ': '.. String .. '\n')
 end
 
 function LoadZigSharedLibrary() --Stripped down, specialized tumor loading code.
@@ -229,6 +261,8 @@ function Ziggurat:OnMessageToSend(Node, MsgBody)
 	end
 	
 	Peer:SendMsg(MsgBody)
+	
+	return true
 end
 
 function InitZiggurat() --Must be executable as both init script and a job.
@@ -258,8 +292,146 @@ function InitZiggurat() --Must be executable as both init script and a job.
 	return true
 end
 
+function Ziggurat:ProcessPing(SetupArgs, Stream)
+	local Peer = Peers[SetupArgs.Origin]
+	
+	if not Peer then
+		ZigWarn('Unknown origin node ' .. SetupArgs.Origin)
+	end
+	
+	Peer:RegisterActivity()
+end
+
+function Ziggurat:ProcessGreeting(SetupArgs, Stream)
+	local _
+	local Peer = ZigPeer.New(SetupArgs.Origin, SetupArgs.OriginJob)
+	
+	_, Peer.DisplayName = Stream:Pop() --The name we actually show.
+	
+	Peers[Peer.ID] = Peer
+	
+	local Response = Ziggurat:NewEmptyStream(SetupArgs.Origin, SetupArgs.Subcommand, true, SetupArgs.MsgID)
+	
+	VL.SendN2N(Response)
+	
+	ZigDebug('Added new node ' .. Peer.ID .. ' with display name "' .. Peer.DisplayName .. '".')
+end
+
+function Ziggurat:ProcessGreetingReport(SetupArgs, Stream)
+	local _
+	local Peer = ZigPeer.New(SetupArgs.Origin, SetupArgs.OriginJob)
+	
+	_, Peer.DisplayName = Stream:Pop()
+	
+	Peers[Peer.ID] = Peer
+	
+	ZigDebug('Our greeting to ' .. SetupArgs.Origin .. ' was accepted, session now open.')
+end
+
+function Ziggurat:ProcessUngreet(SetupArgs, Stream)
+	local _
+	local Peer = Peers[SetupArgs.Origin]
+	
+	if not Peer then
+		ZigWarn('No peer ' .. SetupArgs.Origin .. ' to ungreet!')
+	end
+	
+	Peers[SetupArgs.Origin] = nil
+	
+	ZigDebug('Ungreeted node ' .. SetupArgs.Origin .. ', removed from database')
+end
+
+function Ziggurat:ProcessMsg(SetupArgs, Stream)
+	local Peer = Peers[SetupArgs.Origin]
+	
+	if not Peer then
+		ZigWarn('Received bogus message from non-peer node ' .. SetupArgs.Origin .. ', discarding')
+	end
+	
+	local MsgBody, _
+	
+	_, MsgBody = Stream:Pop()
+	 
+	local Msg = ZigPeer.Message.New(SetupArgs.Origin, SetupArgs.Destination, MsgBody)
+	
+	Peer:AddMesage(Msg)
+	Peer:RenderMessage(Msg)
+	
+	local Response = self:NewEmptyStream(SetupArgs.Origin, SetupArgs.Subcommand, true, SetupArgs.MsgID)
+	
+	VL.SendN2N(Response)
+end
+
+function Ziggurat:ProcessSingleN2N(Stream)
+	if not Stream then
+		ZigWarn 'ProcessSingleN2N called with no argument'
+		return
+	end
+	
+	local StreamHeader = Stream:GetHeader()
+	
+	--See the NewEmptyStream() comment for the formatting.
+	local RequiredArguments = 	{ --Arguments that absolutely every Ziggurat N2N will have
+									VL.ARGTYPE_UINT64,
+									VL.ARGTYPE_UINT64,
+									VL.ARGTYPE_ODHEADER,
+									VL.ARGTYPE_UINT32,
+									VL.ARGTYPE_UINT16
+								}
+	
+	if not Stream:VerifyArgTypesStartWith(table.unpack(RequiredArguments)) then
+		ZigWarn 'Incorrect message format detected in ProcessSingleN2N. Discarding message.'
+		return
+	end
+	
+	local _
+	local SetupArgs = {}
+	
+	_, SetupArgs.OriginJob = Stream:Pop()
+	_, SetupArgs.DestinationJob = Stream:Pop()
+	_, SetupArgs.Origin, SetupArgs.Destination = Stream:Pop()
+	_, SetupArgs.MsgID = Stream:Pop()
+	_, SetupArgs.Subcommand = Stream:Pop()
+		
+	local SubcommandFunctions =	{
+									[ZIGCMD_PING] = self.ProcessPing,
+									[ZIGCMD_GREET] = self.ProcessGreeting,
+									[ZIGCMD_UNGREET] = self.ProcessUngreet,
+									[ZIGCMD_MSG] = self.ProcessMsg,
+								}
+	local AckFunctions = 		{
+									[ZIGCMD_GREET] = self.ProcessGreetingReport,
+									[ZIGCMD_MSG] = self.ProcessMsgReport,
+								}
+								
+	local FuncTable
+	
+	if not (StreamHeader.Flags & VL.IDENT_ISREPORT_BIT) then
+		FuncTable = AckFunctions --It's a report stream
+	else
+		FuncTable = SubcommandFunctions
+	end
+	
+	if not FuncTable[SetupArgs.Subcommand] then
+		ZigError('Unknown subcommand ' .. tostring(SetupArgs.Subcommand) .. 'triggered for stream from node ' .. SetupArgs.Origin)
+	end
+	
+	FuncTable[SetupArgs.Subcommand](SetupArgs, Stream)
+end
+
+function Ziggurat:ProcessN2NQueue()
+	while true do
+		local Stream = VL.RecvN2N()
+		
+		if not Stream then break end
+		
+		self:ProcessSingleN2N(Stream)
+	end
+end
+
 function Ziggurat:MainLoopIter()
-	Ziggurat:ProcessQtEvents()
+	self:ProcessQtEvents()
+	self:ProcessN2NQueue()
 	VL.vl_sleep(20)
 end
 

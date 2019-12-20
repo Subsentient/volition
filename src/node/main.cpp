@@ -58,6 +58,11 @@ Net::PingTracker Main::PingTrack;
 
 static inline bool PingedOut(void)
 {
+	VLDEBUG("PINGOUT CHECK, READ QUEUE : " +
+			VLString::UintToString(ReadQueueStatus.GetSecsSinceActivity()) + "\n" +
+			" WRITE QUEUE : " +
+			VLString::UintToString(WriteQueueStatus.GetSecsSinceActivity()));
+			
 	return !Main::PingTrack.CheckPingout() &&
 			ReadQueueStatus.GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS &&
 			WriteQueueStatus.GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS;
@@ -149,9 +154,15 @@ static void MasterLoop(Net::ClientDescriptor &Descriptor)
 {
 Restart:
 	//Poll for it.
-	if (MasterReadQueue.HasError() || MasterWriteQueue.HasError() || PingedOut())
+	bool ReadError = false, WriteError = false, PingError = false;
+	
+	if ((ReadError = MasterReadQueue.HasError()) || (WriteError = MasterWriteQueue.HasError()) || (PingError = PingedOut()))
 	{
-		VLDEBUG("Server lost connection. Attempting to reconnect.");
+		VLWARN("Server lost connection. Attempting to reconnect. Errors were:\n"
+				"READ:" + VLString::UintToString(ReadError) + "\n" +
+				"WRITE: " + VLString::UintToString(WriteError) + "\n" +
+				"PING: " + VLString::UintToString(PingError));
+
 		MasterReadQueue.StopThread();
 		MasterWriteQueue.StopThread();
 		
@@ -163,6 +174,9 @@ Restart:
 		//Restart network queues.
 		MasterReadQueue.ClearError();
 		MasterWriteQueue.ClearError();
+		
+		MasterReadQueue.SetStatusObj(&ReadQueueStatus);
+		MasterWriteQueue.SetStatusObj(&WriteQueueStatus);
 		
 		MasterReadQueue.Begin(Descriptor);
 		MasterWriteQueue.Begin(Descriptor);

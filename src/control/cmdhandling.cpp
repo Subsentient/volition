@@ -200,15 +200,14 @@ static void ProcessNodeChange(Conation::ConationStream *Stream)
 	assert(Stream->GetCommandCode() == CMDCODE_S2A_NOTIFY_NODECHG);
 	
 	if (Stream->CountArguments() != ArgPieces ||
-		!Stream->VerifyArgTypes( Conation::ARGTYPE_STRING,
+		!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING,
 								Conation::ARGTYPE_STRING,
 								Conation::ARGTYPE_STRING,
 								Conation::ARGTYPE_STRING, 
 								Conation::ARGTYPE_INT64, 
 								Conation::ARGTYPE_STRING, 
 								Conation::ARGTYPE_INT64, 
-								Conation::ARGTYPE_BOOL,
-								Conation::ARGTYPE_NONE))
+								Conation::ARGTYPE_BOOL}))
 	{
 		throw (Conation::ConationStream::Err_CorruptStream());
 	}
@@ -362,7 +361,7 @@ static void AddServerCommandStatusReport(Conation::ConationStream *Stream)
 #endif
 	VLString Msg;
 	
-	if (Stream->VerifyArgTypes(Conation::ARGTYPE_NETCMDSTATUS, Conation::ARGTYPE_NONE))
+	if (Stream->VerifyArgTypes({Conation::ARGTYPE_NETCMDSTATUS}))
 	{
 		NetCmdStatus Status = Stream->Pop_NetCmdStatus();
 		
@@ -491,7 +490,7 @@ static void AddNodeCommandStatusReport(Conation::ConationStream *Stream)
 	VLString Msg;
 	
 	//Simple report.
-	if (Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_NETCMDSTATUS, Conation::ARGTYPE_NONE))
+	if (Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_NETCMDSTATUS}))
 	{
 		const Conation::ConationStream::ODHeader &Hdr = Stream->Pop_ODHeader();
 

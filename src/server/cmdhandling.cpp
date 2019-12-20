@@ -268,7 +268,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				return;
 			}
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_NONE}))
 			{
 				Conation::ConationStream MisusedMsg(CMDCODE_A2S_INDEXDL, Conation::IDENT_ISREPORT_BIT, Ident);
 				MisusedMsg.Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
@@ -290,7 +290,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				Clients::ProcessNodeDisconnect(Client, Clients::NODE_DEAUTH_EVIL);
 				return;
 			}
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING}))
 			{
 				Conation::ConationStream MisusedMsg(CMDCODE_A2S_INFO, Conation::IDENT_ISREPORT_BIT, Ident);
 				MisusedMsg.Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
@@ -323,7 +323,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				break;
 			}
 			
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_STRING}))
 			{
 				Conation::ConationStream Response(CMDCODE_A2S_CHGNODEGROUP, Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
@@ -381,7 +381,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 				break;
 			}
 			
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_FILE, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_FILE}))
 			{
 				Conation::ConationStream Response(CMDCODE_A2S_PROVIDEUPDATE, Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 				
@@ -426,7 +426,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream Response(CMDCODE_B2C_USEUPDATE, Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 			
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILE, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_FILE}))
 			{
 				
 				Response.Push_NetCmdStatus({false, STATUS_MISUSED, "Invalid arguments provided to force update function."});
@@ -481,7 +481,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 		{
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_FILE, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING, Conation::ARGTYPE_FILE}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Incorrect arguments"});
 				Client->SendStream(Response);
@@ -520,7 +520,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 		{
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 			
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, VLString("Incorrect arguments")});
 				Client->SendStream(Response);
@@ -559,7 +559,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 		{
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 			
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_FILE, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING, Conation::ARGTYPE_FILE}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, VLString("Incorrect arguments")});
 				Client->SendStream(Response);
@@ -609,7 +609,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 		{
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Incorrect arguments"});
 				Client->SendStream(Response);
@@ -654,7 +654,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 			
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_NONE}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Takes no arguments"});
 				Client->SendStream(Response);
@@ -695,7 +695,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Takes one string, the key name"});
 				Client->SendStream(Response);
@@ -726,7 +726,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING, Conation::ARGTYPE_STRING}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Takes one string, the key name"});
 				Client->SendStream(Response);
@@ -755,7 +755,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Takes one string, the key name"});
 				Client->SendStream(Response);
@@ -780,7 +780,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Takes a node ID, stored as the destination in an ODHeader, as the only argument"});
 				Client->SendStream(Response);
@@ -820,7 +820,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Takes a platform string as the only argument"});
 				Client->SendStream(Response);
@@ -843,7 +843,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_UINT32, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING, Conation::ARGTYPE_UINT32}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Incorrect arguments."});
 				Client->SendStream(Response);
@@ -881,7 +881,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_BOOL, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING, Conation::ARGTYPE_BOOL}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Incorrect arguments"});
 				Client->SendStream(Response);
@@ -925,7 +925,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_UINT32, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING, Conation::ARGTYPE_UINT32}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Incorrect arguments."});
 				Client->SendStream(Response);
@@ -962,7 +962,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_NONE}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Takes no arguments"});
 				Client->SendStream(Response);
@@ -996,7 +996,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED, "Incorrect arguments"});
 				Client->SendStream(Response);
@@ -1053,7 +1053,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_NONE}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED });
 				Client->SendStream(Response);
@@ -1077,7 +1077,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_NONE}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED });
 				Client->SendStream(Response);
@@ -1098,7 +1098,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_UINT32, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_UINT32}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED });
 				Client->SendStream(Response);
@@ -1119,12 +1119,12 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, //Name
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING, //Name
 										Conation::ARGTYPE_STRING, //Timing format
 										Conation::ARGTYPE_UINT32, //Flags
 										Conation::ARGTYPE_BINSTREAM, //Routine stream
 										Conation::ARGTYPE_STRING, //Target nodes, comma separated list
-										Conation::ARGTYPE_NONE))
+										}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED});
 				Client->SendStream(Response);
@@ -1156,7 +1156,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING, Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED});
 				Client->SendStream(Response);
@@ -1179,7 +1179,7 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 			
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_NONE))
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_NONE}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED});
 				Client->SendStream(Response);
@@ -1207,13 +1207,11 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			Conation::ConationStream *Response = new Conation::ConationStream(Stream->GetCommandCode(), Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly());
 
-			if (!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING,
-										Conation::ARGTYPE_STRING,
-										Conation::ARGTYPE_NONE)
+			if (!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING,
+										Conation::ARGTYPE_STRING})
 										&&
-				!Stream->VerifyArgTypes(Conation::ARGTYPE_STRING,
-										Conation::ARGTYPE_UINT32,
-										Conation::ARGTYPE_NONE))
+				!Stream->VerifyArgTypes({Conation::ARGTYPE_STRING,
+										Conation::ARGTYPE_UINT32}))
 			{
 				Response->Push_NetCmdStatus({false, STATUS_MISUSED});
 				Client->SendStream(Response);

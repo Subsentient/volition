@@ -31,6 +31,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <time.h>
+#include <atomic>
 
 #ifdef WIN32
 #define PATH_DIVIDER '\\'

@@ -77,7 +77,7 @@ Net::ClientDescriptor Interface::Establish(const char *Hostname)
 	VLDEBUG("Server response downloaded.");
 	
 	//Check if the server likes us.
-	if (!ResponseStream->VerifyArgTypes(Conation::ARGTYPE_NETCMDSTATUS, Conation::ARGTYPE_NONE))
+	if (!ResponseStream->VerifyArgTypes({Conation::ARGTYPE_NETCMDSTATUS}))
 	{
 		VLDEBUG("Argument is not ARGTYPE_NETCMDSTATUS or argument missing. Aborting.");
 		Net::Close(Connection);

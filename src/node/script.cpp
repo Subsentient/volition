@@ -105,6 +105,7 @@ static int VLAPI_GetJobID(lua_State *const State);
 ///Lua ConationStream helper functions, the ones that don't go in VLAPIFuncs.
 static void InitConationStreamBindings(lua_State *State);
 static int VerifyCSArgsLua(lua_State *State);
+static int VerifyCSArgsLuaStartWith(lua_State *State);
 static int CountCSArgsLua(lua_State *State);
 static int PopArg_LuaConationStream(lua_State *State);
 static int PushArg_LuaConationStream(lua_State *State);
@@ -2006,7 +2007,7 @@ static int CountCSArgsLua(lua_State *State)
 	return 1;
 }
 
-static int VerifyCSArgsLua(lua_State *State)
+static int VerifyCSArgsLua_Subfunction(lua_State *State, decltype(&Conation::ConationStream::VerifyArgTypes) MemberFunc)
 {
 	size_t ArgCount = lua_gettop(State);
 	
@@ -2042,13 +2043,24 @@ static int VerifyCSArgsLua(lua_State *State)
 	}
 	
 	
-	const bool Result = Stream->VerifyArgTypes(ToCheck);
+	const bool Result = (Stream->*MemberFunc)(ToCheck);
 	
 	lua_settop(State, 0);
 	
 	lua_pushboolean(State, Result);
 	
 	return 1;
+}
+
+
+static int VerifyCSArgsLua(lua_State *State)
+{
+	return VerifyCSArgsLua_Subfunction(State, &Conation::ConationStream::VerifyArgTypes);
+}
+
+static int VerifyCSArgsLuaStartWith(lua_State *State)
+{
+	return VerifyCSArgsLua_Subfunction(State, &Conation::ConationStream::VerifyArgTypesStartWith);
 }
 
 static void InitConationStreamBindings(lua_State *State)
@@ -2088,6 +2100,13 @@ static void InitConationStreamBindings(lua_State *State)
 	lua_pushcfunction(State, VerifyCSArgsLua);
 	
 	lua_settable(State, -3);
+	
+	//More verification of argument types.
+	lua_pushstring(State, "VerifyArgTypesStartWith");
+	lua_pushcfunction(State, VerifyCSArgsLuaStartWith);
+	
+	lua_settable(State, -3);
+	
 	
 	//Argument counting.
 	lua_pushstring(State, "CountArguments");
