@@ -995,8 +995,11 @@ bool Conation::ConationStream::VerifyArgTypesStartWith(const std::vector<ArgType
 {
 	VLScopedPtr<std::vector<ArgType>*> Ptr { this->GetArgTypes() };
 
-	if (!Ptr && List[0] != ARGTYPE_NONE) return false;
-
+	if (!Ptr || Ptr->empty())
+	{
+		return (List.empty() || List[0] == ARGTYPE_NONE);
+	}
+	
 	if (Ptr->size() < List.size())
 	{
 		return false;
@@ -1017,7 +1020,10 @@ bool Conation::ConationStream::VerifyArgTypes(const std::vector<ArgType> &List) 
 {
 	VLScopedPtr<std::vector<ArgType>*> Ptr { this->GetArgTypes() };
 
-	if (!Ptr && List[0] != ARGTYPE_NONE) return false;
+	if (!Ptr || Ptr->empty())
+	{
+		return (List.empty() || List[0] == ARGTYPE_NONE);
+	}
 
 	if (Ptr->size() != List.size())
 	{
