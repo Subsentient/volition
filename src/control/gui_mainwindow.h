@@ -104,7 +104,7 @@ namespace GuiMainWindow
 		static gboolean OnNodeTreeContextKey(GtkWidget *TreeView, MainWindowScreen *ThisPointer);
 		static void OnTickerMsgDoubleclick(GtkTreeView *TreeView, GtkTreePath *Path, void *, void *UserData);
 		static gboolean WindowResizeCallback(GtkWidget *Window, void *, MainWindowScreen *ThisPointer);
-		static gboolean TickerAutoscrollCallback(GtkWidget *ScrolledWindow, void *, MainWindowScreen *ThisPointer);
+		static gboolean TickerAutoscrollCallback(MainWindowScreen *ThisPointer, void*, void*);
 		static void MsgDetailsDialogCallback(const uint64_t *KeyAddr);
 		virtual void Show(void); //Hideous hack.
 		void Set_Clickable(const bool Value);

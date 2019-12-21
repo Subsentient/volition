@@ -75,10 +75,9 @@ namespace GuiDialogs
 		typedef void (*OnCompleteFunc)(const void *UserData, const VLString &TextEntryResult);
 
 	private:
-		GtkWidget *Table;
+		GtkWidget *Grid;
 		GtkWidget *Label;
 		GtkWidget *TextEntry;
-		GtkWidget *ButtonAlign;
 		GtkWidget *Button;
 		GtkAccelGroup *AccelGroup;
 		OnCompleteFunc Func;
@@ -100,12 +99,11 @@ namespace GuiDialogs
 		typedef void (*OnCompleteFunc)(const void *UserData, const char *Text);
 
 	private:
-		GtkWidget *Table;
+		GtkWidget *Grid;
 		GtkWidget *Label;
 		GtkWidget *Separator;
 		GtkWidget *ScrolledWindow;
 		GtkWidget *TextView;
-		GtkWidget *ButtonAlign;
 		GtkWidget *Button;
 		OnCompleteFunc Func;
 		const void *UserData;
@@ -131,10 +129,8 @@ namespace GuiDialogs
 		GtkWidget *Label;
 		GtkWidget *Separator1;
 		GtkWidget *BrowseButton;
-		GtkWidget *BrowseButtonAlign;
 		GtkWidget *CounterLabel;
 		GtkWidget *Separator2;
-		GtkWidget *AcceptButtonAlign;
 		GtkWidget *AcceptButton;
 
 		std::vector<VLString> CurrentPaths; //Where we store what's currently selected in the file chooser.
@@ -165,7 +161,6 @@ namespace GuiDialogs
 		GtkWidget *ScrolledWindow;
 		GtkWidget *TextView;
 		GtkWidget *Separator2;
-		GtkWidget *ButtonAlign;
 		GtkWidget *CloseButton;
 		GtkAccelGroup *AccelGroup;
 		
@@ -193,7 +188,6 @@ namespace GuiDialogs
 		GtkWidget *VBox;
 		GtkWidget *Label;
 		GtkWidget *Icon;
-		GtkWidget *ButtonAlign;
 		GtkWidget *Button;
 
 		AboutDialog &operator=(const AboutDialog &);
@@ -208,7 +202,7 @@ namespace GuiDialogs
 	public:
 		typedef void (*OnCompleteFunc)(const void *UserData, const bool Value);
 	private:
-		GtkWidget *Table;
+		GtkWidget *Grid;
 		GtkWidget *Label;
 		GtkWidget *Separator;
 		GtkWidget *YesButton;
@@ -235,10 +229,9 @@ namespace GuiDialogs
 		typedef void (*OnCompleteFunc)(const void *UserData);
 		
 	private:
-		GtkWidget *Table;
+		GtkWidget *Grid;
 		GtkWidget *Label;
 		GtkWidget *StatusIcon;
-		GtkWidget *ButtonAlign;
 		GtkWidget *Button;
 		GtkAccelGroup *AccelGroup;
 		
@@ -261,7 +254,6 @@ namespace GuiDialogs
 		GtkWidget *VBox;
 		GtkWidget *Label;
 		GtkWidget *ProgressBar;
-		GtkWidget *ButtonAlign;
 		GtkWidget *DismissButton;
 		
 		bool UserCanDismiss;
@@ -307,7 +299,6 @@ namespace GuiDialogs
 		GtkWidget *AcceptButton;
 		GtkWidget *ArgAddMenu;
 		GtkWidget *ArgAddButton;
-		GtkWidget *StaticButtonsAlign;
 		GtkWidget *StaticButtonsHBox;
 		GtkWidget *CmdCodeChoiceButton;
 		GtkWidget *CmdCodeChoiceMenu;
@@ -369,7 +360,6 @@ namespace GuiDialogs
 		GtkWidget *Label;
 		GtkWidget *Separator;
 		GtkWidget *AcceptButton;
-		GtkWidget *AcceptButtonAlign;
 		
 		std::vector<std::pair<GtkWidget*, uint64_t> > ToggleButtons;
 

@@ -73,14 +73,13 @@ namespace GuiBase
 	{
 	private:
 		GtkWidget *Icon;
-		GtkWidget *Table;
+		GtkWidget *Grid;
 		GtkAccelGroup *AccelGroup;
 		GtkWidget *GreetingLabel;
 		GtkWidget *UsernameLabel;
 		GtkWidget *PasswordLabel;
 		GtkWidget *UsernameBox;
 		GtkWidget *PasswordBox;
-		GtkWidget *ButtonAlign;
 		GtkWidget *ConnectButton;
 
 		//Prevent operations we shouldn't be doing.

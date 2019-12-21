@@ -45,24 +45,23 @@ static GuiDialogs::AboutDialog *StaticAboutDialog;
 
 GuiMainWindow::MainWindowScreen::MainWindowScreen(void)
 	: ScreenObj(gtk_window_new(GTK_WINDOW_TOPLEVEL), ScreenType::MAINWINDOW),
-	VBox(gtk_vbox_new(false, 4)),
+	VBox(gtk_box_new(GTK_ORIENTATION_VERTICAL, 4)),
 	NodeScrolledWindow(gtk_scrolled_window_new(nullptr, nullptr)),
 	TickerScrolledWindow(gtk_scrolled_window_new(nullptr, nullptr)),
-	VerticalPane(gtk_vpaned_new()),
+	VerticalPane(gtk_paned_new(GTK_ORIENTATION_VERTICAL)),
 	AccelGroup(gtk_accel_group_new()),
-	MenuBarAlign(gtk_alignment_new(0.0, 0.0, 1.0, 0.01)),
 	MenuBar(gtk_menu_bar_new()),
 	FileTag(gtk_menu_item_new_with_mnemonic("_File")),
 	FileMenu(gtk_menu_new()),
-	QuitItem(gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT, AccelGroup)),
-	RefreshItem(gtk_image_menu_item_new_from_stock(GTK_STOCK_REFRESH, AccelGroup)),
+	QuitItem(gtk_menu_item_new_with_mnemonic("_Quit")),
+	RefreshItem(gtk_menu_item_new_with_mnemonic("_Refresh")),
 	OrdersTag(gtk_menu_item_new_with_mnemonic("_Orders")),
 	OrdersMenu(gtk_menu_new()),
 	ServerTag(gtk_menu_item_new_with_mnemonic("_Server")),
 	ServerMenu(gtk_menu_new()),
 	HelpTag(gtk_menu_item_new_with_mnemonic("_Help")),
 	HelpMenu(gtk_menu_new()),
-	AboutItem(gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT, AccelGroup)),
+	AboutItem(gtk_menu_item_new_with_mnemonic("_About")),
 	NodeTreeView(gtk_tree_view_new()),
 	NodeTreeStore(gtk_tree_store_new(MAINWINDOW_NODETREE_COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 								G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING)),
@@ -87,8 +86,6 @@ GuiMainWindow::MainWindowScreen::MainWindowScreen(void)
 	gtk_window_set_icon((GtkWindow*)this->Window, GuiBase::LoadImageToPixbuf(WindowIcon.data(), WindowIcon.size()));
 	
 	//Setup menus
-	gtk_container_add((GtkContainer*)this->MenuBarAlign, this->MenuBar);
-
 	gtk_menu_item_set_submenu((GtkMenuItem*)FileTag, this->FileMenu);
 	gtk_menu_item_set_submenu((GtkMenuItem*)OrdersTag, this->OrdersMenu);
 	gtk_menu_item_set_submenu((GtkMenuItem*)ServerTag, this->ServerMenu);
@@ -118,7 +115,7 @@ GuiMainWindow::MainWindowScreen::MainWindowScreen(void)
 	gtk_window_add_accel_group((GtkWindow*)this->Window, this->AccelGroup);
 
 	//Pack into the vbox
-	gtk_box_pack_start((GtkBox*)this->VBox, this->MenuBarAlign, false, false, 0);
+	gtk_box_pack_start((GtkBox*)this->VBox, this->MenuBar, false, false, 0);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->VerticalPane, true, true, 2);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->StatusBar, false, false, 0);
 
@@ -133,6 +130,9 @@ GuiMainWindow::MainWindowScreen::MainWindowScreen(void)
 	//Icon panel
 	gtk_container_add((GtkContainer*)this->NodeScrolledWindow, this->NodeTreeView);
 	gtk_container_add((GtkContainer*)this->TickerScrolledWindow, this->TickerTreeView);
+	
+	gtk_widget_set_vexpand(this->TickerTreeView, true);
+	gtk_widget_set_vexpand(this->TickerScrolledWindow, true);
 	
 	//Signals
 	g_signal_connect((GObject*)this->Window, "destroy", (GCallback)GuiBase::ShutdownCallback, nullptr);
@@ -537,7 +537,8 @@ void GuiMainWindow::MainWindowScreen::InitTickerTreeView(void)
 	gtk_tree_store_clear((GtkTreeStore*)this->TickerTreeStore);
 	gtk_tree_view_set_model((GtkTreeView*)this->TickerTreeView, (GtkTreeModel*)this->TickerTreeStore);
 
-	g_signal_connect((GObject*)this->TickerScrolledWindow, "size-allocate", (GCallback)GuiMainWindow::MainWindowScreen::TickerAutoscrollCallback, this);
+	g_signal_connect_swapped((GObject*)this->TickerTreeView, "size-allocate", (GCallback)GuiMainWindow::MainWindowScreen::TickerAutoscrollCallback, this);
+	//g_signal_connect_swapped((GObject*)this->TickerTreeStore, "row-changed", (GCallback)GuiMainWindow::MainWindowScreen::TickerAutoscrollCallback, this);
 	g_signal_connect((GObject*)this->TickerTreeView, "row-activated", (GCallback)GuiMainWindow::MainWindowScreen::OnTickerMsgDoubleclick, nullptr);
 
 }
@@ -601,7 +602,7 @@ gboolean GuiMainWindow::MainWindowScreen::OnNodeTreeRightClick(GtkWidget *TreeVi
 	//Not the right kind
 	if (!Event || Event->type != GDK_BUTTON_PRESS || Event->button != 3) return false;
 
-	gtk_menu_popup((GtkMenu*)ThisPointer->OrdersMenu, nullptr, nullptr, nullptr, nullptr, Event->button, gdk_event_get_time((GdkEvent*)Event));
+	gtk_menu_popup_at_pointer((GtkMenu*)ThisPointer->OrdersMenu, (GdkEvent*)Event);
 
 	std::vector<VLString> *SelectedList = ThisPointer->GetSelectedNodes();
 	
@@ -615,7 +616,7 @@ gboolean GuiMainWindow::MainWindowScreen::OnNodeTreeRightClick(GtkWidget *TreeVi
 gboolean GuiMainWindow::MainWindowScreen::OnNodeTreeContextKey(GtkWidget *TreeView, MainWindowScreen *ThisPointer)
 {
 
-	gtk_menu_popup((GtkMenu*)ThisPointer->OrdersMenu, nullptr, nullptr, nullptr, nullptr, 3, gdk_event_get_time(nullptr));
+	gtk_menu_popup_at_pointer((GtkMenu*)ThisPointer->OrdersMenu, nullptr);
 
 	return true;
 }
@@ -652,11 +653,12 @@ gboolean GuiMainWindow::MainWindowScreen::WindowResizeCallback(GtkWidget *Window
 	return false;
 }
 
-gboolean GuiMainWindow::MainWindowScreen::TickerAutoscrollCallback(GtkWidget *ScrolledWindow, void *, MainWindowScreen *ThisPointer)
+gboolean GuiMainWindow::MainWindowScreen::TickerAutoscrollCallback(MainWindowScreen *ThisPointer, void*, void*)
 {
-	GtkAdjustment *Coords = gtk_scrolled_window_get_vadjustment((GtkScrolledWindow*)ScrolledWindow);
+	VLDEBUG("Entering autoscroll callback");
+	GtkAdjustment *Coords = gtk_scrolled_window_get_vadjustment((GtkScrolledWindow*)ThisPointer->TickerScrolledWindow);
 
-	gtk_adjustment_set_value(Coords, gtk_adjustment_get_upper(Coords) - gtk_adjustment_get_page_size(Coords));
+	gtk_adjustment_set_value(Coords, gtk_adjustment_get_upper(Coords));
 
 	return false;
 }

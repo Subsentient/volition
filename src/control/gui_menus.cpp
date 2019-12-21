@@ -324,10 +324,10 @@ bool GuiMenus::PopulateMWNodeTreeMenus(GtkWidget *Menu)
 		if (*NodeMenuSpecs[Inc].Name == '~')
 		{
 			gtk_widget_set_sensitive((GtkWidget*)NewItem, false);
-			GtkWidget *SubAlign = gtk_alignment_new(0.4, 0.5, 0.1, 0.1);
-			
-			gtk_container_add((GtkContainer*)SubAlign, gtk_label_new(NodeMenuSpecs[Inc].Name + 1));
-			gtk_container_add((GtkContainer*)NewItem, SubAlign);
+			GtkWidget *const Label = gtk_label_new(NodeMenuSpecs[Inc].Name + 1);
+			gtk_widget_set_halign(Label, GTK_ALIGN_CENTER);
+			gtk_widget_set_valign(Label, GTK_ALIGN_CENTER);
+			gtk_container_add((GtkContainer*)NewItem, Label);
 		}
 		else
 		{
@@ -369,10 +369,13 @@ bool GuiMenus::PopulateMWServerMenus(GtkWidget *Menu)
 		if (*ServerMenuSpecs[Inc].Name == '~')
 		{
 			gtk_widget_set_sensitive((GtkWidget*)NewItem, false);
-			GtkWidget *SubAlign = gtk_alignment_new(0.4, 0.5, 0.1, 0.1);
+
+			GtkWidget *const Label = gtk_label_new(ServerMenuSpecs[Inc].Name + 1);
+
+			gtk_widget_set_halign(Label, GTK_ALIGN_CENTER);
+			gtk_widget_set_valign(Label, GTK_ALIGN_CENTER);
 			
-			gtk_container_add((GtkContainer*)SubAlign, gtk_label_new(ServerMenuSpecs[Inc].Name + 1));
-			gtk_container_add((GtkContainer*)NewItem, SubAlign);
+			gtk_container_add((GtkContainer*)NewItem, Label);
 		}
 		else
 		{

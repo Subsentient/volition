@@ -108,7 +108,7 @@ GuiBase::LoadingScreen::LoadingScreen(const VLString &Message)
 		: ScreenObj(gtk_window_new(GTK_WINDOW_TOPLEVEL), ScreenType::LOADING),
 		Icon(gtk_image_new_from_pixbuf(LoadImageToPixbuf(GuiIcons::LookupIcon("ctlsplash").data(), GuiIcons::LookupIcon("ctlsplash").size()))),
 		ProgressBar(gtk_progress_bar_new()),
-		VBox(gtk_vbox_new(FALSE, 5))
+		VBox(gtk_box_new(GTK_ORIENTATION_VERTICAL, 5))
 {
 	gtk_window_set_resizable((GtkWindow*)this->Window, false);
 	gtk_window_set_decorated((GtkWindow*)this->Window, false);
@@ -160,14 +160,13 @@ void GuiBase::LoadingScreen::SetProgressBarPulseFraction(const double Value)
 GuiBase::LoginScreen::LoginScreen(void)
 		: ScreenObj(gtk_window_new(GTK_WINDOW_TOPLEVEL), ScreenType::LOGIN),
 		Icon(gtk_image_new_from_pixbuf(LoadImageToPixbuf(GuiIcons::LookupIcon("ctlsplash").data(), GuiIcons::LookupIcon("ctlsplash").size()))),
-		Table(gtk_table_new(5, 2, false)),
+		Grid(gtk_grid_new()),
 		AccelGroup(gtk_accel_group_new()),
 		GreetingLabel(gtk_label_new("Volition Control Login")),
 		UsernameLabel(gtk_label_new("Username")),
 		PasswordLabel(gtk_label_new("Password")),
 		UsernameBox(gtk_entry_new()),
 		PasswordBox(gtk_entry_new()),
-		ButtonAlign(gtk_alignment_new(1.0, 0.5, 0.01, 0.01)),
 		ConnectButton(gtk_button_new_with_mnemonic("_Connect"))
 {
 	gtk_window_set_resizable((GtkWindow*)this->Window, FALSE);
@@ -181,26 +180,27 @@ GuiBase::LoginScreen::LoginScreen(void)
 
 	gtk_window_set_icon((GtkWindow*)this->Window, LoadImageToPixbuf(GuiIcons::LookupIcon("ctlwmicon").data(), GuiIcons::LookupIcon("ctlwmicon").size()));
 
-	gtk_container_add((GtkContainer*)this->Window, Table);
+	gtk_container_add((GtkContainer*)this->Window, Grid);
 
 	//Icon and greeting
-	gtk_table_attach((GtkTable*)this->Table, this->Icon, 0, 2, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->GreetingLabel, 0, 2, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Icon, 0, 0, 2, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->GreetingLabel, 0, 1, 2, 1);
 
 	//username label and box
-	gtk_table_attach((GtkTable*)this->Table, this->UsernameLabel, 0, 1, 2, 3, GtkAttachOptions(GTK_SHRINK | GTK_EXPAND), GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->UsernameBox, 1, 2, 2, 3, GTK_SHRINK, GTK_FILL, 0, 0);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->UsernameLabel, 0, 2, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->UsernameBox, 1, 2, 1, 1);
 	
 	//password label and box
-	gtk_table_attach((GtkTable*)this->Table, this->PasswordLabel, 0, 1, 3, 4, GtkAttachOptions(GTK_SHRINK | GTK_EXPAND), GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->PasswordBox, 1, 2, 3, 4, GTK_SHRINK, GTK_FILL, 0, 0);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->PasswordLabel, 0, 3, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->PasswordBox, 1, 3, 1, 1);
 
 	gtk_entry_set_visibility((GtkEntry*)this->PasswordBox, false);
 
-	gtk_container_add((GtkContainer*)this->ButtonAlign, this->ConnectButton);
-	
 	//Connect button
-	gtk_table_attach((GtkTable*)this->Table, this->ButtonAlign, 1, 2, 4, 5, GtkAttachOptions(GTK_EXPAND | GTK_FILL), GtkAttachOptions(GTK_SHRINK | GTK_EXPAND), 0, 0);
+	
+	gtk_widget_set_halign((GtkWidget*)this->ConnectButton, GTK_ALIGN_END);
+	
+	gtk_grid_attach((GtkGrid*)this->Grid, this->ConnectButton, 1, 4, 2, 1);
 	gtk_widget_add_accelerator(this->ConnectButton, "clicked", this->AccelGroup, GDK_KEY_Return, GdkModifierType(0), GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(this->ConnectButton, "clicked", this->AccelGroup, GDK_KEY_KP_Enter, GdkModifierType(0), GTK_ACCEL_VISIBLE);
 
@@ -294,13 +294,13 @@ VLString GuiBase::MapStatusToIcon(const NetCmdStatus &Status)
 	switch (Status.Status)
 	{
 		case STATUS_WARN:
-			return GTK_STOCK_DIALOG_WARNING;
+			return "dialog-warning";
 		case STATUS_OK:
-			return GTK_STOCK_DIALOG_INFO;
+			return "dialog-information";
 		case STATUS_ACCESSDENIED:
-			return GTK_STOCK_DIALOG_AUTHENTICATION;
+			return "dialog-password";
 		default:
-			return GTK_STOCK_DIALOG_ERROR;
+			return "dialog-error";
 	}
 }
 

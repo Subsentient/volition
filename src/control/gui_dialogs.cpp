@@ -60,22 +60,21 @@ void GuiDialogs::DialogBase::Show(void)
 
 GuiDialogs::SimpleTextDialog::SimpleTextDialog(const VLString &Title, const VLString &Prompt, OnCompleteFunc InFunc, const void *PassAlongWith)
 	:	DialogBase(DIALOG_SIMPLETEXT, Title),
-		Table(gtk_table_new(2, 3, false)),
+		Grid(gtk_grid_new()),
 		Label(gtk_label_new(Prompt)),
 		TextEntry(gtk_entry_new()),
-		ButtonAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
 		Button(gtk_button_new_with_mnemonic("_Accept")),
 		AccelGroup(gtk_accel_group_new()),
 		Func(InFunc),
 		UserData(PassAlongWith)
 {
-	gtk_container_add((GtkContainer*)this->Window, this->Table);
+	gtk_container_add((GtkContainer*)this->Window, this->Grid);
 
-	gtk_table_attach((GtkTable*)this->Table, this->Label, 0, 2, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->TextEntry, 0, 2, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->ButtonAlign, 1, 2, 2, 3, GTK_FILL, GTK_FILL, 0, 0);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Label, 0, 0, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->TextEntry, 0, 1, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Button, 0, 2, 1, 1);
 
-	gtk_container_add((GtkContainer*)this->ButtonAlign, this->Button);
+	gtk_widget_set_halign(this->Button, GTK_ALIGN_END);
 
 	g_signal_connect_swapped((GObject*)this->Button, "clicked", (GCallback)SimpleTextDialog::Callback, this);
 
@@ -102,28 +101,30 @@ void *GuiDialogs::SimpleTextDialog::Callback(SimpleTextDialog *ThisPointer)
 
 GuiDialogs::LargeTextDialog::LargeTextDialog(const VLString &Title, const VLString &Prompt, OnCompleteFunc InFunc, const void *PassAlongWith)
 	:	DialogBase(DIALOG_LARGETEXT, Title),
-		Table(gtk_table_new(2, 4, false)),
+		Grid(gtk_grid_new()),
 		Label(gtk_label_new(Prompt)),
-		Separator(gtk_hseparator_new()),
+		Separator(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)),
 		ScrolledWindow(gtk_scrolled_window_new(nullptr, nullptr)),
 		TextView(gtk_text_view_new()),
-		ButtonAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
 		Button(gtk_button_new_with_mnemonic("_Accept")),
 		Func(InFunc),
 		UserData(PassAlongWith)
 {
 	gtk_widget_set_size_request(this->Window, 500, 400);
-	gtk_container_add((GtkContainer*)this->Window, this->Table);
+	gtk_container_add((GtkContainer*)this->Window, this->Grid);
 	gtk_container_add((GtkContainer*)this->ScrolledWindow, this->TextView);
 
 	gtk_scrolled_window_set_policy((GtkScrolledWindow*)this->ScrolledWindow, GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	
-	gtk_table_attach((GtkTable*)this->Table, this->Label, 0, 2, 0, 1, GtkAttachOptions(GTK_FILL | GTK_EXPAND), GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->Separator, 0, 2, 1, 2, GtkAttachOptions(GTK_FILL | GTK_EXPAND), GTK_FILL, 0, 10);
-	gtk_table_attach((GtkTable*)this->Table, this->ScrolledWindow, 0, 2, 2, 3, GtkAttachOptions(GTK_FILL | GTK_EXPAND), GtkAttachOptions(GTK_FILL | GTK_EXPAND), 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->ButtonAlign, 1, 2, 3, 4, GtkAttachOptions(GTK_FILL | GTK_EXPAND), GTK_FILL, 0, 0);
 
-	gtk_container_add((GtkContainer*)this->ButtonAlign, this->Button);
+	gtk_widget_set_hexpand(this->ScrolledWindow, true);
+	gtk_widget_set_vexpand(this->ScrolledWindow, true);
+	
+	gtk_widget_set_halign(this->Button, GTK_ALIGN_END);
+	
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Label, 			0, 0, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Separator,		0, 1, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->ScrolledWindow, 0, 2, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Button, 		0, 3, 1, 1);
 
 	g_signal_connect_swapped((GObject*)this->Button, "clicked", (GCallback)LargeTextDialog::Callback, this);
 }
@@ -155,14 +156,12 @@ GuiDialogs::FileSelectionDialog::FileSelectionDialog(const VLString &Title, cons
 													const bool InAllowMultiple, OnCompleteFunc InFunc,
 													const void *InUserData)
 	: 	DialogBase(DIALOG_FILECHOOSER, Title),
-		VBox(gtk_vbox_new(false, 8)),
+		VBox(gtk_box_new(GTK_ORIENTATION_VERTICAL, 8)),
 		Label(gtk_label_new(Prompt)),
-		Separator1(gtk_hseparator_new()),
+		Separator1(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)),
 		BrowseButton(gtk_button_new_with_mnemonic("_Browse")),
-		BrowseButtonAlign(gtk_alignment_new(0.5, 0.5, 0.1, 0.1)),
 		CounterLabel(gtk_label_new("No files selected")),
-		Separator2(gtk_hseparator_new()),
-		AcceptButtonAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
+		Separator2(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)),
 		AcceptButton(gtk_button_new_with_mnemonic("_Accept")),
 		Func(InFunc),
 		UserData(InUserData),
@@ -172,16 +171,16 @@ GuiDialogs::FileSelectionDialog::FileSelectionDialog(const VLString &Title, cons
 	
 	gtk_container_add((GtkContainer*)this->Window, this->VBox);
 	
-	gtk_container_add((GtkContainer*)this->AcceptButtonAlign, this->AcceptButton);
-	gtk_container_add((GtkContainer*)this->BrowseButtonAlign, this->BrowseButton);
+	gtk_widget_set_halign(this->AcceptButton, GTK_ALIGN_END);
+	gtk_widget_set_halign(this->BrowseButton, GTK_ALIGN_CENTER);
 
 
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Label, false, false, 8);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Separator1, false, false, 0);
-	gtk_box_pack_start((GtkBox*)this->VBox, this->BrowseButtonAlign, false, false, 0);
+	gtk_box_pack_start((GtkBox*)this->VBox, this->BrowseButton, false, false, 0);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->CounterLabel, false, false, 0);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Separator2, false, false, 0);
-	gtk_box_pack_start((GtkBox*)this->VBox, this->AcceptButtonAlign, false, false, 0);
+	gtk_box_pack_start((GtkBox*)this->VBox, this->AcceptButton, false, false, 0);
 	
 	g_signal_connect_swapped((GObject*)this->BrowseButton, "clicked", (GCallback)FileSelectionDialog::BrowsePressedCallback, this);
 	
@@ -195,7 +194,7 @@ GuiDialogs::FileSelectionDialog::FileSelectionDialog(const VLString &Title, cons
 void *GuiDialogs::FileSelectionDialog::BrowsePressedCallback(FileSelectionDialog *ThisPointer)
 {
 	GtkWidget *Chooser = gtk_file_chooser_dialog_new("Select file(s)", (GtkWindow*)ThisPointer->Window,
-								GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_OPEN,
+								GTK_FILE_CHOOSER_ACTION_OPEN, "document-open",
 								GTK_RESPONSE_ACCEPT, nullptr);
 
 	gtk_file_chooser_set_select_multiple((GtkFileChooser*)Chooser, ThisPointer->AllowMultiple);
@@ -249,14 +248,13 @@ GuiDialogs::TextDisplayDialog::TextDisplayDialog(const VLString &WindowTitle,
 												TextDisplayDialog::OnCompleteFunc CallbackFunc,
 												const void *InUserData)
 											: DialogBase(DIALOG_TEXTDISPLAY, WindowTitle),
-											VBox(gtk_vbox_new(false, 8)),
+											VBox(gtk_box_new(GTK_ORIENTATION_VERTICAL, 8)),
 											Label(gtk_label_new(LabelText)),
-											Separator1(gtk_hseparator_new()),
+											Separator1(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)),
 											ScrolledWindow(gtk_scrolled_window_new(nullptr, nullptr)),
 											TextView(gtk_text_view_new()),
-											Separator2(gtk_hseparator_new()),
-											ButtonAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
-											CloseButton(gtk_button_new_with_mnemonic("_Close")),
+											Separator2(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)),
+											CloseButton(gtk_button_new_with_mnemonic("_Dismiss")),
 											AccelGroup(gtk_accel_group_new()),
 											Data(InData),
 											Func(CallbackFunc),
@@ -267,16 +265,17 @@ GuiDialogs::TextDisplayDialog::TextDisplayDialog(const VLString &WindowTitle,
 	
 	gtk_container_add((GtkContainer*)this->Window, this->VBox);
 
-	gtk_container_add((GtkContainer*)this->ButtonAlign, this->CloseButton);
 	gtk_container_add((GtkContainer*)this->ScrolledWindow, this->TextView);
 
 	gtk_scrolled_window_set_policy((GtkScrolledWindow*)this->ScrolledWindow, GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
+	gtk_widget_set_halign(this->CloseButton, GTK_ALIGN_END);
+	
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Label, false, false, 8);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Separator1, false, false, 0);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->ScrolledWindow, true, true, 0);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Separator2, false, false, 0);
-	gtk_box_pack_start((GtkBox*)this->VBox, this->ButtonAlign, false, false, 0);
+	gtk_box_pack_start((GtkBox*)this->VBox, this->CloseButton, false, false, 0);
 
 	g_signal_connect_swapped((GObject*)this->CloseButton, "clicked", (GCallback)TextDisplayDialog::ClosePressedCallback, this);
 
@@ -309,21 +308,21 @@ void *GuiDialogs::TextDisplayDialog::ClosePressedCallback(TextDisplayDialog *Thi
 
 GuiDialogs::YesNoDialog::YesNoDialog(const VLString &WindowTitle, const VLString &Prompt, const bool UseBooleanNames, YesNoDialog::OnCompleteFunc CallbackFunc, const void *InUserData)
 	: DialogBase(DIALOG_YESNODIALOG, WindowTitle),
-	Table(gtk_table_new(2, 4, false)),
+	Grid(gtk_grid_new()),
 	Label(gtk_label_new(Prompt)),
-	Separator(gtk_hseparator_new()),
+	Separator(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)),
 	YesButton(gtk_button_new_with_mnemonic(UseBooleanNames ? "_True" : "_Yes")),
 	NoButton(gtk_button_new_with_mnemonic(UseBooleanNames ? "_False" : "_No")),
 	AccelGroup(gtk_accel_group_new()),
 	Func(CallbackFunc),
 	UserData(InUserData)
 {
-	gtk_container_add((GtkContainer*)this->Window, this->Table);
+	gtk_container_add((GtkContainer*)this->Window, this->Grid);
 	
-	gtk_table_attach((GtkTable*)this->Table, this->Label, 0, 2, 0, 1, GtkAttachOptions(GTK_FILL | GTK_EXPAND), GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->Separator, 0, 2, 1, 2, GtkAttachOptions(GTK_FILL | GTK_EXPAND), GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->YesButton, 0, 1, 2, 3, GTK_FILL, GTK_FILL, 5, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->NoButton, 1, 2, 2, 3, GTK_FILL, GTK_FILL, 5, 0);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Label, 0, 0, 2, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Separator, 0, 1, 2, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->YesButton, 0, 1, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->NoButton, 1, 1, 1, 1);
 
 	
 	//Set up y/n accelerators.
@@ -359,22 +358,22 @@ void *GuiDialogs::YesNoDialog::ChoiceMadeCallback(GtkWidget *Button, YesNoDialog
 
 GuiDialogs::CmdStatusDialog::CmdStatusDialog(const VLString &WindowTitle, const NetCmdStatus &Status, OnCompleteFunc CallbackFunc, const void *InUserData)
 		: DialogBase(DIALOG_CMDSTATUS, WindowTitle),
-		Table(gtk_table_new(2, 2, false)),
+		Grid(gtk_grid_new()),
 		Label(gtk_label_new(Status.Msg)),
-		StatusIcon(gtk_image_new_from_stock(GuiBase::MapStatusToIcon(Status), GTK_ICON_SIZE_DIALOG)),
-		ButtonAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
+		StatusIcon(gtk_image_new_from_icon_name(GuiBase::MapStatusToIcon(Status), GTK_ICON_SIZE_DIALOG)),
 		Button(gtk_button_new_with_mnemonic("_Dismiss")),
 		AccelGroup(gtk_accel_group_new()),
 		Func(CallbackFunc),
 		UserData(InUserData)
 {
-	gtk_container_add((GtkContainer*)this->Window, this->Table);
+	gtk_container_add((GtkContainer*)this->Window, this->Grid);
 
-	gtk_table_attach((GtkTable*)this->Table, this->StatusIcon, 0, 1, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->Label, 1, 2, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
-	gtk_table_attach((GtkTable*)this->Table, this->ButtonAlign, 1, 2, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
+	gtk_widget_set_halign((GtkWidget*)this->Button, GTK_ALIGN_END);
+	
+	gtk_grid_attach((GtkGrid*)this->Grid, this->StatusIcon, 0, 0, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Label, 1, 0, 1, 1);
+	gtk_grid_attach((GtkGrid*)this->Grid, this->Button, 1, 2, 1, 2);
 
-	gtk_container_add((GtkContainer*)this->ButtonAlign, this->Button);
 
 	gtk_widget_add_accelerator(this->Button, "clicked", this->AccelGroup, GDK_KEY_Return, GdkModifierType(0), GTK_ACCEL_VISIBLE);
 	gtk_widget_add_accelerator(this->Button, "clicked", this->AccelGroup, GDK_KEY_KP_Enter, GdkModifierType(0), GTK_ACCEL_VISIBLE);
@@ -449,10 +448,9 @@ void GuiDialogs::ProgressDialog::ForceComplete(void)
 
 GuiDialogs::ProgressDialog::ProgressDialog(const VLString &WindowTitle, const VLString &LabelText, const VLString &ProgressBarText, const bool UserCanDismissIn, OnCompleteFunc CallbackFunc, const void *UserDataIn)
 		: DialogBase(DIALOG_PROGRESSDIALOG, WindowTitle),
-		VBox(gtk_vbox_new(false, 8)),
+		VBox(gtk_box_new(GTK_ORIENTATION_VERTICAL, 8)),
 		Label(gtk_label_new(LabelText)),
 		ProgressBar(gtk_progress_bar_new()),
-		ButtonAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
 		DismissButton(gtk_button_new_with_mnemonic("_Dismiss")),
 		UserCanDismiss(UserCanDismissIn),
 		Func(CallbackFunc),
@@ -461,12 +459,12 @@ GuiDialogs::ProgressDialog::ProgressDialog(const VLString &WindowTitle, const VL
 	gtk_container_add((GtkContainer*)this->Window, this->VBox);
 	
 	gtk_box_pack_start((GtkBox*)this->VBox, this->ProgressBar, true, true, 8);
-	gtk_box_pack_start((GtkBox*)this->VBox, this->ButtonAlign, true, true, 0);
 	
-	gtk_container_add((GtkContainer*)this->ButtonAlign, this->DismissButton);
 	
 	this->SetBarText(ProgressBarText);
 
+	gtk_widget_set_halign(this->DismissButton, GTK_ALIGN_END);
+	
 	g_signal_connect_swapped((GObject*)this->DismissButton, "clicked", (GCallback)ProgressDialog::CompletionCallback, this);
 	
 	gtk_widget_set_sensitive(this->DismissButton, this->UserCanDismiss);
@@ -481,22 +479,22 @@ GuiDialogs::BinaryFlagsDialog::BinaryFlagsDialog(const VLString &WindowTitle,
 												const OnCompleteFunc InFunc,
 												const void *InUserData)
 		: DialogBase(DIALOG_BINARYFLAGS, WindowTitle),
-		VBox(gtk_vbox_new(false, 8)),
+		VBox(gtk_box_new(GTK_ORIENTATION_VERTICAL, 8)),
 		Label(gtk_label_new(LabelText)),
-		Separator(gtk_hseparator_new()),
+		Separator(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)),
 		AcceptButton(gtk_button_new_with_mnemonic("_Accept")),
-		AcceptButtonAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
 		Func(InFunc),
 		UserData(InUserData)
 {
 	gtk_container_add((GtkContainer*)this->Window, this->VBox);
 
-	gtk_container_add((GtkContainer*)this->AcceptButtonAlign, this->AcceptButton);
 	
-	GtkWidget *BaseHBox = gtk_hbox_new(false, 8);
-
+	GtkWidget *BaseHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	
+	gtk_widget_set_halign(this->AcceptButton, GTK_ALIGN_END);
+	
 	gtk_box_pack_start((GtkBox*)BaseHBox, this->Label, false, false, 8);
-	gtk_box_pack_start((GtkBox*)BaseHBox, this->AcceptButtonAlign, false, false, 8);
+	gtk_box_pack_start((GtkBox*)BaseHBox, this->AcceptButton, false, false, 8);
 	
 	gtk_box_pack_start((GtkBox*)this->VBox, BaseHBox, false, false, 8);
 	gtk_box_pack_start((GtkBox*)this->VBox, Separator, false, false, 8);
@@ -520,7 +518,7 @@ GuiDialogs::BinaryFlagsDialog::BinaryFlagsDialog(const VLString &WindowTitle,
 	{
 		if (!ButtonCounter)
 		{
-			CurrentHBox = gtk_hbox_new(false, 8);
+			CurrentHBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
 			gtk_box_pack_start((GtkBox*)this->VBox, CurrentHBox, true, true, 8);
 			
 			ButtonCounter = BinaryFlagsDialog::MaxButtonsPerRow;
@@ -565,17 +563,16 @@ GuiDialogs::ArgSelectorDialog::ArgSelectorDialog(const VLString &WindowTitle, co
 												const void *InUserData,
 												const bool AllowCmdCodeChange)
 		: DialogBase(DIALOG_ARGSELECTOR, WindowTitle),
-		VBox(gtk_vbox_new(false, 8)),
+		VBox(gtk_box_new(GTK_ORIENTATION_VERTICAL, 8)),
 		UserLabel(gtk_label_new(LabelText)),
-		Separator(gtk_hseparator_new()),
+		Separator(gtk_separator_new(GTK_ORIENTATION_HORIZONTAL)),
 		AcceptButton(gtk_button_new_with_mnemonic("_Accept")),
 		ArgAddMenu(gtk_menu_new()),
 		ArgAddButton(gtk_button_new_with_label("Add")),
-		StaticButtonsAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
-		StaticButtonsHBox(gtk_hbox_new(false, 8)),
+		StaticButtonsHBox(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8)),
 		CmdCodeChoiceButton(gtk_button_new_with_label(CommandCodeToString(Stream ? Stream->GetCommandCode() : CommandCode()))),
 		CmdCodeChoiceMenu(gtk_menu_new()),
-		HBoxes({ { gtk_hbox_new(false, 8), 0u }}),
+		HBoxes({ { gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8), 0u }}),
 		OriginalStream(Stream),
 		Header(Stream ? Stream->GetHeader() : Conation::ConationStream::StreamHeader()),
 		Func(InFunc),
@@ -592,7 +589,6 @@ GuiDialogs::ArgSelectorDialog::ArgSelectorDialog(const VLString &WindowTitle, co
 	
 	gtk_container_add((GtkContainer*)this->Window, this->VBox);
 	
-	gtk_container_add((GtkContainer*)this->StaticButtonsAlign, this->StaticButtonsHBox);
 	
 	gtk_box_pack_start((GtkBox*)this->StaticButtonsHBox, this->CmdCodeChoiceButton, true, true, 0);
 	gtk_box_pack_start((GtkBox*)this->StaticButtonsHBox, this->ArgAddButton, true, true, 0);
@@ -606,12 +602,12 @@ GuiDialogs::ArgSelectorDialog::ArgSelectorDialog(const VLString &WindowTitle, co
 	
 	//Populate the first HBox. It's not used like the others
 	gtk_box_pack_start((GtkBox*)this->HBoxes.back().first, this->UserLabel, false, false, 0);
-	gtk_box_pack_start((GtkBox*)this->HBoxes.back().first, this->StaticButtonsAlign, true, true, 0);
+	gtk_box_pack_start((GtkBox*)this->HBoxes.back().first, this->StaticButtonsHBox, true, true, 0);
 	
 	gtk_box_pack_start((GtkBox*)this->VBox, this->UserLabel, false, false, 0);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Separator, false, false, 0);
 
-	this->HBoxes.push_back({gtk_hbox_new(false, 0), 0u});
+	this->HBoxes.push_back({gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0), 0u});
 	gtk_box_pack_start((GtkBox*)this->VBox, this->HBoxes.back().first, true, true, 0);
 
 	
@@ -624,7 +620,7 @@ GuiDialogs::ArgSelectorDialog::ArgSelectorDialog(const VLString &WindowTitle, co
 	{
 		if (this->HBoxes.back().second > (ArgSelectorDialog::MaxButtonsPerRow - 1))
 		{
-			this->HBoxes.push_back({gtk_hbox_new(false, 0), 0u});
+			this->HBoxes.push_back({gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0), 0u});
 			gtk_box_pack_start((GtkBox*)this->VBox, this->HBoxes.back().first, true, false, 0);
 			this->HBoxes.back().second = 0u;
 		}
@@ -634,7 +630,7 @@ GuiDialogs::ArgSelectorDialog::ArgSelectorDialog(const VLString &WindowTitle, co
 		GtkWidget *const NewButton = gtk_button_new_with_label(VLString::UintToString(this->ArgButtons.size() + 1)
 																+ ": " + ArgTypeToString(PreExistingArgs->at(Inc)));
 		
-		gtk_button_set_image((GtkButton*)NewButton, gtk_image_new_from_stock("gtk-yes", GTK_ICON_SIZE_BUTTON));
+		gtk_button_set_image((GtkButton*)NewButton, gtk_image_new_from_icon_name("gtk-yes", GTK_ICON_SIZE_BUTTON));
 		gtk_button_set_image_position((GtkButton*)NewButton, GTK_POS_RIGHT);
 
 		gtk_widget_set_sensitive(NewButton, false);
@@ -655,7 +651,7 @@ NoPreExistingArgs:
 		{
 			if (this->HBoxes.back().second > (ArgSelectorDialog::MaxButtonsPerRow - 1))
 			{
-				this->HBoxes.push_back({gtk_hbox_new(false, 0), 0u });
+				this->HBoxes.push_back({gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0), 0u });
 				gtk_box_pack_start((GtkBox*)this->VBox, this->HBoxes.back().first, true, false, 0);
 			}
 			
@@ -664,7 +660,7 @@ NoPreExistingArgs:
 			GtkWidget *const NewButton = gtk_button_new_with_label(VLString::UintToString(this->ArgButtons.size() + 1)
 																+ ": " + ArgTypeToString(RequiredParameters->at(Inc)));
 			
-			gtk_button_set_image((GtkButton*)NewButton, gtk_image_new_from_stock("gtk-no", GTK_ICON_SIZE_BUTTON));
+			gtk_button_set_image((GtkButton*)NewButton, gtk_image_new_from_icon_name("gtk-no", GTK_ICON_SIZE_BUTTON));
 			gtk_button_set_image_position((GtkButton*)NewButton, GTK_POS_RIGHT);
 
 			gtk_box_pack_start((GtkBox*)OurHBox, NewButton, false, false, 0);
@@ -743,7 +739,7 @@ void GuiDialogs::ArgSelectorDialog::ArgAddMenuCallback(GtkWidget *MenuItem, ArgS
 	
 	if (ThisPointer->HBoxes.back().second > (ArgSelectorDialog::MaxButtonsPerRow - 1))
 	{
-		ThisPointer->HBoxes.push_back({gtk_hbox_new(false, 0), 0u});
+		ThisPointer->HBoxes.push_back({gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0), 0u});
 		gtk_box_pack_start((GtkBox*)ThisPointer->VBox, ThisPointer->HBoxes.back().first, true, false, 0);
 	}
 	
@@ -754,7 +750,7 @@ void GuiDialogs::ArgSelectorDialog::ArgAddMenuCallback(GtkWidget *MenuItem, ArgS
 	GtkWidget *const NewButton = gtk_button_new_with_label(VLString::UintToString(ThisPointer->ArgButtons.size() + 1)
 															+ ": " + Name);
 
-	gtk_button_set_image((GtkButton*)NewButton, gtk_image_new_from_stock("gtk-no", GTK_ICON_SIZE_BUTTON));
+	gtk_button_set_image((GtkButton*)NewButton, gtk_image_new_from_icon_name("gtk-no", GTK_ICON_SIZE_BUTTON));
 	gtk_button_set_image_position((GtkButton*)NewButton, GTK_POS_RIGHT);
 	gtk_box_pack_start((GtkBox*)OurHBox, NewButton, false, false, 0);
 	
@@ -782,12 +778,12 @@ GuiDialogs::ArgSelectorDialog::~ArgSelectorDialog(void)
 
 void GuiDialogs::ArgSelectorDialog::ArgAddButtonCallback(ArgSelectorDialog *ThisPointer)
 {
-	gtk_menu_popup((GtkMenu*)ThisPointer->ArgAddMenu, nullptr, nullptr, nullptr, nullptr, 3, gdk_event_get_time(nullptr));
+	gtk_menu_popup_at_widget((GtkMenu*)ThisPointer->ArgAddMenu, ThisPointer->ArgAddButton, {}, {}, nullptr);
 }
 
 void GuiDialogs::ArgSelectorDialog::CmdCodeChoiceButtonCallback(ArgSelectorDialog *ThisPointer)
 {
-	gtk_menu_popup((GtkMenu*)ThisPointer->CmdCodeChoiceMenu, nullptr, nullptr, nullptr, nullptr, 3, gdk_event_get_time(nullptr));
+	gtk_menu_popup_at_widget((GtkMenu*)ThisPointer->CmdCodeChoiceMenu, ThisPointer->CmdCodeChoiceButton, {}, {}, nullptr);
 }
 
 void GuiDialogs::ArgSelectorDialog::ArgButtonClickedCallback(GtkWidget *Button, ArgSelectorDialog *ThisPointer)
@@ -1131,7 +1127,7 @@ void GuiDialogs::ArgSelectorDialog::ValueDialogCompletedCallback(const void *Use
 	
 	//GtkWidget *OldImage = gtk_button_get_image((GtkButton*)ArgButtonsElement->first);
 	
-	gtk_button_set_image((GtkButton*)ArgButtonsElement->first, gtk_image_new_from_stock("gtk-yes", GTK_ICON_SIZE_BUTTON));
+	gtk_button_set_image((GtkButton*)ArgButtonsElement->first, gtk_image_new_from_icon_name("gtk-yes", GTK_ICON_SIZE_BUTTON));
 	
 	if (Struct->ThisPointer->AllValuesFilled())
 	{
@@ -1223,10 +1219,9 @@ void GuiDialogs::ArgSelectorDialog::CmdCodeChoiceMenuCallback(GtkWidget *MenuIte
 
 GuiDialogs::AboutDialog::AboutDialog(void)
 	: DialogBase(DIALOG_ABOUT, "About Volition Control"),
-	VBox(gtk_vbox_new(false, 8)),
+	VBox(gtk_box_new(GTK_ORIENTATION_VERTICAL, 8)),
 	Label(gtk_label_new("")),
 	Icon(gtk_image_new_from_pixbuf(GuiBase::LoadImageToPixbuf(GuiIcons::LookupIcon("ctlabout").data(), GuiIcons::LookupIcon("ctlabout").size()))),
-	ButtonAlign(gtk_alignment_new(1.0, 0.5, 0.1, 0.1)),
 	Button(gtk_button_new_with_mnemonic("_Dismiss"))
 {
 	const VLString AboutString
@@ -1253,11 +1248,12 @@ GuiDialogs::AboutDialog::AboutDialog(void)
 	gtk_label_set_text((GtkLabel*)this->Label, AboutString);
 	
 	gtk_container_add((GtkContainer*)this->Window, this->VBox);
-	gtk_container_add((GtkContainer*)this->ButtonAlign, this->Button);
+	
+	gtk_widget_set_halign(this->Button, GTK_ALIGN_END);
 	
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Icon, true, true, 0);
 	gtk_box_pack_start((GtkBox*)this->VBox, this->Label, true, true, 0);
-	gtk_box_pack_start((GtkBox*)this->VBox, this->ButtonAlign, true, true, 0);
+	gtk_box_pack_start((GtkBox*)this->VBox, this->Button, true, true, 0);
 	
 	void* (*DismissedCallback)(AboutDialog *) = [](AboutDialog *ThisPointer)->void*
 	{
