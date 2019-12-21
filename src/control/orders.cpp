@@ -403,7 +403,7 @@ bool Orders::CurrentOrderStruct::Finalize(void)
 	const DialogSpecStruct *Spec = LookupCmdCodeDialogs(this->CmdCode);
 
 	//Might be a server order.
-	Outputs.reserve((this->DestinationNodes.size() && !(Spec->SpecFlags & DialogSpecStruct::FLAG_CONCATNT_COMMA)) ? this->DestinationNodes.size() : 1);
+	Outputs.resize((this->DestinationNodes.size() && !(Spec->SpecFlags & DialogSpecStruct::FLAG_CONCATNT_COMMA)) ? this->DestinationNodes.size() : 1);
 
 	//Create order streams for each node
 	if (this->DestinationNodes.size() > 0)
@@ -411,8 +411,6 @@ bool Orders::CurrentOrderStruct::Finalize(void)
 
 		if (Spec && (Spec->SpecFlags & DialogSpecStruct::FLAG_CONCATNT_COMMA))
 		{
-			Outputs.resize(1);
-			
 			CompileCurrentOrderToStreams(nullptr, &Outputs[0]);
 
 			VLString Targets(4096);
@@ -429,11 +427,12 @@ bool Orders::CurrentOrderStruct::Finalize(void)
 		}
 		else
 		{
+			auto Iter = Outputs.begin();
+			
 			for (const VLString &Value : this->DestinationNodes)
 			{
-				Outputs.emplace_back(nullptr);
-				
-				CompileCurrentOrderToStreams(Value, &Outputs.back());
+				CompileCurrentOrderToStreams(Value, &*Iter);
+				++Iter;
 			}
 		}
 	}
