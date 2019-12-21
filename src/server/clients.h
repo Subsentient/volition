@@ -74,7 +74,8 @@ namespace Clients
 		NetScheduler::SchedulerStatusObj *ReadQueueStatus;
 		NetScheduler::SchedulerStatusObj *WriteQueueStatus;
 		
-		ClientObj &operator=(const ClientObj &);
+		ClientObj &operator=(const ClientObj &) = delete;
+		ClientObj(const ClientObj &) = delete;
 	public:
 		inline NetScheduler::ReadQueue *GetReadQueue(void) { return this->ClientReadQueue; }
 		inline NetScheduler::WriteQueue *GetWriteQueue(void) { return this->ClientWriteQueue; }
@@ -132,12 +133,12 @@ namespace Clients
 		Err_DuplicateClientDescriptor(ClientObj *const InDupe) : Dupe(InDupe) {}
 	};
 
-	ClientObj *AddClient(const Net::ClientDescriptor &Descriptor);
+	bool AddClient(const ClientObj *const NewClient);
 	bool DeleteClient(const char *ID);
 	bool DeleteClient(const ClientObj *const Ptr);
 	
 	ClientObj *LookupClient(const VLString &Identity);
-	const std::list<ClientObj> &GetList(void);
+
 	bool HandleClientInterface(Clients::ClientObj *Client, Conation::ConationStream *Stream);
 	void FlushAll(void);
 	ClientObj *AcceptClient_Auth(const Net::ServerDescriptor &ServerDesc);
@@ -147,6 +148,9 @@ namespace Clients
 	bool ProcessNodeDisconnect(const char *ID, const NodeDeauthType Type);
 	bool ProcessNodeDisconnect(const int Descriptor, const NodeDeauthType Type);
 	bool ProcessNodeDisconnect(ClientObj *Client, const NodeDeauthType Type);
+	
+	//Globals
+	extern std::map<VLString, VLScopedPtr<ClientObj*> > ClientMap;
 
 }
 #endif //__CLIENT_H__

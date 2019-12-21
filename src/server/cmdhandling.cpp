@@ -895,16 +895,16 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			if (Result && KillAffectedNodes)
 			{
-				std::list<Clients::ClientObj> &List = const_cast<std::list<Clients::ClientObj>&>(Clients::GetList());
-
 			ResetRevokeLoop:
-				for (auto Iter = List.begin(); Iter != List.end(); ++Iter)
+				for (auto Iter = Clients::ClientMap.begin(); Iter != Clients::ClientMap.end(); ++Iter)
 				{
-					if (Iter->GetAuthToken() == Token)
+					Clients::ClientObj *const Client = Iter->second;
+					
+					if (Client->GetAuthToken() == Token)
 					{
-						const VLString ID = Iter->GetID();
+						const VLString ID = Client->GetID();
 						
-						Clients::ProcessNodeDisconnect(&*Iter, Clients::NODE_DEAUTH_BADAUTHTOKEN);
+						Clients::ProcessNodeDisconnect(Client, Clients::NODE_DEAUTH_BADAUTHTOKEN);
 						DB::DeleteNode(ID);
 						goto ResetRevokeLoop;
 					}
@@ -1005,19 +1005,19 @@ void CmdHandling::HandleRequest(Clients::ClientObj *Client, Conation::ConationSt
 
 			const VLString &Token = Stream->Pop_String();
 
-			std::list<Clients::ClientObj> &List = const_cast<std::list<Clients::ClientObj>&>(Clients::GetList());
-
-			VLString Collated(List.size() * 64); //Reasonable guess as to the max size of each node name's max length
+			VLString Collated(Clients::ClientMap.size() * 64); //Reasonable guess as to the max size of each node name's max length
 
 			bool FoundOne = false;
 			
-			for (auto Iter = List.begin(); Iter != List.end(); ++Iter)
+			for (auto Iter = Clients::ClientMap.begin(); Iter != Clients::ClientMap.end(); ++Iter)
 			{
-				if (&*Iter == Clients::LookupCurAdmin()) continue;
+				Clients::ClientObj *const Client = Iter->second;
 				
-				if (Iter->GetAuthToken() == Token)
+				if (Client == Clients::LookupCurAdmin()) continue;
+				
+				if (Client->GetAuthToken() == Token)
 				{
-					Collated += Iter->GetID() + '\n';
+					Collated += Client->GetID() + '\n';
 					FoundOne = true;
 				}
 			}
@@ -1379,14 +1379,11 @@ Conation::ConationStream *CmdHandling::HandleIndexRequest(Conation::ConationStre
 
 	Conation::ConationStream *const Result = new Conation::ConationStream(CMDCODE_A2S_INDEXDL, Conation::IDENT_ISREPORT_BIT, Ident);
 	
-	const std::list<Clients::ClientObj> &OnlineList = Clients::GetList();
-
-
 	assert(Clients::LookupCurAdmin());
 	
-	for (auto Iter = OnlineList.begin(); Iter != OnlineList.end(); ++Iter)
+	for (auto Iter = Clients::ClientMap.begin(); Iter != Clients::ClientMap.end(); ++Iter)
 	{
-		const Clients::ClientObj *Cur = &*Iter;
+		const Clients::ClientObj *Cur = Iter->second;
 
 		//Is it an admin.
 		if (Cur == Clients::LookupCurAdmin())

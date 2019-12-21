@@ -36,7 +36,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <assert.h>
-static std::list<Clients::ClientObj> ClientList;
+std::map<VLString, VLScopedPtr<Clients::ClientObj*> > Clients::ClientMap;
 static Clients::ClientObj *CurrentAdmin;
 
 #define MK_TEXT(x) Clients::x, #x
@@ -54,72 +54,54 @@ static std::map<Clients::NodeDeauthType, VLString> NodeDeauthTypeText
 };
 
 //Function definitions.
-Clients::ClientObj *Clients::AddClient(const Net::ClientDescriptor &Descriptor)
+bool Clients::AddClient(const ClientObj *const NewClient)
 {
-	ClientList.emplace_back(Descriptor);
-	return &ClientList.back();
+	if (ClientMap.count(NewClient->GetID())) return false;
+	
+	ClientMap.emplace(NewClient->GetID(), const_cast<ClientObj*>(NewClient));
+	
+	if (NewClient->GetID() == "ADMIN")
+	{
+		CurrentAdmin = const_cast<ClientObj*>(NewClient);
+	}
+
+	return true;
 }
 
 bool Clients::DeleteClient(const ClientObj *const Ptr)
 {
-	std::list<ClientObj>::iterator Iter = ClientList.begin();
+	if (!ClientMap.count(Ptr->GetID())) return false;
 	
-	for (; Iter != ClientList.end(); ++Iter)
-	{
-		if (&*Iter == Ptr)
-		{
-			if (&*Iter == CurrentAdmin)
-			{
-				CurrentAdmin = nullptr;
-			}
-			ClientList.erase(Iter);
-			return true;
-		}
-	}
+	ClientMap.erase(Ptr->GetID());
+
+	if (Ptr == CurrentAdmin) CurrentAdmin = nullptr;
 	
-	return false;
+	return true;
 }
 
-bool Clients::DeleteClient(const char *ID)
+bool Clients::DeleteClient(const char *const ID)
 {
-	std::list<ClientObj>::iterator Iter = ClientList.begin();
+	if (!ClientMap.count(ID)) return false;
 	
-	for (; Iter != ClientList.end(); ++Iter)
-	{
-		if (Iter->GetID() == ID)
-		{
-			if (&*Iter == CurrentAdmin)
-			{
-				CurrentAdmin = nullptr;
-			}
-			ClientList.erase(Iter);
-			return true;
-		}
-	}
+	const ClientObj *const Ptr = ClientMap.at(ID);
 	
+	ClientMap.erase(ID);
+
+	if (Ptr == CurrentAdmin) CurrentAdmin = nullptr;
+
 	return false;
 }
 
 Clients::ClientObj *Clients::LookupClient(const VLString &Identity)
 {
-	std::list<ClientObj>::iterator Iter = ClientList.begin();
+	if (!ClientMap.count(Identity)) return nullptr;
 	
-	for (; Iter != ClientList.end(); ++Iter)
-	{
-		if (Iter->GetID() == Identity) return &*Iter;
-	}
-	return nullptr;
+	return +ClientMap.at(Identity);
 }
 
 Clients::ClientObj *Clients::LookupCurAdmin(void)
 {
 	return CurrentAdmin;
-}
-
-
-const std::list<Clients::ClientObj> &Clients::GetList(void)
-{ //Make it const to prevent idiocy.
-	return ClientList;
 }
 
 Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc)
@@ -136,11 +118,11 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 		return nullptr;
 	}
 
-	ClientObj *NewClient = Clients::AddClient(ClientDesc);
+	VLScopedPtr<ClientObj*> NewClient { new ClientObj { ClientDesc } };
 	
 	NewClient->IPAddr = IPBuf;
 
-	Conation::ConationStream *Stream = nullptr;
+	VLScopedPtr<Conation::ConationStream*> Stream;
 	
 	try
 	{
@@ -160,9 +142,7 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 	EasyError:
 		Logger::WriteLogLine(Logger::LOGITEM_CONN, VLString("Aborting client accept from IP ") + NewClient->IPAddr);
 
-		Clients::ProcessNodeDisconnect(NewClient, Clients::NODE_DEAUTH_INVALID);
-
-		if (Stream) delete Stream; //Because this is a goto, and yes I know deleting a null pointer is harmless
+		Net::Close(ClientDesc);
 
 		return nullptr;
 	}
@@ -204,6 +184,12 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 	{
 		const VLString ID = Stream->Pop_String();
 
+		if (ID == "ADMIN")
+		{
+			Clients::ProcessNodeDisconnect(NewClient, Clients::NODE_DEAUTH_EVIL);
+			Logger::WriteLogLine(Logger::LOGITEM_SECUREWARN, VLString("Node at IP ") + NewClient->IPAddr + " attempted to connect using ADMIN designation.");
+		}
+
 		if (Clients::LookupClient(ID) != nullptr)
 		{
 			VLString Buf(1024);
@@ -221,8 +207,6 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 		
 		if (!TokenLookup) ///DISALLOWED!!! Token either bogus or we revoked it. We're just gonna close the connection.
 		{
-			delete Stream;
-
 			Logger::WriteLogLine(Logger::LOGITEM_PERMS, VLString("Node \"") + ID + "\"::" + NewClient->IPAddr + " provided invalid authentication token \"" + NewClient->AuthToken + "\".");
 
 			Clients::ProcessNodeDisconnect(NewClient, Clients::NODE_DEAUTH_BADAUTHTOKEN);
@@ -262,15 +246,14 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 
 		Logger::WriteLogLine(Logger::LOGITEM_CONN, VLString("Admin \"") + Username + "\" has connected from IP " + NewClient->IPAddr);
 
+		NewClient->ID = "ADMIN";
 	}
 
 
-	delete Stream;
-	
 	//Tell the client they're accepted.
 	Conation::ConationStream *Response = new Conation::ConationStream(CMDCODE_B2S_AUTH, true, 0u);
 	
-	Response->Push_NetCmdStatus(NetCmdStatus(true, STATUS_OK, NewClient == CurrentAdmin ?
+	Response->Push_NetCmdStatus(NetCmdStatus(true, STATUS_OK, NewClient->ID == "ADMIN" ?
 													"Welcome, volition administrator. Please use volition responsibly."
 													: VLString("Greetings, node ") + NewClient->ID + ". Your presence is now registered.")); //Yes, they're allowed in.
 	
@@ -281,6 +264,9 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 	//Save connection time.
 	NewClient->ConnectedTime = time(nullptr);
 
+	///We're now far enough along that we know we want to keep this client.
+	ClientObj *const StoredClient = NewClient.Forget();
+	
 	if (IsAdminArgSequence)
 	{
 		if (CurrentAdmin != nullptr)
@@ -289,61 +275,62 @@ Clients::ClientObj *Clients::AcceptClient_Auth(const Net::ServerDescriptor &Desc
 			
 			DieMsg->Push_String("New administrator has connected.");
 			
-			Logger::WriteLogLine(Logger::LOGITEM_CONN, VLString("Deauthenticating previous administrator at IP ") + NewClient->IPAddr);
+			Logger::WriteLogLine(Logger::LOGITEM_CONN, VLString("Deauthenticating previous administrator at IP ") + CurrentAdmin->IPAddr);
 
 			//Hopefully it makes it out in time.
 			CurrentAdmin->SendStream(DieMsg);
 			
 			Clients::ProcessNodeDisconnect(CurrentAdmin, Clients::NODE_DEAUTH_INVALID);
 		}
-		CurrentAdmin = NewClient;
 		
-		assert(CurrentAdmin == NewClient);
-
-
+		Clients::AddClient(StoredClient);
+		
+		assert(CurrentAdmin == StoredClient);
 	}
 	else
 	{
+		Clients::AddClient(StoredClient);
+		
 		//Load node group.
-		if (DB::NodeDBEntry *Lookup = DB::LookupNodeInfo(NewClient->GetID()))
+		if (DB::NodeDBEntry *Lookup = DB::LookupNodeInfo(StoredClient->GetID()))
 		{
-			NewClient->Group = Lookup->Group;
-			if (NewClient->Group)
+			StoredClient->Group = Lookup->Group;
+			if (StoredClient->Group)
 			{
-				Logger::WriteLogLine(Logger::LOGITEM_INFO, VLString("Merged node \"") + NewClient->GetID() + "\" into assigned group \"" + NewClient->Group + "\".");
+				Logger::WriteLogLine(Logger::LOGITEM_INFO, VLString("Merged node \"") + StoredClient->GetID() + "\" into assigned group \"" + StoredClient->Group + "\".");
 			}
 			else
 			{
-				Logger::WriteLogLine(Logger::LOGITEM_INFO, VLString("Node \"") + NewClient->GetID() + "\" has no group, merging into the unsorted group.");
+				Logger::WriteLogLine(Logger::LOGITEM_INFO, VLString("Node \"") + StoredClient->GetID() + "\" has no group, merging into the unsorted group.");
 			}
 		}
 		
 		//Update on-disk database for this node.
-		if (!DB::UpdateNodeDB(NewClient->GetID(), NewClient->GetPlatformString(), NewClient->GetNodeRevision(),
-								NewClient->GetGroup(), NewClient->GetConnectedTime()))
+		if (!DB::UpdateNodeDB(StoredClient->GetID(), StoredClient->GetPlatformString(), StoredClient->GetNodeRevision(),
+								StoredClient->GetGroup(), StoredClient->GetConnectedTime()))
 		{
-			Logger::WriteLogLine(Logger::LOGITEM_SYSERROR, VLString("Failed to update database for connecting node \"") + NewClient->GetID() + "\"!");
+			Logger::WriteLogLine(Logger::LOGITEM_SYSERROR, VLString("Failed to update database for connecting node \"") + StoredClient->GetID() + "\"!");
 		}
 
 		//Notify Admin of new node connecting.
-		CmdHandling::NotifyAdmin_NodeChange(NewClient->GetID(), true);	
+		CmdHandling::NotifyAdmin_NodeChange(StoredClient->GetID(), true);	
 
 		//Transmit any updated binaries we have for this node's platform.
-		NodeUpdates::HandleUpdatesForNode(NewClient);
+		NodeUpdates::HandleUpdatesForNode(StoredClient);
 
 		//Any routines they're supposed to do on startup?
-		Routines::ProcessOnConnectRoutines(NewClient);
+		Routines::ProcessOnConnectRoutines(StoredClient);
 	}
 	
 	//Configure network scheduling status reporting objects.
-	NewClient->ClientReadQueue->SetStatusObj(NewClient->ReadQueueStatus);
-	NewClient->ClientWriteQueue->SetStatusObj(NewClient->WriteQueueStatus);
+	StoredClient->ClientReadQueue->SetStatusObj(StoredClient->ReadQueueStatus);
+	StoredClient->ClientWriteQueue->SetStatusObj(StoredClient->WriteQueueStatus);
 	
 	//Begin fireup of network scheduling threads.
-	NewClient->ClientReadQueue->Begin();
-	NewClient->ClientWriteQueue->Begin();
+	StoredClient->ClientReadQueue->Begin();
+	StoredClient->ClientWriteQueue->Begin();
 
-	return NewClient;
+	return StoredClient;
 	
 }
 
@@ -436,9 +423,9 @@ void Clients::CheckPingsAndQueues(void)
 {
 
 LoopStart:
-	for (std::list<ClientObj>::iterator Iter = ClientList.begin(); Iter != ClientList.end(); ++Iter)
+	for (auto &Pair : ClientMap)
 	{
-		ClientObj *const Client = &*Iter;
+		ClientObj *const Client = +Pair.second;
 		
 		uint64_t ReadQueueSize = 0, WriteQueueSize = 0;
 		NetScheduler::SchedulerStatusObj::OperationType ReadQueueState{}, WriteQueueState{};
@@ -484,7 +471,7 @@ bool Clients::ProcessNodeDisconnect(const char *ID, const NodeDeauthType Type)
 }
 
 bool Clients::ProcessNodeDisconnect(ClientObj *Client, const NodeDeauthType Type)
-{
+{ //ENSURE THIS FUNCTION WILL ACCEPT NODES THAT ARE UNKNOWN TO US!
 	if (!Client) return false;
 
 #ifdef DEBUG

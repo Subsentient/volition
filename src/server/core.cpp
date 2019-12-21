@@ -177,26 +177,26 @@ static void MasterLoop(void)
 		
 		(void)NewClient;
 	}
-	
-	std::list<Clients::ClientObj> &List = const_cast<std::list<Clients::ClientObj> &>(Clients::GetList());
 
 RestartLoop:
-	for (auto Iter = List.begin(); Iter != List.end(); ++Iter)
+	for (auto Iter = Clients::ClientMap.begin(); Iter != Clients::ClientMap.end(); ++Iter)
 	{
-		if (Iter->HasNetworkError())
+		Clients::ClientObj *const Client = Iter->second;
+
+		if (Client->HasNetworkError())
 		{
-			Clients::ProcessNodeDisconnect(&*Iter, Clients::NODE_DEAUTH_CONNBREAK);
+			Clients::ProcessNodeDisconnect(Client, Clients::NODE_DEAUTH_CONNBREAK);
 			goto RestartLoop;
 		}
 		
-		Conation::ConationStream *Stream = Iter->RecvStream_Acquire();
+		Conation::ConationStream *Stream = Client->RecvStream_Acquire();
 		
 		if (!Stream) goto NothingToDo;
 		
 		InsideHandleInterface = true;
-		ActiveClient = &*Iter;
+		ActiveClient = Client;
 		
-		Clients::HandleClientInterface(&*Iter, Stream);
+		Clients::HandleClientInterface(Client, Stream);
 		
 		InsideHandleInterface = false;
 		ActiveClient = nullptr;
@@ -209,7 +209,7 @@ RestartLoop:
 		}
 		else
 		{
-			Iter->RecvStream_Release();
+			Client->RecvStream_Release();
 		}
 		
 		if (ResetLoopAfter)

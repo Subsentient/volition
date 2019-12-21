@@ -31,7 +31,13 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <time.h>
+
+//C++ headers
 #include <atomic>
+#include <map>
+#include <vector>
+#include <list>
+#include <set>
 
 #ifdef WIN32
 #define PATH_DIVIDER '\\'
