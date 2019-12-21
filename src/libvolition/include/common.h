@@ -167,8 +167,8 @@ public:
 	};
 private:
 	PtrType Ptr;
-	AllocatorType Allocator;
 	DeallocFuncType DeallocFunc;
+	AllocatorType Allocator;
 
 public:
 	void Release(void)
@@ -181,7 +181,7 @@ public:
 	}
 	
 	VLScopedPtr(const PtrType Input = nullptr, const AllocatorType AllocatorIn = ALLOCTYPE_NEW)
-		: Ptr(Input), Allocator(AllocatorIn), DeallocFunc()
+		: Ptr(Input), DeallocFunc(), Allocator(AllocatorIn)
 	{
 		switch (this->Allocator)
 		{
@@ -205,8 +205,8 @@ public:
 
 	VLScopedPtr(const PtrType Input, const DeallocFuncType DeallocFunc)
 		: Ptr(Input),
-		Allocator(ALLOCTYPE_LAMBDA),
-		DeallocFunc(DeallocFunc)
+		DeallocFunc(DeallocFunc),
+		Allocator(ALLOCTYPE_LAMBDA)
 	{
 	}
 	
@@ -253,7 +253,7 @@ public:
 	
 	PtrType operator->(void) const { return this->Ptr; }
 	
-	VLScopedPtr(VLScopedPtr &&Ref) : Ptr(Ref.Ptr), Allocator(Ref.Allocator), DeallocFunc(Ref.DeallocFunc)
+	VLScopedPtr(VLScopedPtr &&Ref) : Ptr(Ref.Ptr), DeallocFunc(Ref.DeallocFunc), Allocator(Ref.Allocator)
 	{
 		Ref.Ptr = nullptr;
 		Ref.Allocator = ALLOCTYPE_NEW;
