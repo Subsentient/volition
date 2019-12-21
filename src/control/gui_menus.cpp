@@ -143,30 +143,27 @@ static void HandleNodeMenuClick(const NodeMenuSpecsStruct *Specs)
 
 	if (!Screen) return;
 
-	std::vector<VLString> *DestinationNodes = Screen->GetSelectedNodes();
+	VLScopedPtr<std::set<VLString>* > DestinationNodes { Screen->GetSelectedNodes() };
 
 	if (!DestinationNodes) return;
 	
 ResetLoop:
-	for (size_t Inc = 0u; Inc < DestinationNodes->size(); ++Inc)
+	for (const VLString &Value : *DestinationNodes)
 	{
-		if (!ClientTracker::Lookup(DestinationNodes->at(Inc))->Online)
+		if (!ClientTracker::Lookup(Value)->Online)
 		{
-			DestinationNodes->erase(DestinationNodes->begin() + Inc);
+			DestinationNodes->erase(Value);
 			goto ResetLoop;
 		}
 	}
 
 	if (!DestinationNodes->size())
 	{
-		Ticker::AddSystemMessage("No nodes selected to transmit order.");
-		delete DestinationNodes;
+		Ticker::AddSystemMessage("No online nodes selected to transmit order.");
 		return;
 	}
 	
-	Orders::CurrentOrder.Init(Specs->CmdCode, DestinationNodes);
-
-	delete DestinationNodes;
+	Orders::CurrentOrder.Init(Specs->CmdCode, DestinationNodes.Forget());
 }
 
 static void HandleServerMenuClick(const ServerMenuSpecsStruct *Specs)
@@ -175,7 +172,7 @@ static void HandleServerMenuClick(const ServerMenuSpecsStruct *Specs)
 
 	if (!Screen) return;
 	
-	std::vector<VLString> *DestinationNodes = Specs->NeedNodes ? Screen->GetSelectedNodes() : nullptr;
+	VLScopedPtr<std::set<VLString>* > DestinationNodes { Specs->NeedNodes ? Screen->GetSelectedNodes() : nullptr };
 
 	//For server orders we could conceivably want to talk about offline nodes.
 	if (DestinationNodes != nullptr)
@@ -188,7 +185,7 @@ static void HandleServerMenuClick(const ServerMenuSpecsStruct *Specs)
 		}
 	}
 	
-	Orders::CurrentOrder.Init(Specs->CmdCode, DestinationNodes);
+	Orders::CurrentOrder.Init(Specs->CmdCode, DestinationNodes.Forget());
 }
 
 static void ScriptStateSub(ScriptScanner::ScriptInfo *Info, Orders::ScriptStateFuncPtr Function)
@@ -197,16 +194,16 @@ static void ScriptStateSub(ScriptScanner::ScriptInfo *Info, Orders::ScriptStateF
 
 	if (!Screen) return;
 	
-	std::vector<VLString> *DestinationNodes = Screen->GetSelectedNodes();
+	VLScopedPtr<std::set<VLString>* > DestinationNodes { Screen->GetSelectedNodes() };
 	
 	if (!DestinationNodes) return;
 	
 ResetLoop:
-	for (size_t Inc = 0; Inc < DestinationNodes->size(); ++Inc)
+	for (const VLString &Value : *DestinationNodes)
 	{
-		if (!ClientTracker::Lookup(DestinationNodes->at(Inc))->Online)
+		if (!ClientTracker::Lookup(Value)->Online)
 		{
-			DestinationNodes->erase(DestinationNodes->begin() + Inc);
+			DestinationNodes->erase(Value);
 			goto ResetLoop;
 		}
 	}
@@ -214,13 +211,11 @@ ResetLoop:
 	if (!DestinationNodes->size())
 	{
 		Ticker::AddSystemMessage("No online nodes selected to transmit order.");
-		delete DestinationNodes;
 		return;
 	}
 	
-	Function(Info->ScriptName, DestinationNodes);
+	Function(Info->ScriptName, DestinationNodes.Forget());
 	
-	delete DestinationNodes;
 }
 
 static void HandleScriptFuncClick(ScriptScanner::ScriptInfo::ScriptFunctionInfo *FuncInfo)
@@ -229,15 +224,15 @@ static void HandleScriptFuncClick(ScriptScanner::ScriptInfo::ScriptFunctionInfo 
 
 	if (!Screen) return;
 	
-	std::vector<VLString> *DestinationNodes = Screen->GetSelectedNodes();
+	VLScopedPtr<std::set<VLString>* > DestinationNodes { Screen->GetSelectedNodes() };
 	
 	if (!DestinationNodes) return;
 ResetLoop:
-	for (size_t Inc = 0; Inc < DestinationNodes->size(); ++Inc)
+	for (const VLString &Value : *DestinationNodes)
 	{
-		if (!ClientTracker::Lookup(DestinationNodes->at(Inc))->Online)
+		if (!ClientTracker::Lookup(Value)->Online)
 		{
-			DestinationNodes->erase(DestinationNodes->begin() + Inc);
+			DestinationNodes->erase(Value);
 			goto ResetLoop;
 		}
 	}
@@ -245,11 +240,10 @@ ResetLoop:
 	if (!DestinationNodes->size())
 	{
 		Ticker::AddSystemMessage("No online nodes selected to transmit order.");
-		delete DestinationNodes;
 		return;
 	}
 	
-	Orders::SendNodeScriptFuncOrder(FuncInfo, DestinationNodes);
+	Orders::SendNodeScriptFuncOrder(FuncInfo, DestinationNodes.Forget());
 }
 
 static void HandleScriptLoadClick(ScriptScanner::ScriptInfo *Info)

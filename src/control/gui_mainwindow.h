@@ -98,7 +98,7 @@ namespace GuiMainWindow
 		GtkTreeIter *FindNodeInTree(const char *NodeID);
 		GtkTreeIter *FindMsgInTickerPane(uint64_t MsgNumber);
 		
-		std::vector<VLString> *GetSelectedNodes(void);
+		std::set<VLString> *GetSelectedNodes(void);
 		static void RefreshCallback(MainWindowScreen *Ptr);
 		static gboolean OnNodeTreeRightClick(GtkWidget *TreeView, GdkEventButton *Event, MainWindowScreen *ThisPointer);
 		static gboolean OnNodeTreeContextKey(GtkWidget *TreeView, MainWindowScreen *ThisPointer);

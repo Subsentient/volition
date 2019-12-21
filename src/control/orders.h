@@ -83,20 +83,20 @@ namespace Orders
 		uint64_t CmdIdent;
 	
 		std::vector<GuiDialogs::DialogBase*> Dialogs;
-		std::vector<VLString> DestinationNodes;
+		std::set<VLString> DestinationNodes;
 	
 		//member functions
 		void Clear(void);
-		bool Init(const CommandCode CmdCode, const std::vector<VLString> *DestinationNodes);
+		bool Init(const CommandCode CmdCode, const std::set<VLString> *DestinationNodes);
 		bool Finalize(void);
 	};
 
-	typedef bool (*ScriptStateFuncPtr)(const char *ScriptName, const std::vector<VLString> *DestinationNodes);
+	typedef bool (*ScriptStateFuncPtr)(const char *ScriptName, const std::set<VLString> *DestinationNodes);
 	
-	bool SendNodeScriptLoadOrder(const char *ScriptName, const std::vector<VLString> *DestinationNodes);
-	bool SendNodeScriptUnloadOrder(const char *ScriptName, const std::vector<VLString> *DestinationNodes);
-	bool SendNodeScriptReloadOrder(const char *ScriptName, const std::vector<VLString> *DestinationNodes);
-	bool SendNodeScriptFuncOrder(ScriptScanner::ScriptInfo::ScriptFunctionInfo *FuncInfo, const std::vector<VLString> *DestinationNodes);
+	bool SendNodeScriptLoadOrder(const char *ScriptName, const std::set<VLString> *DestinationNodes);
+	bool SendNodeScriptUnloadOrder(const char *ScriptName, const std::set<VLString> *DestinationNodes);
+	bool SendNodeScriptReloadOrder(const char *ScriptName, const std::set<VLString> *DestinationNodes);
+	bool SendNodeScriptFuncOrder(ScriptScanner::ScriptInfo::ScriptFunctionInfo *FuncInfo, const std::set<VLString> *DestinationNodes);
 	
 	extern CurrentOrderStruct CurrentOrder;
 

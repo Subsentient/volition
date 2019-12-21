@@ -403,7 +403,7 @@ bool Orders::CurrentOrderStruct::Finalize(void)
 	const DialogSpecStruct *Spec = LookupCmdCodeDialogs(this->CmdCode);
 
 	//Might be a server order.
-	Outputs.resize((this->DestinationNodes.size() && !(Spec->SpecFlags & DialogSpecStruct::FLAG_CONCATNT_COMMA)) ? this->DestinationNodes.size() : 1);
+	Outputs.reserve((this->DestinationNodes.size() && !(Spec->SpecFlags & DialogSpecStruct::FLAG_CONCATNT_COMMA)) ? this->DestinationNodes.size() : 1);
 
 	//Create order streams for each node
 	if (this->DestinationNodes.size() > 0)
@@ -411,28 +411,29 @@ bool Orders::CurrentOrderStruct::Finalize(void)
 
 		if (Spec && (Spec->SpecFlags & DialogSpecStruct::FLAG_CONCATNT_COMMA))
 		{
+			Outputs.resize(1);
+			
 			CompileCurrentOrderToStreams(nullptr, &Outputs[0]);
 
 			VLString Targets(4096);
 
-			for (size_t Inc = 0u; Inc < this->DestinationNodes.size(); ++Inc)
+			for (const VLString &Value : DestinationNodes)
 			{
-				Targets += this->DestinationNodes[Inc];
-				
-				if (Inc + 1 < this->DestinationNodes.size())
-				{
-					Targets += ',';
-				}
+				Targets += Value + ',';
 			}
+			
+			Targets.StripTrailing(", ");
 			
 			//Append list of targets to end.
 			Outputs[0]->Push_String(Targets);
 		}
 		else
 		{
-			for (size_t Inc = 0u; Inc < this->DestinationNodes.size(); ++Inc)
+			for (const VLString &Value : this->DestinationNodes)
 			{
-				CompileCurrentOrderToStreams(this->DestinationNodes[Inc], &Outputs[Inc]);
+				Outputs.emplace_back(nullptr);
+				
+				CompileCurrentOrderToStreams(Value, &Outputs.back());
 			}
 		}
 	}
@@ -456,11 +457,11 @@ bool Orders::CurrentOrderStruct::Finalize(void)
 	//Add messages to ticker.
 	if (GuiMenus::IsNodeOrder(this->CmdCode))
 	{ //It's a bunch of nodes.
-		for (size_t Inc = 0u; Inc < this->DestinationNodes.size(); ++Inc)
+		for (const VLString &Value : this->DestinationNodes)
 		{
 			VLString Summary = VLString("Sent order of ") + CommandCodeToString(RealCmdCode) + ", awaiting response.";
 			
-			Ticker::AddNodeMessage(this->DestinationNodes[Inc], this->CmdCode, this->CmdIdent, Summary);
+			Ticker::AddNodeMessage(Value, this->CmdCode, this->CmdIdent, Summary);
 		}
 	}
 	else
@@ -486,7 +487,7 @@ bool Orders::CurrentOrderStruct::Finalize(void)
 	return true;
 }
 
-bool Orders::CurrentOrderStruct::Init(const CommandCode CmdCode, const std::vector<VLString> *DestinationNodes)
+bool Orders::CurrentOrderStruct::Init(const CommandCode CmdCode, const std::set<VLString> *DestinationNodes)
 {
 	this->CmdCode = CmdCode;
 	this->CmdIdent = Ticker::NewNodeMsgIdent();
@@ -616,7 +617,7 @@ static bool SlurpyScripty(const char *Path, VLString *Output)
 	return true;
 }
 
-bool Orders::SendNodeScriptLoadOrder(const char *ScriptName, const std::vector<VLString> *DestinationNodes)
+bool Orders::SendNodeScriptLoadOrder(const char *ScriptName, const std::set<VLString> *DestinationNodes)
 {
 	ScriptScanner::ScriptInfo *Info = ScriptScanner::GetKnownScripts().at(ScriptName);
 	
@@ -647,18 +648,18 @@ bool Orders::SendNodeScriptLoadOrder(const char *ScriptName, const std::vector<V
 	
 	const uint64_t Ident = Ticker::NewNodeMsgIdent();
 	
-	for (size_t Inc = 0; Inc < DestinationNodes->size(); ++Inc)
+	for (const VLString &Value : *DestinationNodes)
 	{
 		Conation::ConationStream *Output = new Conation::ConationStream(CMDCODE_A2C_MOD_LOADSCRIPT, 0, Ident);
 		
-		Output->Push_ODHeader("ADMIN", DestinationNodes->at(Inc));
+		Output->Push_ODHeader("ADMIN", Value);
 		Output->Push_String(ScriptName);
 		Output->Push_Script(ScriptText);
 		Output->Push_Bool(false);
 				
 		VLString Summary = VLString("Sent order of ") + CommandCodeToString(Output->GetCommandCode()) + ", awaiting response.";
 			
-		Ticker::AddNodeMessage(DestinationNodes->at(Inc), Output->GetCommandCode(), Output->GetCmdIdentOnly(), Summary);
+		Ticker::AddNodeMessage(Value, Output->GetCommandCode(), Output->GetCmdIdentOnly(), Summary);
 		
 		Main::GetWriteQueue().Push(Output);
 
@@ -667,7 +668,7 @@ bool Orders::SendNodeScriptLoadOrder(const char *ScriptName, const std::vector<V
 	return true;
 }
 
-bool Orders::SendNodeScriptUnloadOrder(const char *ScriptName, const std::vector<VLString> *DestinationNodes)
+bool Orders::SendNodeScriptUnloadOrder(const char *ScriptName, const std::set<VLString> *DestinationNodes)
 {
 	ScriptScanner::ScriptInfo *Info = ScriptScanner::GetKnownScripts().at(ScriptName);
 	
@@ -677,16 +678,16 @@ bool Orders::SendNodeScriptUnloadOrder(const char *ScriptName, const std::vector
 	
 	const uint64_t Ident = Ticker::NewNodeMsgIdent();
 	
-	for (size_t Inc = 0; Inc < DestinationNodes->size(); ++Inc)
+	for (const VLString &Value : *DestinationNodes)
 	{
 		Conation::ConationStream *Output = new Conation::ConationStream(CMDCODE_A2C_MOD_UNLOADSCRIPT, 0, Ident);
 		
-		Output->Push_ODHeader("ADMIN", DestinationNodes->at(Inc));
+		Output->Push_ODHeader("ADMIN", Value);
 		Output->Push_String(ScriptName);
 		
 		VLString Summary = VLString("Sent order of ") + CommandCodeToString(Output->GetCommandCode()) + ", awaiting response.";
 			
-		Ticker::AddNodeMessage(DestinationNodes->at(Inc), Output->GetCommandCode(), Output->GetCmdIdentOnly(), Summary);
+		Ticker::AddNodeMessage(Value, Output->GetCommandCode(), Output->GetCmdIdentOnly(), Summary);
 		
 		Main::GetWriteQueue().Push(Output);
 	}
@@ -694,7 +695,7 @@ bool Orders::SendNodeScriptUnloadOrder(const char *ScriptName, const std::vector
 	return true;
 }
 
-bool Orders::SendNodeScriptReloadOrder(const char *ScriptName, const std::vector<VLString> *DestinationNodes)
+bool Orders::SendNodeScriptReloadOrder(const char *ScriptName, const std::set<VLString> *DestinationNodes)
 {
 	ScriptScanner::ScriptInfo *Info = ScriptScanner::GetKnownScripts().at(ScriptName);
 	
@@ -712,18 +713,18 @@ bool Orders::SendNodeScriptReloadOrder(const char *ScriptName, const std::vector
 	
 	const uint64_t Ident = Ticker::NewNodeMsgIdent();
 	
-	for (size_t Inc = 0; Inc < DestinationNodes->size(); ++Inc)
+	for (const VLString &Value : *DestinationNodes)
 	{
 		Conation::ConationStream *Output = new Conation::ConationStream(CMDCODE_A2C_MOD_LOADSCRIPT, 0, Ident);
 		
-		Output->Push_ODHeader("ADMIN", DestinationNodes->at(Inc));
+		Output->Push_ODHeader("ADMIN", Value);
 		Output->Push_String(ScriptName);
 		Output->Push_Script(ScriptText);
 		Output->Push_Bool(true);
 		
 		VLString Summary = VLString("Sent order of ") + CommandCodeToString(Output->GetCommandCode()) + ", awaiting response.";
 			
-		Ticker::AddNodeMessage(DestinationNodes->at(Inc), Output->GetCommandCode(), Output->GetCmdIdentOnly(), Summary);
+		Ticker::AddNodeMessage(Value, Output->GetCommandCode(), Output->GetCmdIdentOnly(), Summary);
 		
 		Main::GetWriteQueue().Push(Output);
 	}
@@ -771,7 +772,7 @@ static void ScriptDialogDoneCallback(void **Stuff, const GuiDialogs::ArgSelector
 	delete Dialog->GetOriginalStream();
 }
 
-bool Orders::SendNodeScriptFuncOrder(ScriptScanner::ScriptInfo::ScriptFunctionInfo *FuncInfo, const std::vector<VLString> *DestinationNodes)
+bool Orders::SendNodeScriptFuncOrder(ScriptScanner::ScriptInfo::ScriptFunctionInfo *FuncInfo, const std::set<VLString> *DestinationNodes)
 {
 	
 	Conation::ConationStream *Stream = new Conation::ConationStream(CMDCODE_A2C_MOD_EXECFUNC, 0, Ticker::NewNodeMsgIdent());

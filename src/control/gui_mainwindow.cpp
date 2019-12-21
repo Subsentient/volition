@@ -560,27 +560,38 @@ static GdkPixbuf *GetPlatformIcon(const ClientTracker::ClientRecord &Ref)
 
 static void SelectedNodesForEachFunc(GtkTreeModel *Model, GtkTreePath *Path, GtkTreeIter *Iter, gpointer UserData)
 {
-	//We don't want to deal with a group the user was stupid enough to select.
-	if (gtk_tree_model_iter_has_child(Model, Iter)) return;
+	if (gtk_tree_model_iter_has_child(Model, Iter))
+	{ //They've selected a group, so they must want to apply this to all of the members.
+		GtkTreeIter Children{};
+		
+		if (!gtk_tree_model_iter_children(Model, &Children, Iter)) return;
+			
+		do
+		{
+			SelectedNodesForEachFunc(Model, Path, &Children, UserData);
+		} while (gtk_tree_model_iter_next(Model, &Children));
+		
+		return;
+	}
 
-	std::vector<VLString> *Output = static_cast<std::vector<VLString>*>(UserData);
+	std::set<VLString> *const Output = static_cast<std::set<VLString>*>(UserData);
 
-	char *Buffer;
+	char *Buffer = nullptr;
 	gtk_tree_model_get(Model, Iter, GuiMainWindow::MWNodeColumns::NAME, &Buffer, -1);
 
 	if (ClientTracker::Lookup(Buffer))
 	{ //Another failsafe check in case we selected an empty group.
-		Output->push_back(Buffer);
+		Output->insert(Buffer);
 	}
 
 	g_free(Buffer);
 }
 
-std::vector<VLString> *GuiMainWindow::MainWindowScreen::GetSelectedNodes(void)
+std::set<VLString> *GuiMainWindow::MainWindowScreen::GetSelectedNodes(void)
 {
 	GtkTreeSelection *TreeSelection = gtk_tree_view_get_selection((GtkTreeView*)this->NodeTreeView);
 
-	std::vector<VLString> *RetVal = new std::vector<VLString>;
+	std::set<VLString> *RetVal = new std::set<VLString>;
 	
 	gtk_tree_selection_selected_foreach(TreeSelection, SelectedNodesForEachFunc, RetVal);
 
@@ -604,11 +615,9 @@ gboolean GuiMainWindow::MainWindowScreen::OnNodeTreeRightClick(GtkWidget *TreeVi
 
 	gtk_menu_popup_at_pointer((GtkMenu*)ThisPointer->OrdersMenu, (GdkEvent*)Event);
 
-	std::vector<VLString> *SelectedList = ThisPointer->GetSelectedNodes();
+	VLScopedPtr<std::set<VLString>* > SelectedList { ThisPointer->GetSelectedNodes() };
 	
 	const bool ShouldSayHandled = SelectedList->size() > 1;
-	
-	delete SelectedList;
 	
 	return ShouldSayHandled;
 }
