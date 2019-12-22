@@ -58,11 +58,6 @@ Net::PingTracker Main::PingTrack;
 
 static inline bool PingedOut(void)
 {
-	VLDEBUG("PINGOUT CHECK, READ QUEUE : " +
-			VLString::UintToString(ReadQueueStatus.GetSecsSinceActivity()) + "\n" +
-			" WRITE QUEUE : " +
-			VLString::UintToString(WriteQueueStatus.GetSecsSinceActivity()));
-			
 	return !Main::PingTrack.CheckPingout() &&
 			ReadQueueStatus.GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS &&
 			WriteQueueStatus.GetSecsSinceActivity() >= PING_PINGOUT_TIME_SECS;
