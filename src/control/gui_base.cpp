@@ -24,6 +24,8 @@
 #include "gui_base.h"
 #include "gui_icons.h"
 #include "main.h"
+#include "../libvolition/include/utils.h"
+
 
 //Globals
 static GuiBase::ScreenRegistry Registry;
@@ -215,25 +217,15 @@ VLString GuiBase::LoginScreen::GetUsernameField(void) const
 
 VLString GuiBase::LoginScreen::GetPasswordField(void) const
 {
-	return gtk_entry_get_text((GtkEntry*)this->PasswordBox);
+	return Utils::GetSha512(gtk_entry_get_text((GtkEntry*)this->PasswordBox));
 }
 
 
 bool GuiBase::ScreenRegistry::Add(ScreenObj *Screen)
 {
-	//Check for duplicates.
-	auto Iter = this->List.begin();
-
-	for (; Iter != this->List.end(); ++Iter)
-	{
-		if (*Iter == Screen)
-		{
-			return false;
-		}
-	}
-
-
-	this->List.push_back(Screen);
+	if (!Screen) return false;
+	
+	this->Screens.emplace(Screen->GetScreenType(), Screen);
 
 	return true;
 }
@@ -241,34 +233,21 @@ bool GuiBase::ScreenRegistry::Add(ScreenObj *Screen)
 
 bool GuiBase::ScreenRegistry::Delete(ScreenObj *Screen)
 {
+	if (!Screen) return false;
+	
 	//Check for duplicates.
-	auto Iter = this->List.begin();
+	if (!this->Screens.count(Screen->GetScreenType())) return false;
+	
+	this->Screens.erase(Screen->GetScreenType());
 
-	for (; Iter != this->List.end(); ++Iter)
-	{
-		if (*Iter == Screen)
-		{
-			this->List.erase(Iter);
-			return true;
-		}
-	}
-
-	return false;
+	return true;
 }
 
 GuiBase::ScreenObj *GuiBase::ScreenRegistry::Lookup(const ScreenObj::ScreenType Type) const
 {
-	auto Iter = this->List.begin();
-
-	for (; Iter != this->List.end(); ++Iter)
-	{
-		if ((*Iter)->GetScreenType() == Type)
-		{
-			return *Iter;
-		}
-	}
-
-	return nullptr;
+	if (!this->Screens.count(Type)) return nullptr;
+	
+	return this->Screens.at(Type);
 }
 
 

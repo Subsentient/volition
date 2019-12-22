@@ -94,7 +94,7 @@ namespace GuiBase
 
 	class ScreenRegistry
 	{ //Doesn't allow two screens of the same type to exist there.
-		std::list<ScreenObj*> List;
+		std::map<ScreenObj::ScreenType, ScreenObj*> Screens;
 		bool Add(ScreenObj *Screen);
 		bool Delete(ScreenObj *Screen);
 

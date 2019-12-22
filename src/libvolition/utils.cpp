@@ -36,10 +36,39 @@
 #include <sys/sysctl.h>
 #endif
 
+#include <openssl/sha.h>
+
 #include "include/utils.h"
 #include "include/common.h"
 
 static inline uint64_t Swap64bit(const uint64_t Original);
+
+VLString Utils::GetSha512(const void *Buffer, const uint64_t Length)
+{
+    SHA512_CTX Context{};
+    
+	uint8_t BinBuf[SHA512_DIGEST_LENGTH + 1] {};
+	
+    SHA512_Init(&Context);
+    SHA512_Update(&Context, Buffer, Length);
+    SHA512_Final(BinBuf, &Context);
+	
+	VLString RetVal((sizeof BinBuf * 2) + 1);
+
+	uint8_t *Worker = BinBuf, *const Stopper = BinBuf + SHA512_DIGEST_LENGTH;
+
+	char Tmp[32]{};
+	
+	for (; Worker != Stopper; ++Worker)
+	{
+		snprintf(Tmp, sizeof Tmp, "%02x", *Worker);
+		
+		RetVal += (const char*)Tmp;
+	}
+	
+	VLDEBUG("Returning SHA512 " + RetVal);
+	return RetVal;
+}
 
 bool Utils::StringAllNumeric(const char *String)
 {
