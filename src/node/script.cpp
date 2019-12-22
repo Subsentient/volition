@@ -101,7 +101,7 @@ static int VLAPI_GetCFunction(lua_State *State);
 static int VLAPI_SetN2NState(lua_State *const State);
 static int VLAPI_SetCaptureIncomingStreams(lua_State *const State);
 static int VLAPI_GetJobID(lua_State *const State);
-
+static int VLAPI_GetSha512(lua_State *const State);
 ///Lua ConationStream helper functions, the ones that don't go in VLAPIFuncs.
 static void InitConationStreamBindings(lua_State *State);
 static int VerifyCSArgsLua(lua_State *State);
@@ -139,6 +139,7 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "CopyFile", VLAPI_CopyFile },
 	{ "DeleteFile", VLAPI_DeleteFile },
 	{ "MoveFile", VLAPI_MoveFile },
+	{ "GetSha512", VLAPI_GetSha512 },
 #ifndef NOCURL
 	{ "GetHTTP", VLAPI_GetHTTP },
 #endif //NOCURL
@@ -522,6 +523,28 @@ static int VLAPI_GetCFunction(lua_State *State)
 	return 1;
 }
 #endif // !NO_DLFCN
+
+static int VLAPI_GetSha512(lua_State *const State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING }))
+	{
+		VLWARN("Incorrect argument type. Expected a Lua string.");
+		return 0;
+	}
+	
+	size_t DataLength = 0;
+	const void *const Data = lua_tolstring(State, -1, &DataLength);
+	
+	if (!Data)
+	{
+		VLWARN("Unable to acquire string data.");
+		return 0;
+	}
+	
+	lua_pushstring(State, Utils::GetSha512(Data, DataLength));
+	
+	return 1;
+}
 	
 static int VLAPI_WriteFile(lua_State *State)
 {

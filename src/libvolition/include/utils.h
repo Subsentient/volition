@@ -44,7 +44,7 @@ namespace Utils
 	VLString GetSelfBinaryPath(void);
 	
 	VLString GetSha512(const void *Buffer, const uint64_t Length);
-	inline VLString GetSha512(const VLString &String) { return GetSha512(String.GetBuffer(), String.Length()); }
+	inline VLString GetSha512(const VLString &String) { return GetSha512(+String, String.Length()); }
 	
 	template <typename I>
 	VLString ToBinaryString(const I Value)
