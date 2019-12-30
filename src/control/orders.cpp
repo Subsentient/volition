@@ -737,17 +737,17 @@ static void ScriptDialogDoneCallback(void **Stuff, const GuiDialogs::ArgSelector
 	Hdr.StreamArgsSize = 0;
 	
 	const ScriptScanner::ScriptInfo::ScriptFunctionInfo *FuncInfo = static_cast<ScriptScanner::ScriptInfo::ScriptFunctionInfo*>(*Stuff);
-	VLScopedPtr<const std::vector<VLString>*> DestinationNodes = static_cast<std::vector<VLString>*>(Stuff[1]);
+	VLScopedPtr<const std::set<VLString>*> DestinationNodes = static_cast<std::set<VLString>*>(Stuff[1]);
 	
 	delete[] Stuff;
 	
 	VLScopedPtr<std::vector<Conation::ConationStream::BaseArg*>*> Values = Dialog->GetValues();
 
-	for (size_t Inc = 0; Inc < DestinationNodes->size(); ++Inc)
+	for (const VLString &TargetNode : *DestinationNodes)
 	{
 		Conation::ConationStream *Stream = new Conation::ConationStream(Hdr, nullptr);
 		
-		Stream->Push_ODHeader("ADMIN", DestinationNodes->at(Inc));
+		Stream->Push_ODHeader("ADMIN", TargetNode);
 		Stream->Push_String(FuncInfo->Parent->ScriptName);
 		Stream->Push_String(FuncInfo->Name);
 		
@@ -758,7 +758,7 @@ static void ScriptDialogDoneCallback(void **Stuff, const GuiDialogs::ArgSelector
 		
 		VLString Summary = VLString("Sent order of ") + CommandCodeToString(Hdr.CmdCode) + ", awaiting response.";
 			
-		Ticker::AddNodeMessage(DestinationNodes->at(Inc), Hdr.CmdCode, Hdr.CmdIdent, Summary);
+		Ticker::AddNodeMessage(TargetNode, Hdr.CmdCode, Hdr.CmdIdent, Summary);
 		
 		Main::GetWriteQueue().Push(Stream);
 	}

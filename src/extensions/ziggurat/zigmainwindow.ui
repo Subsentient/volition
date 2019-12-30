@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="ZigMsgTabs">
       <property name="currentIndex">
-       <number>1</number>
+       <number>-1</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -42,19 +42,19 @@
      <height>22</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuZiggurat">
+   <widget class="QMenu" name="ZigMenu">
     <property name="title">
      <string>Ziggurat</string>
     </property>
-    <addaction name="actionOpen_session_with_new_node"/>
+    <addaction name="ZigActNewNode"/>
     <addaction name="separator"/>
-    <addaction name="actionMinimize_to_Tray"/>
-    <addaction name="actionPreferences"/>
-    <addaction name="actionQuit_Ziggurat"/>
+    <addaction name="ZigActTray"/>
+    <addaction name="ZigActSettings"/>
+    <addaction name="ZigActQuit"/>
    </widget>
-   <addaction name="menuZiggurat"/>
+   <addaction name="ZigMenu"/>
   </widget>
-  <action name="actionOpen_session_with_new_node">
+  <action name="ZigActNewNode">
    <property name="text">
     <string>Open session with new node</string>
    </property>
@@ -65,17 +65,17 @@
     <enum>QAction::TextHeuristicRole</enum>
    </property>
   </action>
-  <action name="actionQuit_Ziggurat">
+  <action name="ZigActQuit">
    <property name="text">
     <string>Quit Ziggurat</string>
    </property>
   </action>
-  <action name="actionMinimize_to_Tray">
+  <action name="ZigActTray">
    <property name="text">
     <string>Minimize to Tray</string>
    </property>
   </action>
-  <action name="actionPreferences">
+  <action name="ZigActSettings">
    <property name="enabled">
     <bool>false</bool>
    </property>

@@ -46,16 +46,10 @@ GdkPixbuf *GuiBase::LoadImageToPixbuf(const uint8_t *FileBuffer, const size_t Si
 
 void GuiBase::NukeContainerChildren(GtkContainer *Container)
 {
-	if (!Container) return;
+	if (!Container || !GTK_IS_CONTAINER(Container)) return;
 	
 	GList *Children = gtk_container_get_children(Container);
 	GList *Worker = Children;
-	
-	if (!GTK_IS_CONTAINER(Container))
-	{
-		return;
-	}
-	
 	
 	for (; Worker; Worker = g_list_next(Worker))
 	{

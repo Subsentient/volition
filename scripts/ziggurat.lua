@@ -97,12 +97,12 @@ end
 function Ziggurat:NewEmptyStream(Destination, Subcommand, IsReport, MsgID)
 	--[[
 		Format:
-		
+
+		ODHeader, origin/destination (node ID, NOT nickname)
 		Origin uint64 job IS
 		Destination uint64 job ID
-		ODHeader, origin/destination (node ID, NOT nickname)
 		uint32 Message ID counter, used for the LOCAL node to keep track, not foreign nodes!
-		uint16 Subcommand code, used by just Ziggurat
+		uint32 Subcommand code, used by just Ziggurat
 	]]
 
 	local Flags = VL.IDENT_ISN2N_BIT
@@ -133,7 +133,7 @@ function Ziggurat:NewEmptyStream(Destination, Subcommand, IsReport, MsgID)
 	
 	Msg:Push(VL.ARGTYPE_UINT32, CounterID) --Local message ID, not used by foreign nodes
 
-	Msg:Push(VL.ARGTYPE_UINT16, Subcommand) --Sub-command code used by Ziggurat exclusively
+	Msg:Push(VL.ARGTYPE_UINT32, Subcommand) --Sub-command code used by Ziggurat exclusively
 	
 	return Msg
 end
@@ -167,17 +167,17 @@ end
 
 function ZigDebug(String)
 	local Dbg = debug.getinfo(2, 'lf')
-	io.stdout:write('Ziggurat messenger: DEBUG: ' .. Dbg.func .. ':' .. Dbg.currentline .. ': '.. String .. '\n')
+	io.stdout:write('Ziggurat messenger: DEBUG: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
 end
 
 function ZigError(String)
 	local Dbg = debug.getinfo(2, 'lf')
-	io.stdout:write('Ziggurat messenger: !!ERROR!!: ' .. Dbg.func .. ':' .. Dbg.currentline .. ': '.. String .. '\n')
+	io.stdout:write('Ziggurat messenger: !!ERROR!!: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
 end
 
 function ZigWarn(String)
 	local Dbg = debug.getinfo(2, 'lf')
-	io.stdout:write('Ziggurat messenger: ~WARNING~: ' .. Dbg.func .. ':' .. Dbg.currentline .. ': '.. String .. '\n')
+	io.stdout:write('Ziggurat messenger: ~WARNING~: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
 end
 
 function LoadZigSharedLibrary() --Stripped down, specialized tumor loading code.
@@ -319,11 +319,12 @@ end
 
 function Ziggurat:ProcessGreetingReport(SetupArgs, Stream)
 	local _
-	local Peer = ZigPeer.New(SetupArgs.Origin, SetupArgs.OriginJob)
+	local Peer = Peers[SetupArgs.Origin]
 	
-	_, Peer.DisplayName = Stream:Pop()
-	
-	Peers[Peer.ID] = Peer
+	if not Peer then
+		ZigWarn('No such node "' .. SetupArgs.Origin .. '" that we are aware of, discarding greeting report.')
+		return
+	end
 	
 	ZigDebug('Our greeting to ' .. SetupArgs.Origin .. ' was accepted, session now open.')
 end
@@ -362,6 +363,18 @@ function Ziggurat:ProcessMsg(SetupArgs, Stream)
 	VL.SendN2N(Response)
 end
 
+function Ziggurat:OnNewNodeChosen(NodeID)
+	if not NodeID then
+		ZigWarn('Called with no argument for NodeID')
+	end
+	
+	local GreetMsg = Ziggurat:NewEmptyStream(NodeID, ZIGCMD_GREET, false)
+	
+	GreetMsg:Push(VL.ARGTYPE_STRING, ZigPeer.Us.DisplayName)
+	
+	VL.SendN2N(GreetMsg)
+end
+
 function Ziggurat:ProcessSingleN2N(Stream)
 	if not Stream then
 		ZigWarn 'ProcessSingleN2N called with no argument'
@@ -372,24 +385,32 @@ function Ziggurat:ProcessSingleN2N(Stream)
 	
 	--See the NewEmptyStream() comment for the formatting.
 	local RequiredArguments = 	{ --Arguments that absolutely every Ziggurat N2N will have
-									VL.ARGTYPE_UINT64,
-									VL.ARGTYPE_UINT64,
 									VL.ARGTYPE_ODHEADER,
+									VL.ARGTYPE_UINT64,
+									VL.ARGTYPE_UINT64,
 									VL.ARGTYPE_UINT32,
-									VL.ARGTYPE_UINT16
+									VL.ARGTYPE_UINT32
 								}
 	
 	if not Stream:VerifyArgTypesStartWith(table.unpack(RequiredArguments)) then
 		ZigWarn 'Incorrect message format detected in ProcessSingleN2N. Discarding message.'
+		local Msg = 'Got typecodes '
+		
+		for Inc, Code in ipairs(Stream:GetArgTypes()) do
+			Msg = Msg .. Code .. ','
+		end
+		
+		Msg = string.sub(Msg, 1, #Msg - 1)
+		ZigWarn(Msg)
 		return
 	end
 	
 	local _
 	local SetupArgs = {}
-	
+
+	_, SetupArgs.Origin, SetupArgs.Destination = Stream:Pop()	
 	_, SetupArgs.OriginJob = Stream:Pop()
 	_, SetupArgs.DestinationJob = Stream:Pop()
-	_, SetupArgs.Origin, SetupArgs.Destination = Stream:Pop()
 	_, SetupArgs.MsgID = Stream:Pop()
 	_, SetupArgs.Subcommand = Stream:Pop()
 		
@@ -406,17 +427,17 @@ function Ziggurat:ProcessSingleN2N(Stream)
 								
 	local FuncTable
 	
-	if not (StreamHeader.Flags & VL.IDENT_ISREPORT_BIT) then
+	if (StreamHeader.Flags & VL.IDENT_ISREPORT_BIT) then
 		FuncTable = AckFunctions --It's a report stream
 	else
 		FuncTable = SubcommandFunctions
 	end
 	
 	if not FuncTable[SetupArgs.Subcommand] then
-		ZigError('Unknown subcommand ' .. tostring(SetupArgs.Subcommand) .. 'triggered for stream from node ' .. SetupArgs.Origin)
+		ZigError('Unknown subcommand ' .. tostring(SetupArgs.Subcommand) .. ' triggered for stream from node ' .. SetupArgs.Origin)
 	end
 	
-	FuncTable[SetupArgs.Subcommand](SetupArgs, Stream)
+	FuncTable[SetupArgs.Subcommand](self, SetupArgs, Stream)
 end
 
 function Ziggurat:ProcessN2NQueue()

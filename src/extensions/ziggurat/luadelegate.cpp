@@ -160,8 +160,43 @@ auto Ziggurat::LuaDelegate::Fireup(lua_State *State) -> LuaDelegate*
 	VLDEBUG("Making delegate");
 	LuaDelegate *Delegate = new LuaDelegate { Win, ThreadObj, State };
 	
-	QObject::connect(Win, &ZigMainWindow::SendClicked, Delegate, &LuaDelegate::MessageToSend);
+	QObject::connect(Win, &ZigMainWindow::SendClicked, Delegate, &LuaDelegate::MessageToSend, Qt::ConnectionType::QueuedConnection);
+	QObject::connect(Win, &ZigMainWindow::NewNodeChosen, Delegate, &LuaDelegate::OnNewNodeChosen, Qt::ConnectionType::QueuedConnection);
 	return Delegate;
+}
+
+void Ziggurat::LuaDelegate::OnNewNodeChosen(const QString &NodeID)
+{
+	lua_settop(this->LuaState, 0);
+	
+	lua_getglobal(this->LuaState, "Ziggurat");
+	
+	if (lua_type(this->LuaState, -1) != LUA_TTABLE)
+	{
+		VLWARN("Ziggurat Lua global is not set correctly!");
+		lua_settop(this->LuaState, 0);
+		return;
+	}
+	
+	lua_pushstring(this->LuaState, "OnNewNodeChosen");
+	lua_gettable(this->LuaState, -2);
+	
+	if (lua_type(this->LuaState, -1) != LUA_TFUNCTION)
+	{
+		VLDEBUG("No function for OnNewNodeChosen detected, exiting method.");
+		return;
+	}
+	
+	VLDEBUG("New node ID is " + qs2vls(NodeID));
+
+	lua_pushvalue(this->LuaState, 1);
+	lua_pushstring(this->LuaState, qs2vls(NodeID));
+	
+	if (lua_pcall(this->LuaState, 2, 0, 0) != LUA_OK)
+	{ //Call NewLuaConationStream() to get a new copy for arguments.
+		VLWARN("Call of lua callback failed!");
+		return;
+	}
 }
 
 void Ziggurat::LuaDelegate::RenderDisplayMessage(const ZigMessage *const Msg)
@@ -190,10 +225,11 @@ void Ziggurat::LuaDelegate::OnMessageToSend(const QString &Node, const QString &
 		return;
 	}
 	
+	lua_pushvalue(this->LuaState, 1);
 	lua_pushstring(this->LuaState, qs2vls(Node));
 	lua_pushstring(this->LuaState, qs2vls(Msg));
 	
-	if (lua_pcall(this->LuaState, 2, 0, 0) != LUA_OK)
+	if (lua_pcall(this->LuaState, 3, 0, 0) != LUA_OK)
 	{ //Call NewLuaConationStream() to get a new copy for arguments.
 		VLWARN("Call of lua callback failed!");
 		return;

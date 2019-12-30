@@ -2036,6 +2036,7 @@ static int VerifyCSArgsLua_Subfunction(lua_State *State, decltype(&Conation::Con
 	
 	if (!ArgCount || lua_type(State, 1) != LUA_TTABLE)
 	{
+		VLDEBUG("Incorrect arguments passed, count is " + VLString::UintToString(ArgCount));
 	EasyFail:
 		lua_settop(State, 0);
 		lua_pushboolean(State, false);
@@ -2045,7 +2046,12 @@ static int VerifyCSArgsLua_Subfunction(lua_State *State, decltype(&Conation::Con
 	lua_pushstring(State, "VL_INTRNL");
 	lua_gettable(State, 1);
 	
-	if (lua_type(State, -1) != LUA_TUSERDATA) goto EasyFail;
+	if (lua_type(State, -1) != LUA_TUSERDATA)
+	{
+		VLDEBUG("Is not a userdata");
+
+		goto EasyFail;
+	}
 	
 	Conation::ConationStream *Stream = static_cast<Conation::ConationStream*>(lua_touserdata(State, -1));
 	
@@ -2056,13 +2062,21 @@ static int VerifyCSArgsLua_Subfunction(lua_State *State, decltype(&Conation::Con
 	
 	for (; Inc <= ArgCount; ++Inc)
 	{
-		if (lua_type(State, Inc) != LUA_TNUMBER) goto EasyFail;
+		if (lua_type(State, Inc) != LUA_TNUMBER)
+		{
+			VLDEBUG("Passed argument " + VLString::UintToString(Inc) + " is not an integer");
+			goto EasyFail;
+		}
 		
 		const lua_Integer Num = lua_tointeger(State, Inc);
 		
-		if (Num < 0 || Num > Conation::ARGTYPE_MAXPOPULATED) goto EasyFail;
+		if (Num < 0 || Num > Conation::ARGTYPE_MAXPOPULATED)
+		{
+			VLDEBUG("Range error, got value " + VLString::UintToString(Num) + " for argument #" + VLString::UintToString(Inc));
+			goto EasyFail;
+		}
 		
-		ToCheck.push_back(static_cast<Conation::ArgType>(Inc));
+		ToCheck.push_back(static_cast<Conation::ArgType>(Num));
 	}
 	
 	

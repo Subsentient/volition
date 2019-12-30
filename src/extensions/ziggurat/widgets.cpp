@@ -26,6 +26,9 @@ void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 	
 	QObject::connect(ZigWin, &ZigMainWindow::NewDisplayMessage, ZigWin, &ZigMainWindow::OnNewDisplayMessage, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(ZigWin, &ZigMainWindow::NodeAdded, ZigWin, &ZigMainWindow::OnNodeAdded, Qt::ConnectionType::QueuedConnection);
+	QObject::connect(ZigWin->ZigActNewNode, &QAction::triggered, ZigWin, &ZigMainWindow::OnNewNodeClicked);
+	
+	QObject::connect(ZigWin->ZigActQuit, &QAction::triggered, ZigWin, [] { exit(0); });
 	
 	VLDEBUG("Sending ZigWin");
 	Waiter->Post(ZigWin);
@@ -35,6 +38,23 @@ void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 	ZigWin->ThreadFunc();
 	
 	return nullptr;
+}
+
+void Ziggurat::ZigMainWindow::OnNewNodeClicked(void)
+{
+	ZigTextChooser::TextChooserCallback DismissCB = [] (ZigTextChooser *const Chooser, void*) { delete Chooser; };
+	ZigTextChooser::TextChooserCallback AcceptCB
+	{
+		[] (ZigTextChooser *const Chooser, void *UserData)
+		{
+			emit static_cast<ZigMainWindow*>(UserData)->NewNodeChosen(+Chooser->GetValue());
+			delete Chooser;
+		}
+	};
+	
+	ZigTextChooser *const Chooser = new ZigTextChooser("Enter Node ID", "Enter a node ID to open a chat session to.", AcceptCB, DismissCB, this);
+
+	Chooser->show();
 }
 
 void Ziggurat::ZigMainWindow::OnNewDisplayMessage(const ZigMessage *const Item)
@@ -107,4 +127,35 @@ void Ziggurat::ZigMessengerWidget::OnNewDisplayMessage(const ZigMessage *const I
 
 	this->ZigMessageList->addItem(ModelItem);
 	this->ZigMessageList->setItemWidget(ModelItem, MsgWidget);
+}
+
+Ziggurat::ZigTextChooser::ZigTextChooser(const VLString &WindowTitle,
+										const VLString &PromptText,
+										const TextChooserCallback AcceptCallback,
+										const TextChooserCallback DismissCallback,
+										void *UserData)
+	: DismissCallback(DismissCallback),
+	AcceptCallback(AcceptCallback),
+	UserData(UserData)
+{
+	setupUi(this);
+	
+	QObject::connect(this->TextChooserAccept, &QPushButton::clicked, this,
+	[this]
+	{
+		if (!this->AcceptCallback) return;
+		
+		this->AcceptCallback(this, this->UserData);
+	});
+	
+	QObject::connect(this->TextChooserCancel, &QPushButton::clicked, this,
+	[this]
+	{
+		if (!this->DismissCallback) return;
+		
+		this->DismissCallback(this, this->UserData);
+	});
+	
+	this->TextChooserLabel->setText(+PromptText);
+	this->setWindowTitle(+WindowTitle);
 }

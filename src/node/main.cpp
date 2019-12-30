@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 	const time_t CompileTime = IdentityModule::GetCompileTime();
 	
 	struct tm TimeStruct = *localtime(&CompileTime);
-	char TimeBuf[128]{};
+	char TimeBuf[256]{};
 	
 	strftime(TimeBuf, sizeof TimeBuf, "%a %m/%d/%Y %I:%M:%S %p", &TimeStruct);
 	

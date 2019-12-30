@@ -1,6 +1,7 @@
 #include "libvolition/include/common.h"
 #include "libvolition/include/vlthreads.h"
 #include "ui_zigmainwindow.h"
+#include "ui_zigtextchooser.h"
 #include "ui_zigmessenger.h"
 #include <queue>
 #include <QtWidgets>
@@ -132,12 +133,45 @@ namespace Ziggurat
 	public slots:
 		void OnNewDisplayMessage(const ZigMessage *const Msg);
 		void OnNodeAdded(const QString &Node);
+		void OnNewNodeClicked(void);
 	signals:
 		void ZigDies(void);
 		void NewDisplayMessage(const ZigMessage *Msg);
 		void SendClicked(const QString &Node, const QString &Msg);
 		void NodeAdded(const QString &Node);
+		void NewNodeChosen(const QString &NodeID);
 		friend class LuaDelegate;
+	};
+	
+	class ZigTextChooser : public QWidget, public Ui::ZigTextChooser
+	{
+		Q_OBJECT
+	public:
+		typedef void (*TextChooserCallback)(ZigTextChooser*, void*);
+	private:
+		TextChooserCallback DismissCallback, AcceptCallback;
+		void *UserData;
+	public:
+		inline VLString GetValue(void) const
+		{
+			return qs2vls(this->TextChooserData->text());
+		}
+		
+		inline void SetDismissCallback(const TextChooserCallback CB) 
+		{
+			this->DismissCallback = CB;
+		}
+		
+		inline void SetAcceptCallback(const TextChooserCallback CB) 
+		{
+			this->AcceptCallback = CB;
+		}
+		
+		ZigTextChooser(const VLString &WindowTitle,
+						const VLString &PromptText,
+						const TextChooserCallback AcceptCallback = nullptr,
+						const TextChooserCallback DismissCallback = nullptr,
+						void *UserData = nullptr);
 	};
 	
 	class LuaDelegate : public QObject
@@ -151,6 +185,7 @@ namespace Ziggurat
 
 	public slots:
 		void OnMessageToSend(const QString &Node, const QString &Msg);
+		void OnNewNodeChosen(const QString &NodeID);
 	signals:
 		void MessageToSend(const QString &Node, const QString &Msg);
 	public:
