@@ -71,26 +71,31 @@ function ZigPeer.Message:IsImageMsg()
 end
 
 function ZigPeer:RenderMessage(Msg)
+
+	local MessengerNode = self.ID == VL.GetIdentity() and Msg.Destination or self.ID
+	
 	if Msg:IsImageMsg() then
 		local Blob = VL.GetHTTP(Msg.Body, 1, nil, nil, true) --Get a blob of binary data back.
 		
 		if not Blob then
 			ZigWarn('Unable to download file at "' .. Msg.Body .. '".')
+			Ziggurat:RenderTextMessage(MessengerNode, '<font color="#cd0000">BROKEN IMAGE at URL ' .. Msg.Body .. '</font>')
+			return
 		end
 
-		Ziggurat:RenderImageMessage(self.DisplayName, Blob)
+		Ziggurat:RenderImageMessage(MessengerNode, Blob)
 	elseif Msg:IsLinkMsg() then
-		Ziggurat:RenderLinkMessage(self.DisplayName, Msg.Body)
+		Ziggurat:RenderLinkMessage(MessengerNode, Msg.Body)
 	else
 		local Color
 		
-		if self == Peers.Us then
+		if self == ZigPeer.Us then
 			Color = '#00cd00'
 		else
 			Color = '#0000cd'
 		end
 		
-		Ziggurat:RenderTextMessage(self.DisplayName, '<font color="' .. Color .. '">' .. self.DisplayName .. ':</font> ' .. Msg.Body)
+		Ziggurat:RenderTextMessage(MessengerNode, '<font color="' .. Color .. '">' .. self.DisplayName .. ':</font> ' .. Msg.Body)
 	end
 end
 
@@ -303,6 +308,7 @@ function Ziggurat:ProcessPing(SetupArgs, Stream)
 end
 
 function Ziggurat:ProcessGreeting(SetupArgs, Stream)
+	--Someone wants to talk to us
 	local _
 	local Peer = ZigPeer.New(SetupArgs.Origin, SetupArgs.OriginJob)
 	
@@ -312,19 +318,27 @@ function Ziggurat:ProcessGreeting(SetupArgs, Stream)
 	
 	local Response = Ziggurat:NewEmptyStream(SetupArgs.Origin, SetupArgs.Subcommand, true, SetupArgs.MsgID)
 	
-	VL.SendN2N(Response)
+	Response:Push(VL.ARGTYPE_STRING, ZigPeer.Us.DisplayName)
+	
+	VL.SendN2N(Response) --Let them know we've accepted their greeting.
+	
+	--Open a tab to them now.
+	self:AddNode(Peer.ID)
 	
 	ZigDebug('Added new node ' .. Peer.ID .. ' with display name "' .. Peer.DisplayName .. '".')
 end
 
 function Ziggurat:ProcessGreetingReport(SetupArgs, Stream)
+	--Peer agreed to our request to talk
 	local _
-	local Peer = Peers[SetupArgs.Origin]
+	local Peer = ZigPeer.New(SetupArgs.Origin, SetupArgs.OriginJob)
 	
-	if not Peer then
-		ZigWarn('No such node "' .. SetupArgs.Origin .. '" that we are aware of, discarding greeting report.')
-		return
-	end
+	_, Peer.DisplayName = Stream:Pop()
+	
+	Peers[Peer.ID] = Peer
+	
+	--Open a tab now that we know they're willing to talk to us.
+	self:AddNode(Peer.ID)
 	
 	ZigDebug('Our greeting to ' .. SetupArgs.Origin .. ' was accepted, session now open.')
 end
@@ -355,7 +369,7 @@ function Ziggurat:ProcessMsg(SetupArgs, Stream)
 	 
 	local Msg = ZigPeer.Message.New(SetupArgs.Origin, SetupArgs.Destination, MsgBody)
 	
-	Peer:AddMesage(Msg)
+	Peer:AddMessage(Msg)
 	Peer:RenderMessage(Msg)
 	
 	local Response = self:NewEmptyStream(SetupArgs.Origin, SetupArgs.Subcommand, true, SetupArgs.MsgID)
@@ -364,6 +378,7 @@ function Ziggurat:ProcessMsg(SetupArgs, Stream)
 end
 
 function Ziggurat:OnNewNodeChosen(NodeID)
+	--GUI click asked us to send a greeting to a node
 	if not NodeID then
 		ZigWarn('Called with no argument for NodeID')
 	end
@@ -371,6 +386,8 @@ function Ziggurat:OnNewNodeChosen(NodeID)
 	local GreetMsg = Ziggurat:NewEmptyStream(NodeID, ZIGCMD_GREET, false)
 	
 	GreetMsg:Push(VL.ARGTYPE_STRING, ZigPeer.Us.DisplayName)
+	
+	ZigDebug('Sending greeting to node ' .. NodeID)
 	
 	VL.SendN2N(GreetMsg)
 end
@@ -427,7 +444,7 @@ function Ziggurat:ProcessSingleN2N(Stream)
 								
 	local FuncTable
 	
-	if (StreamHeader.Flags & VL.IDENT_ISREPORT_BIT) then
+	if (StreamHeader.Flags & VL.IDENT_ISREPORT_BIT) == VL.IDENT_ISREPORT_BIT then
 		FuncTable = AckFunctions --It's a report stream
 	else
 		FuncTable = SubcommandFunctions
@@ -435,6 +452,7 @@ function Ziggurat:ProcessSingleN2N(Stream)
 	
 	if not FuncTable[SetupArgs.Subcommand] then
 		ZigError('Unknown subcommand ' .. tostring(SetupArgs.Subcommand) .. ' triggered for stream from node ' .. SetupArgs.Origin)
+		return
 	end
 	
 	FuncTable[SetupArgs.Subcommand](self, SetupArgs, Stream)

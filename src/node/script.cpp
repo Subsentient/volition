@@ -1115,8 +1115,7 @@ static int VLAPI_RecvN2N(lua_State *State)
 	VLScopedPtr<Conation::ConationStream*> NewStream { OurJob->N2N_Queue.Pop(true) };
 	
 	if (!NewStream)
-	{
-		VLDEBUG("No data in N2N queue, returning nil.");
+	{ //No data
 		return 0;
 	}
 	
