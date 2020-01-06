@@ -134,12 +134,17 @@ namespace Ziggurat
 		void OnNewDisplayMessage(const ZigMessage *const Msg);
 		void OnNodeAdded(const QString &Node);
 		void OnNewNodeClicked(void);
+		void OnTabCloseClicked(int TabIndex);
+		void OnRemoteSessionTerminated(const QString &Node);
+
 	signals:
 		void ZigDies(void);
 		void NewDisplayMessage(const ZigMessage *Msg);
 		void SendClicked(const QString &Node, const QString &Msg);
 		void NodeAdded(const QString &Node);
 		void NewNodeChosen(const QString &NodeID);
+		void SessionEndRequested(const QString &NodeID);
+
 		friend class LuaDelegate;
 	};
 	
@@ -186,8 +191,11 @@ namespace Ziggurat
 	public slots:
 		void OnMessageToSend(const QString &Node, const QString &Msg);
 		void OnNewNodeChosen(const QString &NodeID);
+		void OnSessionEndRequested(const QString &NodeID);
+
 	signals:
 		void MessageToSend(const QString &Node, const QString &Msg);
+		void RemoteSessionTerminated(const QString &Node);
 	public:
 		LuaDelegate(ZigMainWindow *Win, VLThreads::Thread *ThreadObj, lua_State *State);
 	public:

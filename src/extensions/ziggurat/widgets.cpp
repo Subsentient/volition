@@ -11,6 +11,41 @@ static int fakeargc = 1;
 
 Ziggurat::ZigMainWindow *Ziggurat::ZigMainWindow::Instance;
 
+
+void Ziggurat::ZigMainWindow::OnRemoteSessionTerminated(const QString &Node_)
+{
+	const VLString Node { qs2vls(Node_) };
+	
+	if (!this->Messengers.count(Node))
+	{
+		VLWARN("Signal emitted when tab is already dead.");
+		return;
+	}
+	
+	const int Index = this->ZigMsgTabs->indexOf(this->Messengers.at(Node));
+	
+	if (Index < 0)
+	{
+		VLWARN("Widget found but no index in tabs!");
+		return;
+	}
+	
+	this->ZigMsgTabs->removeTab(Index);
+	this->Messengers.erase(Node);
+	
+	VLDEBUG("Remote session with node " + Node + " successfully destroyed.");
+}
+
+void Ziggurat::ZigMainWindow::OnTabCloseClicked(int TabIndex)
+{
+	const VLString Node { static_cast<ZigMessengerWidget*>(this->ZigMsgTabs->widget(TabIndex))->GetNode() };
+	
+	this->Messengers.erase(Node);
+	this->ZigMsgTabs->removeTab(TabIndex);
+	
+	emit SessionEndRequested(+Node);
+}
+
 void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 {
 	VLThreads::ValueWaiter<ZigMainWindow*> *const Waiter = static_cast<VLThreads::ValueWaiter<ZigMainWindow*>*>(Waiter_);
@@ -27,7 +62,7 @@ void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 	QObject::connect(ZigWin, &ZigMainWindow::NewDisplayMessage, ZigWin, &ZigMainWindow::OnNewDisplayMessage, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(ZigWin, &ZigMainWindow::NodeAdded, ZigWin, &ZigMainWindow::OnNodeAdded, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(ZigWin->ZigActNewNode, &QAction::triggered, ZigWin, &ZigMainWindow::OnNewNodeClicked);
-	
+	QObject::connect(ZigWin->ZigMsgTabs, &QTabWidget::tabCloseRequested, ZigWin, &ZigMainWindow::OnTabCloseClicked);
 	QObject::connect(ZigWin->ZigActQuit, &QAction::triggered, ZigWin, [] { exit(0); });
 	
 	VLDEBUG("Sending ZigWin");

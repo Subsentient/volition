@@ -77,7 +77,26 @@ static int ZigAddNode(lua_State *State)
 	
 	return 0;
 }
+
+static int ZigOnRemoteSessionTerminated(lua_State *State)
+{
+	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
+	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
+
+	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
 	
+	VLASSERT_ERRMSG(Delegate != nullptr, "Delegate is null!");
+
+	emit Delegate->RemoteSessionTerminated(lua_tostring(State, 2));
+	
+	return 0;
+}
+
+#ifdef WIN32
+asm (".section .drectve");
+asm (".ascii \"-export:InitLibZiggurat\"");
+#endif //WIN32
+
 extern "C" int InitLibZiggurat(lua_State *State)
 {
 	static std::atomic_bool AlreadyRunning;
@@ -118,6 +137,11 @@ extern "C" int InitLibZiggurat(lua_State *State)
 	
 	lua_pushstring(State, "RenderImageMessage");
 	lua_pushcfunction(State, ZigRenderImageMessage);
+	
+	lua_settable(State, -3);
+	
+	lua_pushstring(State, "OnRemoteSessionTerminated");
+	lua_pushcfunction(State, ZigOnRemoteSessionTerminated);
 	
 	lua_settable(State, -3);
 
@@ -162,6 +186,8 @@ auto Ziggurat::LuaDelegate::Fireup(lua_State *State) -> LuaDelegate*
 	
 	QObject::connect(Win, &ZigMainWindow::SendClicked, Delegate, &LuaDelegate::MessageToSend, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(Win, &ZigMainWindow::NewNodeChosen, Delegate, &LuaDelegate::OnNewNodeChosen, Qt::ConnectionType::QueuedConnection);
+	QObject::connect(Win, &ZigMainWindow::SessionEndRequested, Delegate, &LuaDelegate::OnSessionEndRequested, Qt::ConnectionType::QueuedConnection);
+	QObject::connect(Delegate, &LuaDelegate::RemoteSessionTerminated, Win, &ZigMainWindow::OnRemoteSessionTerminated, Qt::ConnectionType::QueuedConnection);
 	return Delegate;
 }
 
@@ -193,7 +219,41 @@ void Ziggurat::LuaDelegate::OnNewNodeChosen(const QString &NodeID)
 	lua_pushstring(this->LuaState, qs2vls(NodeID));
 	
 	if (lua_pcall(this->LuaState, 2, 0, 0) != LUA_OK)
-	{ //Call NewLuaConationStream() to get a new copy for arguments.
+	{
+		VLWARN("Call of lua callback failed!");
+		return;
+	}
+}
+
+void Ziggurat::LuaDelegate::OnSessionEndRequested(const QString &NodeID)
+{
+	lua_settop(this->LuaState, 0);
+	
+	lua_getglobal(this->LuaState, "Ziggurat");
+	
+	if (lua_type(this->LuaState, -1) != LUA_TTABLE)
+	{
+		VLWARN("Ziggurat Lua global is not set correctly!");
+		lua_settop(this->LuaState, 0);
+		return;
+	}
+	
+	lua_pushstring(this->LuaState, "OnSessionEndRequested");
+	lua_gettable(this->LuaState, -2);
+	
+	if (lua_type(this->LuaState, -1) != LUA_TFUNCTION)
+	{
+		VLDEBUG("No function for OnSessionEndRequested detected, exiting method.");
+		return;
+	}
+	
+	VLDEBUG("Calling Lua callback to end session for node " + qs2vls(NodeID));
+
+	lua_pushvalue(this->LuaState, 1);
+	lua_pushstring(this->LuaState, qs2vls(NodeID));
+	
+	if (lua_pcall(this->LuaState, 2, 0, 0) != LUA_OK)
+	{
 		VLWARN("Call of lua callback failed!");
 		return;
 	}
@@ -230,7 +290,7 @@ void Ziggurat::LuaDelegate::OnMessageToSend(const QString &Node, const QString &
 	lua_pushstring(this->LuaState, qs2vls(Msg));
 	
 	if (lua_pcall(this->LuaState, 3, 0, 0) != LUA_OK)
-	{ //Call NewLuaConationStream() to get a new copy for arguments.
+	{
 		VLWARN("Call of lua callback failed!");
 		return;
 	}
