@@ -800,7 +800,7 @@ bool Jobs::StartJob(const CommandCode ID, const Conation::ConationStream *Data)
 	//Get reference to it
 	Job &New = JobsList.back();
 	
-	New.JobID = JobIDCounter++; //Unsigned, doesn't matter if it overflows. First is zero.
+	New.JobID = ++JobIDCounter; //Unsigned, doesn't matter if it overflows. First is one.
 
 	if (ID != CMDCODE_INVALID && Data != nullptr)
 	{ //If these arguments aren't specified, we're firing a raw init script.
