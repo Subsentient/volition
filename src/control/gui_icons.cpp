@@ -40,14 +40,14 @@ static std::map<VLString, VLString> FilenameToIDMap =
 
 static std::map<VLString, const std::vector<uint8_t> *> IconMap;
 
-bool GuiIcons::LoadAllIcons(void)
+bool GuiIcons::LoadAllIcons(const VLString &ConfigDir)
 {
 #ifdef DEBUG
 	puts("GuiIcons::LoadAllIcons(): Will now load icons.");
 #endif
 	for (auto Iter = FilenameToIDMap.begin(); Iter != FilenameToIDMap.end(); ++Iter)
 	{
-		std::vector<uint8_t> *FileBuffer = Utils::Slurp(VLString("icons" PATH_DIVIDER_STRING) + Iter->first);
+		std::vector<uint8_t> *FileBuffer = Utils::Slurp(ConfigDir + PATH_DIVIDER_STRING "icons" PATH_DIVIDER_STRING + Iter->first);
 		
 		if (!FileBuffer)
 		{

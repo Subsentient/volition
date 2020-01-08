@@ -26,7 +26,7 @@
 namespace Config
 {
 	VLString GetKey(const char *Keyname);
-	bool ReadConfig(void);
+	bool ReadConfig(const VLString &ConfigDir);
 }
 
 #endif //VL_CTL_CONFIG_H

@@ -48,44 +48,40 @@ VLString Config::GetKey(const char *Keyname)
 #define NEWLINE_SEQUENCE_LEN 1
 #endif
  
-bool Config::ReadConfig(void)
+bool Config::ReadConfig(const VLString &ConfigDir)
 {
-	std::vector<uint8_t> *FileData = Utils::Slurp(CONFIGFILE);
+	std::vector<uint8_t> *FileData = Utils::Slurp(ConfigDir + PATH_DIVIDER_STRING + CONFIGFILE);
 
 	if (!FileData)
 	{
-#ifdef DEBUG
-		puts("Config::ReadConfig(): Failed to slurp config file \"" CONFIGFILE "\".");
-#endif
+		VLERROR("Failed to slurp config file \"" + (ConfigDir + PATH_DIVIDER_STRING CONFIGFILE "\"."));
 		return false;
 	}
 
 	const char *Worker = reinterpret_cast<const char*>(&FileData->at(0));
 
-	char Line[4096];
+	VLString Line(4096);
+	
 	char Key[256];
 	char Value[4096];
 	
 	do
 	{ ///God I hate working with strings in C/C++....
-
-		if (!strncmp(NEWLINE_SEQUENCE, Worker, NEWLINE_SEQUENCE_LEN)) Worker += NEWLINE_SEQUENCE_LEN;
+		Line.Wipe(false);
+		
+		while (strpbrk(Worker, NEWLINE_SEQUENCE) == Worker) ++Worker;
 		
 		if (!*Worker) continue;
 		
 		//Get line.
 		size_t Inc = 0;
-		for (; Inc < sizeof Line - 1
-			&& Worker[Inc] != '\0'
-			&& Inc < FileData->size() - 1
-			&& strncmp(NEWLINE_SEQUENCE, Worker + Inc, NEWLINE_SEQUENCE_LEN) != 0;
-			++Inc)
-		{
-			Line[Inc] = Worker[Inc];
-		}
-		Line[Inc] = '\0';
 		
-		char *Search = strchr(Line, '=');
+		for (; Inc < FileData->size() - 1 && Worker[Inc] && !isspace(Worker[Inc]); ++Inc)
+		{
+			Line += Worker[Inc];
+		}
+		
+		char *Search = (char*)strchr(Line, '=');
 
 		if (!Search) goto Failure;
 
@@ -98,7 +94,7 @@ bool Config::ReadConfig(void)
 		ConfigKeys[Key] = Value;
 
 		
-	} while ((Worker = strstr(Worker, NEWLINE_SEQUENCE)));
+	} while ((Worker = strpbrk(Worker, NEWLINE_SEQUENCE)));
 		
 
 	delete FileData;

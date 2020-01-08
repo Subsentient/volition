@@ -23,7 +23,7 @@
 
 namespace GuiIcons
 {
-	bool LoadAllIcons(void);
+	bool LoadAllIcons(const VLString &ConfigDir);
 	const std::vector<uint8_t> &LookupIcon(const char *IconID);
 	bool IconsLoaded(void);
 }

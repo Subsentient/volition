@@ -42,6 +42,10 @@
 #define VLWARN(Message) (std::cerr << "Volition: WARNING: " << __FILE__ << "/" \
 		<< __PRETTY_FUNCTION__ << " line " << \
 		__LINE__ << ": " << +(VLString() + Message) << std::endl)
+		
+#define VLERROR(Message) (std::cerr << "Volition: ERROR: " << __FILE__ << "/" \
+		<< __PRETTY_FUNCTION__ << " line " << \
+		__LINE__ << ": " << +(VLString() + Message) << std::endl)
 
 #ifdef DEBUG
 #define VLDEBUG(Message) (std::cout << "Volition: DEBUG: " << __FILE__ << "/" \

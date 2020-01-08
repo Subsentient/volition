@@ -73,7 +73,9 @@ int main(int argc, char **argv)
 
 	//Set theme for Windows.
 
-	if (!Config::ReadConfig())
+	const VLString ConfigPath { argc > 1 ? argv[1] : "." };
+	
+	if (!Config::ReadConfig(ConfigPath))
 	{
 		fputs("Failed to read configuration!\n", stderr);
 		GuiDialogs::CmdStatusDialog *FailMsg = new GuiDialogs::CmdStatusDialog("Failure reading configuration", NetCmdStatus(false, STATUS_MISSING, "Unable to read configuration file control.conf!\nCheck that your configuration is present\nand is neither corrupt nor missing required keys."), FailureDismissCallback);
@@ -97,7 +99,7 @@ int main(int argc, char **argv)
 	
 	Net::InitNetcore(false);
 	
-	if (!GuiIcons::LoadAllIcons())
+	if (!GuiIcons::LoadAllIcons(ConfigPath))
 	{
 		fputs("Unable to load icons!\n", stderr);
 		GuiDialogs::CmdStatusDialog *FailMsg = new GuiDialogs::CmdStatusDialog("Failure loading icons", NetCmdStatus(false, STATUS_MISSING, "Unable to load icons in directory \"./icons/\"!"), FailureDismissCallback);

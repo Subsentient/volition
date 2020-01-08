@@ -17,7 +17,7 @@
 
 
 #include "../libvolition/include/common.h"
-#include "../libvolition/vlstrings.cpp" //Eat my nipple pus
+#include "../libvolition/include/vlstrings.h" //Eat my nipple pus
 
 #include <stdlib.h>
 #include <stdio.h>
