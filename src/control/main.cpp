@@ -56,6 +56,7 @@ static void FailureDismissCallback(const void *);
 
 int main(int argc, char **argv)
 {
+	putenv((char*)"GTK_CSD=0");
 #ifdef WIN32
 	WSADATA WSAData;
 
