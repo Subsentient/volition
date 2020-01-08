@@ -48,8 +48,8 @@ message("== OK, found OpenSSL.")
 set(node_sourcefiles conation.cpp vlstrings.cpp netcore.cpp utils.cpp vlthreads.cpp netscheduler.cpp common_introspect.cpp)
 set(full_sourcefiles ${node_sourcefiles} brander.cpp)
 
-add_library(libvolition STATIC ${full_sourcefiles})
-add_library(libvolition_node STATIC ${node_sourcefiles})
+add_library(libvolition STATIC EXCLUDE_FROM_ALL ${full_sourcefiles})
+add_library(libvolition_node STATIC EXCLUDE_FROM_ALL ${node_sourcefiles})
 
 target_include_directories(libvolition PUBLIC ${OPENSSL_INCLUDE_DIRS})
 target_include_directories(libvolition_node PUBLIC ${OPENSSL_INCLUDE_DIRS})
