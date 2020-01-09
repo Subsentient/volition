@@ -53,15 +53,20 @@ message("== OK, found OpenSSL.")
 
 add_executable(brander brander.cpp)
 add_executable(genauthtoken genauthtoken.cpp)
+add_executable(tumoreditor tumoreditor.cpp)
 
 target_include_directories(genauthtoken PUBLIC ${OPENSSL_INCLUDE_DIRS})
 target_include_directories(brander PUBLIC ${OPENSSL_INCLUDE_DIRS})
+target_include_directories(tumoreditor PUBLIC ${OPENSSL_INCLUDE_DIRS})
 
 
 target_link_libraries(genauthtoken libvolition ${TGT_LDFLAGS} ${OPENSSL_LIBRARIES} ${EXTRA_LD} -Wl,-R -Wl,.)
 target_link_libraries(brander libvolition ${TGT_LDFLAGS} ${OPENSSL_LIBRARIES} ${EXTRA_LD} -Wl,-R -Wl,.)
+target_link_libraries(tumoreditor libvolition ${TGT_LDFLAGS} ${OPENSSL_LIBRARIES} ${EXTRA_LD} -Wl,-R -Wl,.)
 
 set_property(TARGET genauthtoken PROPERTY CXX_STANDARD 14)
 set_property(TARGET genauthtoken PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET tumoreditor PROPERTY CXX_STANDARD 14)
+set_property(TARGET tumoreditor PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET brander PROPERTY CXX_STANDARD 14)
 set_property(TARGET brander PROPERTY CXX_STANDARD_REQUIRED ON)
