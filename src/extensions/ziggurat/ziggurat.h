@@ -31,54 +31,78 @@ namespace Ziggurat
 	private:
 		MessageType MsgType;
 		VLString Node;
-		std::vector<uint8_t> MsgData;
+		VLString Text;
+		std::vector<uint8_t> BinData;
 		
 	public:
-		inline ZigMessage(const VLString &Node, const VLString &String, MessageType MsgType = ZIGMSG_TEXT) : MsgType(MsgType), Node(Node)
+		inline ZigMessage(const VLString &Node, const VLString &String, MessageType MsgType = ZIGMSG_TEXT)
+						: MsgType(MsgType), Node(Node), Text(String)
 		{
-			this->MsgData.resize(String.Length() + 1);
-			memcpy(this->MsgData.data(), +String, String.Length() + 1); //Copy null terminator.
 		}
 		
-		inline ZigMessage(const VLString &Node, const std::vector<uint8_t> &ImageData) : MsgType(ZIGMSG_IMAGE), Node(Node), MsgData(ImageData) {}
-		inline ZigMessage(const VLString &Node, std::vector<uint8_t> &&ImageData) : MsgType(ZIGMSG_IMAGE), Node(Node), MsgData(ImageData) {}
+		inline ZigMessage(const VLString &Node, const VLString &String, const std::vector<uint8_t> &ImageData)
+						: MsgType(ZIGMSG_IMAGE), Node(Node), Text(String), BinData(ImageData)
+		{
+		}
+		inline ZigMessage(const VLString &Node, const VLString &String, std::vector<uint8_t> &&ImageData)
+						: MsgType(ZIGMSG_IMAGE), Node(Node), Text(String), BinData(ImageData)
+		{
+		}
 		
 		inline const VLString &GetNode(void) const { return this->Node; }
 		
-		inline QLabel *AsImage(void) const
+		inline QWidget *AsImage(const int Width, const int Height) const
 		{
-			QLabel *const Label = new QLabel;
-			Label->setPixmap(QPixmap::fromImage(QImage::fromData(this->MsgData.data(), this->MsgData.size())));
-			return Label;
+			QWidget *const BaseWidget = new QWidget;
+			QVBoxLayout *const Layout = new QVBoxLayout;
+			
+			BaseWidget->setLayout(Layout);
+			
+			QLabel *const TextLabel = new QLabel(BaseWidget);
+			QLabel *const ImageLabel = new QLabel(BaseWidget);
+
+			TextLabel->setText(+this->Text);
+			TextLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+			TextLabel->setOpenExternalLinks(true);
+			
+			Layout->addWidget(TextLabel);
+			Layout->addWidget(ImageLabel);
+			
+			QPixmap Pix { QPixmap::fromImage(QImage::fromData(this->BinData.data(), this->BinData.size())) };
+			
+			if (Width < Pix.width()) Pix = Pix.scaledToWidth(Width);
+			if (Height < Pix.height()) Pix = Pix.scaledToHeight(Height);
+			
+			ImageLabel->setPixmap(std::move(Pix));
+			
+			TextLabel->show();
+			ImageLabel->show();
+			return BaseWidget;
 		}
 		
 		inline QLabel *AsText(void) const
 		{
-			QLabel *const Label = new QLabel(QString((const char*)this->MsgData.data()));
+			QLabel *const Label = new QLabel(QString(+this->Text));
 			Label->setWordWrap(true);
+			
+			if (this->MsgType == ZIGMSG_LINK)
+			{
+				Label->setTextInteractionFlags(Qt::TextBrowserInteraction);
+				Label->setOpenExternalLinks(true);
+			}
+			
 			return Label;
 		}
 		
-		inline QPushButton *AsLink(void) const
-		{
-			QPushButton *const Button = new QPushButton((const char*)this->MsgData.data());
-			
-			Button->setFlat(true);
-			Button->setStyleSheet("QPushButton { color: blue; }");
-			QObject::connect(Button, &QPushButton::clicked, Button, [Button] { QDesktopServices::openUrl(QUrl(Button->text())); });
-			return Button;
-		}
-		
-		inline QWidget *GetMsgWidget(void) const
+		inline QWidget *GetMsgWidget(const int Width, const int Height) const
 		{
 			switch (this->MsgType)
 			{
 				case ZIGMSG_IMAGE:
-					return this->AsImage();
+					return this->AsImage(Width, Height);
 				case ZIGMSG_TEXT:
-					return this->AsText();
 				case ZIGMSG_LINK:
-					return this->AsLink();
+					return this->AsText();
 				default:
 					VLWARN("Bad ZIGMSG value");
 					break;

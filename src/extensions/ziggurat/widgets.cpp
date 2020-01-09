@@ -155,7 +155,7 @@ void Ziggurat::ZigMessengerWidget::OnNewDisplayMessage(const ZigMessage *const I
 {
 	QListWidgetItem *const ModelItem = new QListWidgetItem;
 
-	QWidget *const MsgWidget = Item->GetMsgWidget();
+	QWidget *const MsgWidget = Item->GetMsgWidget(ZigMessageList->width(), ZigMessageList->height());
 	MsgWidget->setParent(this->ZigMessageList);
 	
 	ModelItem->setSizeHint(MsgWidget->sizeHint());

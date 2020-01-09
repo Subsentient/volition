@@ -44,20 +44,23 @@ static int ZigRenderImageMessage(lua_State *State)
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
 	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
 	VLASSERT(lua_type(State, 3) == LUA_TSTRING);
+	VLASSERT(lua_type(State, 4) == LUA_TSTRING);
 	
 	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
 	
 	const VLString Node { lua_tostring(State, 2) };
 	
+	const VLString Text { lua_tostring(State, 3) };
+	
 	size_t ImageSize = 0u;
-	const char *ImageData = lua_tolstring(State, 3, &ImageSize);
+	const char *ImageData = lua_tolstring(State, 4, &ImageSize);
 	
 	std::vector<uint8_t> Image;
 	Image.resize(ImageSize);
 	
 	memcpy(Image.data(), ImageData, ImageSize);
 	
-	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(Node, std::move(Image));
+	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(Node, Text, std::move(Image));
 	
 	Delegate->RenderDisplayMessage(Msg);
 	
