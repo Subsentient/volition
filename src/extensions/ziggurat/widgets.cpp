@@ -16,7 +16,7 @@ static int fakeargc = 1;
 Ziggurat::ZigMainWindow *Ziggurat::ZigMainWindow::Instance;
 
 
-void Ziggurat::ZigMainWindow::OnRemoteSessionTerminated(const QString &Node_)
+void Ziggurat::ZigMainWindow::OnRemoteSessionTerminated(const QString Node_)
 {
 	const VLString Node { qs2vls(Node_) };
 	
@@ -34,6 +34,8 @@ void Ziggurat::ZigMainWindow::OnRemoteSessionTerminated(const QString &Node_)
 		return;
 	}
 	
+	VLThreads::MutexKeeper Keeper { &this->MessengersLock };
+
 	this->ZigMsgTabs->removeTab(Index);
 	this->Messengers.erase(Node);
 	
@@ -43,10 +45,12 @@ void Ziggurat::ZigMainWindow::OnRemoteSessionTerminated(const QString &Node_)
 void Ziggurat::ZigMainWindow::OnTabCloseClicked(int TabIndex)
 {
 	const VLString Node { static_cast<ZigMessengerWidget*>(this->ZigMsgTabs->widget(TabIndex))->GetNode() };
-	
-	this->Messengers.erase(Node);
+
+	VLThreads::MutexKeeper Keeper { &this->MessengersLock };
+
 	this->ZigMsgTabs->removeTab(TabIndex);
-	
+	this->Messengers.erase(Node);
+
 	emit SessionEndRequested(+Node);
 }
 
@@ -122,16 +126,20 @@ void Ziggurat::ZigMainWindow::ThreadFunc(void)
 	Loop.exec();
 }
 
-void Ziggurat::ZigMainWindow::OnNodeAdded(const QString &Node)
+void Ziggurat::ZigMainWindow::OnNodeAdded(const QString Node)
 {
 	ZigMessengerWidget *const Widgy = new ZigMessengerWidget(qs2vls(Node));
 	
 	QObject::connect(Widgy, &ZigMessengerWidget::SendClicked, this, &ZigMainWindow::SendClicked);
 	
-	this->Messengers.emplace(Widgy->GetNode(), Widgy);
 	Widgy->show();
 	
 	this->ZigMsgTabs->addTab(Widgy, Node);
+	
+	VLThreads::MutexKeeper Keeper { &this->MessengersLock };
+
+	this->Messengers.emplace(Widgy->GetNode(), Widgy);
+
 }
 	
 Ziggurat::ZigMainWindow::ZigMainWindow(void) : QMainWindow()
@@ -147,7 +155,7 @@ Ziggurat::ZigMessengerWidget::ZigMessengerWidget(const VLString &Node)
 	QObject::connect(this->ZigSendButton, &QPushButton::clicked, this,
 	[this]
 	{
-		emit SendClicked(QString(+this->Node), this->ZigMessageEditor->toPlainText());
+		emit SendClicked(QString(+this->Node), QString(this->ZigMessageEditor->toPlainText()));
 		this->ZigMessageEditor->clear();
 	});
 

@@ -13,7 +13,11 @@ extern "C"
 }
 
 #define qs2vls(String) (VLString{String.toUtf8().constData()})
-
+#ifdef WIN32
+#define DLLEXPORT __declspec(dllexport) __cdecl
+#else
+#define DLLEXPORT
+#endif //WIN32
 namespace Ziggurat
 {
 	
@@ -126,7 +130,7 @@ namespace Ziggurat
 	public slots:
 		void OnNewDisplayMessage(const ZigMessage *const Item);
 	signals:
-		void SendClicked(const QString &Node, const QString &Msg);
+		void SendClicked(const QString Node, const QString Msg);
 		void NewDisplayMessage(const ZigMessage *Msg);
 		
 		/*	LuaDelegate is your friend.
@@ -156,18 +160,18 @@ namespace Ziggurat
 		
 	public slots:
 		void OnNewDisplayMessage(const ZigMessage *const Msg);
-		void OnNodeAdded(const QString &Node);
+		void OnNodeAdded(const QString Node);
 		void OnNewNodeClicked(void);
 		void OnTabCloseClicked(int TabIndex);
-		void OnRemoteSessionTerminated(const QString &Node);
+		void OnRemoteSessionTerminated(const QString Node);
 
 	signals:
 		void ZigDies(void);
 		void NewDisplayMessage(const ZigMessage *Msg);
-		void SendClicked(const QString &Node, const QString &Msg);
-		void NodeAdded(const QString &Node);
-		void NewNodeChosen(const QString &NodeID);
-		void SessionEndRequested(const QString &NodeID);
+		void SendClicked(const QString Node, const QString Msg);
+		void NodeAdded(const QString Node);
+		void NewNodeChosen(const QString NodeID);
+		void SessionEndRequested(const QString NodeID);
 
 		friend class LuaDelegate;
 	};
@@ -213,13 +217,13 @@ namespace Ziggurat
 		lua_State *LuaState;
 
 	public slots:
-		void OnMessageToSend(const QString &Node, const QString &Msg);
-		void OnNewNodeChosen(const QString &NodeID);
-		void OnSessionEndRequested(const QString &NodeID);
+		void OnMessageToSend(const QString Node, const QString Msg);
+		void OnNewNodeChosen(const QString NodeID);
+		void OnSessionEndRequested(const QString NodeID);
 
 	signals:
-		void MessageToSend(const QString &Node, const QString &Msg);
-		void RemoteSessionTerminated(const QString &Node);
+		void MessageToSend(const QString Node, const QString Msg);
+		void RemoteSessionTerminated(const QString Node);
 	public:
 		LuaDelegate(ZigMainWindow *Win, VLThreads::Thread *ThreadObj, lua_State *State);
 	public:

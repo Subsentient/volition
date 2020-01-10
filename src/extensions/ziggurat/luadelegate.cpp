@@ -100,8 +100,10 @@ asm (".section .drectve");
 asm (".ascii \"-export:InitLibZiggurat\"");
 #endif //WIN32
 
-extern "C" int InitLibZiggurat(lua_State *State)
+extern "C" DLLEXPORT int InitLibZiggurat(lua_State *State)
 {
+	lua_settop(State, 0);
+	
 	static std::atomic_bool AlreadyRunning;
 	
 	if (AlreadyRunning)
@@ -194,7 +196,7 @@ auto Ziggurat::LuaDelegate::Fireup(lua_State *State) -> LuaDelegate*
 	return Delegate;
 }
 
-void Ziggurat::LuaDelegate::OnNewNodeChosen(const QString &NodeID)
+void Ziggurat::LuaDelegate::OnNewNodeChosen(const QString NodeID)
 {
 	lua_settop(this->LuaState, 0);
 	
@@ -228,7 +230,7 @@ void Ziggurat::LuaDelegate::OnNewNodeChosen(const QString &NodeID)
 	}
 }
 
-void Ziggurat::LuaDelegate::OnSessionEndRequested(const QString &NodeID)
+void Ziggurat::LuaDelegate::OnSessionEndRequested(const QString NodeID)
 {
 	lua_settop(this->LuaState, 0);
 	
@@ -267,7 +269,7 @@ void Ziggurat::LuaDelegate::RenderDisplayMessage(const ZigMessage *const Msg)
 	this->Window->RenderDisplayMessage(Msg);
 }
 
-void Ziggurat::LuaDelegate::OnMessageToSend(const QString &Node, const QString &Msg)
+void Ziggurat::LuaDelegate::OnMessageToSend(const QString Node, const QString Msg)
 {
 	lua_settop(this->LuaState, 0);
 	lua_getglobal(this->LuaState, "Ziggurat");

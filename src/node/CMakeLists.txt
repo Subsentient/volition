@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.1.0)
 project("VLNode")
 
-
-set(EXTRA_CXXFLAGS)
 set(TGT_LDFLAGS)
 set(TGT_CXXFLAGS)
 
@@ -25,7 +23,7 @@ endif()
 string(TOLOWER ${CPU} LOWERCPU)
 
 if (WIN32)
-	set(TGT_LDFLAGS -lws2_32 -ldl -mwindows)
+	set(TGT_LDFLAGS -lws2_32 -ldl -mwindows -Wl,--stack,8388608)
 	set(TGT_CXXFLAGS -DWIN32 -DARCH_${CPU})
 	set(OS windows)
 	set(LOWEROS windows)
@@ -110,7 +108,7 @@ endif()
 target_include_directories(volition_node PUBLIC ${LUA_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS})
 
 
-target_link_libraries(volition_node libvolition_node ${CURLFLAGS} ${OPENSSL_LIBRARIES} ${LUA_LIBRARIES} ${CURLLD} ${TGT_LDFLAGS} ${EXTRA_LD} )
+target_link_libraries(volition_node libvolition_node ${CURLFLAGS} ${OPENSSL_LIBRARIES} ${LUA_LIBRARIES} ${CURLLD} ${TGT_LDFLAGS} ${EXTRA_LD})
 
 set_property(TARGET volition_node PROPERTY CXX_STANDARD 14)
 set_property(TARGET volition_node PROPERTY CXX_STANDARD_REQUIRED ON)

@@ -56,6 +56,13 @@ extern "C"
 #define LUA_OK 0
 #endif
 
+#ifdef APPENDSCRIPTFUNC
+extern "C"
+{
+extern int APPENDSCRIPTFUNC (lua_State *);
+}
+#endif //APPENDSCRIPTFUNC
+
 //Prototypes
 static bool LoadVLAPI(lua_State *State);
 static bool VerifyLuaFuncArgs(lua_State *State, const std::vector<decltype(LUA_TNONE)> &ToCheck);
@@ -168,6 +175,9 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 #ifndef NO_DLFCN
 	{ "GetCFunction", VLAPI_GetCFunction },
 #endif // !NO_DLFCN
+#ifdef APPENDSCRIPTFUNC
+	{ "NODE_COMPILETIME_EXTFUNC", APPENDSCRIPTFUNC },
+#endif //APPENDSCRIPTFUNC
 };
 
 enum IntNameMapEnum : uint8_t
@@ -230,9 +240,15 @@ SymLoader::Library *SymLoader::LoadLibrary(const VLString &LibName)
 	
 	VLScopedPtr<Library*> Lib { new Library { LibName } };
 	
+	VLDEBUG("Loading library \"" + LibName + "\"");
 	Lib->LibHandle = dlopen(LibName ? LibName : nullptr, RTLD_NOW | RTLD_GLOBAL); //Empty string means ourselves. Lua's package.loadlib can't do that.
 	
-	if (!Lib->LibHandle) return nullptr;
+	if (!Lib->LibHandle)
+	{
+		VLDEBUG("dlopen() for \"" + LibName + "\" has failed.");
+
+		return nullptr;
+	}
 	
 	this->Libraries.emplace(LibName, std::move(Lib));
 	
