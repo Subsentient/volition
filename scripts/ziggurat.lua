@@ -22,6 +22,8 @@ Peers = {} --Full of ZigPeers
 
 ZigPeer = { Message = {} }
 
+ZigLibEntryPointName = 'InitLibZiggurat'
+
 function ZigPeer.New(Node, ForeignJobID)
 	local Table =	{
 						LastActivity = os.time(),
@@ -195,10 +197,62 @@ function ZigWarn(String)
 	io.stdout:write('Ziggurat messenger: ~WARNING~: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
 end
 
-function LoadZigSharedLibrary() --Stripped down, specialized tumor loading code.
+function libZiggurat_LoadViaAnyMethod()
+	if	not libZiggurat_LoadViaStatic() and
+		not libZiggurat_LoadViaTumor() and
+		not libZiggurat_LoadViaSharedObject()
+	then
+		return false
+	end
+	
+	return true
+end
+
+function libZiggurat_LoadViaStatic()
+	if not VL.NODE_COMPILETIME_EXTFUNC then
+		ZigDebug('Failed to find entry point ' .. ZigLibEntryPointName .. ' in our own executable via dlsym()')
+		return false
+	end
+	
+	return VL.NODE_COMPILETIME_EXTFUNC()
+end
+
+function libZiggurat_LoadViaSharedObject()
+	local SearchDirs = { '.', '..', 'ziggurat' }
+	
+	local InitLibZiggurat = nil
+	
+	local PlatformMap = { ['windows'] = '.dll', ['linux'] = '.so', ['freebsd'] = '.so', ['openbsd'] = '.so', ['haiku'] = '.so', ['macosx'] = '.dylib' }
+	
+	local Ext = nil
+	
+	for Platform, Extension in pairs(PlatformMap) do
+		if string.find(VL.GetPlatformString(), Platform, 1, true) then
+			Ext = Extension
+			break
+		end
+	end
+	
+	if not Ext then
+		ZigDebug('Failing because of unknown platform')
+		return false
+	end
+	
+	for _, Dir in pairs(SearchDirs) do
+		InitLibZiggurat = package.loadlib(Dir .. VL.ospathdiv .. 'libZiggurat' .. Ext, ZigLibEntryPointName)
+		
+		if InitLibZiggurat then
+			return InitLibZiggurat()
+		end
+	end
+	
+	ZigDebug('Shared object load failed')
+	return false
+end
+
+function libZiggurat_LoadViaTumor() --Stripped down, specialized tumor loading code.
 	local ZigLibStartDelim = '\x56LLTUMOR_FN_DELIM' --x56 is a capital V
 	local ZigLibEndDelim = '\x56LLTUMOR_FN_EDELIM'
-	local ZigLibEntryPointName = 'InitLibZiggurat'
 	
 	ZigDebug 'Attempting to load Ziggurat shared library as a tumor'
 	
@@ -281,8 +335,8 @@ function Ziggurat:OnMessageToSend(Node, MsgBody)
 end
 
 function InitZiggurat() --Must be executable as both init script and a job.
-	if not LoadZigSharedLibrary() or type(Ziggurat) ~= 'table' then
-		ZigError('Failed to load Ziggurat shared library!')
+	if not libZiggurat_LoadViaAnyMethod() or type(Ziggurat) ~= 'table' then
+		ZigError('Failed to load libZiggurat!')
 		return false
 	end
 	
@@ -338,6 +392,10 @@ function Ziggurat:ProcessGreetingReport(SetupArgs, Stream)
 	
 	_, Peer.DisplayName = Stream:Pop()
 	
+	if Peers[Peer.ID] then
+		self:OnRemoteSessionTerminated(SetupArgs.Origin)
+	end
+	
 	Peers[Peer.ID] = Peer
 	
 	--Open a tab now that we know they're willing to talk to us.
@@ -353,6 +411,8 @@ function Ziggurat:ProcessUngreet(SetupArgs, Stream)
 	if not Peer then
 		ZigWarn('No peer ' .. SetupArgs.Origin .. ' to ungreet!')
 	end
+	
+	self:OnRemoteSessionTerminated(SetupArgs.Origin)
 	
 	Peers[SetupArgs.Origin] = nil
 	
@@ -383,10 +443,28 @@ end
 function Ziggurat:ProcessMsgReport(SetupArgs, Stream)
 end
 
+function Ziggurat:OnSessionEndRequested(NodeID)
+	if not NodeID then
+		ZigWarn('Called with no argument for NodeID')
+		return
+	end
+	
+	local EndMsg = Ziggurat:NewEmptyStream(NodeID, ZIGCMD_UNGREET, false)
+	
+	ZigDebug('Sending ungreet to node ' .. NodeID)
+	
+	VL.SendN2N(EndMsg)
+	
+	Peers[NodeID] = nil
+	
+	ZigDebug('Erased node from database successfully.')
+end
+
 function Ziggurat:OnNewNodeChosen(NodeID)
 	--GUI click asked us to send a greeting to a node
 	if not NodeID then
 		ZigWarn('Called with no argument for NodeID')
+		return
 	end
 	
 	local GreetMsg = Ziggurat:NewEmptyStream(NodeID, ZIGCMD_GREET, false)
