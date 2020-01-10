@@ -56,12 +56,13 @@ function ZigPeer.Message:IsImageMsg()
 		return false
 	end
 	
-	local Patterns = { '\\.jpg[?]?.*$', '\\.png[?]?.*$', '\\.jpeg[?]?.*$' }
+	local Patterns = { '[.]jpg[?]?.*$', '[.]png[?]?.*$', '[.]jpeg[?]?.*$' }
 	
 	local Match = false
 	
 	for Index, Pattern in ipairs(Patterns) do
 		if string.find(self.Body, Pattern) ~= nil then
+			ZigDebug('FOUND IMAGE MESSAGE ' .. self.Body)
 			Match = true
 			break
 		end
@@ -70,32 +71,41 @@ function ZigPeer.Message:IsImageMsg()
 	return Match
 end
 
+
+function ZigPeer.Message:BuildMsgHeader(DisplayName, Color)
+	return '<font color="#008000">[' .. os.date('%a %Y-%m-%d %I:%M:%S %p') .. '] </font><font color="' .. Color .. '">' .. DisplayName .. ':</font> '
+end
+	
 function ZigPeer:RenderMessage(Msg)
 
 	local MessengerNode = self.ID == VL.GetIdentity() and Msg.Destination or self.ID
+	
+	local Color
+	
+	if self == ZigPeer.Us then
+		Color = '#00cd00'
+	else
+		Color = '#0000cd'
+	end
 	
 	if Msg:IsImageMsg() then
 		local Blob = VL.GetHTTP(Msg.Body, 1, nil, nil, true) --Get a blob of binary data back.
 		
 		if not Blob then
 			ZigWarn('Unable to download file at "' .. Msg.Body .. '".')
-			Ziggurat:RenderTextMessage(MessengerNode, '<font color="#cd0000">BROKEN IMAGE at URL ' .. Msg.Body .. '</font>')
+			Ziggurat:RenderTextMessage(MessengerNode, Msg:BuildMsgHeader(self.DisplayName, Color) .. '<font color="#cd0000">BROKEN IMAGE at URL ' .. Msg.Body .. '</font>')
 			return
 		end
+		
+		local ImageText = Msg:BuildMsgHeader(self.DisplayName, Color) .. '<br><i>Image at</i> <a href="' .. Msg.Body .. '">' .. Msg.Body .. '</a>'
 
-		Ziggurat:RenderImageMessage(MessengerNode, Blob)
+		Ziggurat:RenderImageMessage(MessengerNode, ImageText, Blob)
 	elseif Msg:IsLinkMsg() then
-		Ziggurat:RenderLinkMessage(MessengerNode, Msg.Body)
+		local LinkText = Msg:BuildMsgHeader(self.DisplayName, Color) .. '<br><a href="' .. Msg.Body .. '">' .. Msg.Body .. '</a>'
+		
+		Ziggurat:RenderLinkMessage(MessengerNode, LinkText)
 	else
-		local Color
-		
-		if self == ZigPeer.Us then
-			Color = '#00cd00'
-		else
-			Color = '#0000cd'
-		end
-		
-		Ziggurat:RenderTextMessage(MessengerNode, '<font color="' .. Color .. '">' .. self.DisplayName .. ':</font> ' .. Msg.Body)
+		Ziggurat:RenderTextMessage(MessengerNode, Msg:BuildMsgHeader(self.DisplayName, Color) .. '<br>' .. Msg.Body)
 	end
 end
 
@@ -283,13 +293,6 @@ function InitZiggurat() --Must be executable as both init script and a job.
 	ZigPeer.Us = ZigPeer.New(VL.GetIdentity())
 	Peers[VL.GetIdentity()] = ZigPeer.Us
 	
-	local DemoNode = 'demonode'
-	
-	Ziggurat:AddNode(DemoNode)
-	Ziggurat:RenderTextMessage(DemoNode, '<font color="#0000cd">' .. DemoNode .. ':</font> ' .. 'Ass Nipples')
-	Ziggurat:RenderTextMessage(DemoNode, '<font color="#0000cd">' .. DemoNode .. ':</font> ' .. 'Fart waffles')
-	Ziggurat:RenderLinkMessage(DemoNode, 'https://universe2.us')
-	
 	while Ziggurat.StayAlive do
 		Ziggurat:MainLoopIter()
 	end
@@ -375,6 +378,9 @@ function Ziggurat:ProcessMsg(SetupArgs, Stream)
 	local Response = self:NewEmptyStream(SetupArgs.Origin, SetupArgs.Subcommand, true, SetupArgs.MsgID)
 	
 	VL.SendN2N(Response)
+end
+
+function Ziggurat:ProcessMsgReport(SetupArgs, Stream)
 end
 
 function Ziggurat:OnNewNodeChosen(NodeID)
