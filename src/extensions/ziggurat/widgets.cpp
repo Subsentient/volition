@@ -3,6 +3,10 @@
 #include "node/script.h"
 #include "ziggurat.h"
 
+#if defined(WIN32) && defined(STATIC)
+#include <QtPlugin>
+Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+#endif //WIN32
 
 #include <QtWidgets>
 

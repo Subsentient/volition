@@ -22,13 +22,22 @@ message("== Searching for Qt5Widgets...")
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-find_package(Qt5 COMPONENTS Widgets Core)
+
+if (WIN32)
+	find_package(Qt5 COMPONENTS Widgets Core Gui FontDatabaseSupport WindowsUIAutomationSupport EventDispatcherSupport WinExtras ThemeSupport)
+else()
+	find_package(Qt5 COMPONENTS Widgets Core Gui)
+endif()
 
 message("== Ok, found Qt5Widgets")
 
 message("== Searching for Lua...")
 pkg_check_modules(LUA REQUIRED lua)
 message("== OK, found Lua")
+
+message("== Searching for freetype2...")
+pkg_check_modules(FREETYPE REQUIRED freetype2)
+message("== OK, found freetype2...")
 
 set(sourcefiles ziggurat.h luadelegate.cpp widgets.cpp zigresources.qrc)
 qt5_wrap_ui(sourcefiles zigmessenger.ui zigmainwindow.ui zigtextchooser.ui)
@@ -40,7 +49,7 @@ target_include_directories(Ziggurat PRIVATE "../../")
 target_include_directories(Ziggurat_static PRIVATE "../..")
 
 target_include_directories(Ziggurat PUBLIC ${LUA_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
-target_include_directories(Ziggurat_static PUBLIC ${LUA_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS})
+target_include_directories(Ziggurat_static PUBLIC ${LUA_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${FREETYPE_INCLUDE_DIRS})
 add_compile_options(${LUA_CFLAGS} ${OPENSSL_CFLAGS})
 
 set_property(TARGET Ziggurat_static PROPERTY CXX_STANDARD 14)
@@ -52,7 +61,7 @@ qt5_use_modules(Ziggurat Core Widgets)
 qt5_use_modules(Ziggurat_static Core Widgets)
 
 if (WIN32)
-	set(EXTRA_LD ${EXTRA_LD} -lws2_32)
+	set(EXTRA_LD ${EXTRA_LD} -lws2_32 Qt5::WindowsUIAutomationSupport Qt5::QWindowsIntegrationPlugin Qt5::WinExtras Qt5::ThemeSupport Qt5::FontDatabaseSupport Qt5::EventDispatcherSupport -lwtsapi32)
 endif()
 
-target_link_libraries(Ziggurat libvolition_node ${EXTRA_LD} ${OPENSSL_LIBRARIES} ${LUA_LIBRARIES})
+target_link_libraries(Ziggurat libvolition_node ${EXTRA_LD} ${OPENSSL_LIBRARIES} ${LUA_LIBRARIES} ${FREETYPE_LIBRARIES})
