@@ -216,6 +216,7 @@ void Ziggurat::ZigMessengerWidget::OnNewDisplayMessage(const ZigMessage *const I
 
 	this->ZigMessageList->addItem(ModelItem);
 	this->ZigMessageList->setItemWidget(ModelItem, MsgWidget);
+	this->ZigMessageList->verticalScrollBar()->setValue(this->ZigMessageList->verticalScrollBar()->maximum());
 }
 
 Ziggurat::ZigTextChooser::ZigTextChooser(const VLString &WindowTitle,
