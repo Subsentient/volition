@@ -159,6 +159,7 @@ namespace Ziggurat
 	private:
 		std::map<VLString, VLScopedPtr<ZigMessengerWidget*> > Messengers;
 		VLThreads::Mutex MessengersLock;
+		std::atomic_bool HasFocus;
 		
 		void ThreadFunc(void);
 		static void *ThreadFuncInit(void *Waiter_);
@@ -175,6 +176,7 @@ namespace Ziggurat
 		void OnNewNodeClicked(void);
 		void OnTabCloseClicked(int TabIndex);
 		void OnRemoteSessionTerminated(const QString Node);
+		void OnFocusAltered(QWidget *Old, QWidget *Now);
 
 	signals:
 		void ZigDies(void);
@@ -183,7 +185,7 @@ namespace Ziggurat
 		void NodeAdded(const QString Node);
 		void NewNodeChosen(const QString NodeID);
 		void SessionEndRequested(const QString NodeID);
-
+		
 		friend class LuaDelegate;
 	};
 	
@@ -240,10 +242,13 @@ namespace Ziggurat
 	public:
 		static LuaDelegate *Fireup(lua_State *State);
 		void ProcessQtEvents(void) const;
-		
+		inline bool GetHasFocus(void) const { return this->Window->HasFocus; }
 		void RenderDisplayMessage(const ZigMessage *const Msg);
 		void AddNode(const VLString &Node);
 	};
+	
+	
+	bool PlayAudioNotification(const VLString &AudioPath);
 }
 
 	

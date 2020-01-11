@@ -1,0 +1,3 @@
+[submodule "src/extensions/ziggurat/qdarkstyle"]
+	path = src/extensions/ziggurat/qdarkstyle
+	url = https://github.com/ColinDuquesnoy/QDarkStyleSheet

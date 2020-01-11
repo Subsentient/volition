@@ -323,11 +323,17 @@ function libZiggurat_LoadViaTumor() --Stripped down, specialized tumor loading c
 end
 
 function Ziggurat:OnMessageToSend(Node, MsgBody)
+	if #MsgBody == 0 then
+		return
+	end
+	
 	local Peer = Peers[Node]
 
 	if not Peer then
 		ZigWarn('No such node ' .. Node .. ' is active to send message to.')
 	end
+	
+	ZigDebug('Sending message "' .. MsgBody .. '" to node ' .. Node .. ', length ' .. #MsgBody)
 	
 	Peer:SendMsg(MsgBody)
 	
@@ -434,6 +440,10 @@ function Ziggurat:ProcessMsg(SetupArgs, Stream)
 	
 	Peer:AddMessage(Msg)
 	Peer:RenderMessage(Msg)
+	
+	if not self:GetHasFocus() then
+		self:FireAudioNotification()
+	end
 	
 	local Response = self:NewEmptyStream(SetupArgs.Origin, SetupArgs.Subcommand, true, SetupArgs.MsgID)
 	

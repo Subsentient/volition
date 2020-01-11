@@ -39,6 +39,16 @@ static int ZigRenderLinkMessage(lua_State *State)
 	return 1;
 }
 
+static int ZigGetHasFocus(lua_State *State)
+{
+	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
+	
+	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
+	
+	lua_pushboolean(State, Delegate->GetHasFocus());
+	return 1;
+}
+
 static int ZigRenderImageMessage(lua_State *State)
 {
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
@@ -65,6 +75,14 @@ static int ZigRenderImageMessage(lua_State *State)
 	Delegate->RenderDisplayMessage(Msg);
 	
 	lua_pushboolean(State, true);
+	return 1;
+}
+
+
+static int ZigFireAudioNotification(lua_State *State)
+{
+	lua_pushboolean(State, Ziggurat::PlayAudioNotification(":zigdefault.wav"));
+	
 	return 1;
 }
 
@@ -125,6 +143,11 @@ extern "C" DLLEXPORT int InitLibZiggurat(lua_State *State)
 	
 	lua_settable(State, -3);
 	
+	lua_pushstring(State, "GetHasFocus");
+	lua_pushcfunction(State, ZigGetHasFocus);
+	
+	lua_settable(State, -3);
+	
 	lua_pushstring(State, "AddNode");
 	lua_pushcfunction(State, ZigAddNode);
 	
@@ -142,6 +165,11 @@ extern "C" DLLEXPORT int InitLibZiggurat(lua_State *State)
 	
 	lua_pushstring(State, "RenderImageMessage");
 	lua_pushcfunction(State, ZigRenderImageMessage);
+	
+	lua_settable(State, -3);
+	
+	lua_pushstring(State, "FireAudioNotification");
+	lua_pushcfunction(State, ZigFireAudioNotification);
 	
 	lua_settable(State, -3);
 	

@@ -54,12 +54,24 @@ void Ziggurat::ZigMainWindow::OnTabCloseClicked(int TabIndex)
 	emit SessionEndRequested(+Node);
 }
 
+void Ziggurat::ZigMainWindow::OnFocusAltered(QWidget *Old, QWidget *Now)
+{
+	this->HasFocus = Now == this;
+}
+
 void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 {
 	VLThreads::ValueWaiter<ZigMainWindow*> *const Waiter = static_cast<VLThreads::ValueWaiter<ZigMainWindow*>*>(Waiter_);
 
 	VLDEBUG("Constructing QApplication");
-	if (!QApplication::instance()) new QApplication { fakeargc, (char**)fakeargv };
+	QApplication *const App = QApplication::instance() ? (QApplication*)QApplication::instance() : new QApplication { fakeargc, (char**)fakeargv };
+	
+	QFile SS { ":qdarkstyle/style.qss" };
+	
+	if (SS.exists() && SS.open(QFile::ReadOnly | QFile::Text))
+	{
+		App->setStyleSheet(SS.readAll().data());
+	}
 	
 	VLDEBUG("Constructing ZigWin");
 	ZigMainWindow *const ZigWin = new ZigMainWindow;
@@ -72,6 +84,7 @@ void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 	QObject::connect(ZigWin->ZigActNewNode, &QAction::triggered, ZigWin, &ZigMainWindow::OnNewNodeClicked);
 	QObject::connect(ZigWin->ZigMsgTabs, &QTabWidget::tabCloseRequested, ZigWin, &ZigMainWindow::OnTabCloseClicked);
 	QObject::connect(ZigWin->ZigActQuit, &QAction::triggered, ZigWin, [] { exit(0); });
+	QObject::connect(App, &QApplication::focusChanged, ZigWin, &ZigMainWindow::OnFocusAltered);
 	
 	VLDEBUG("Sending ZigWin");
 	Waiter->Post(ZigWin);
@@ -142,11 +155,13 @@ void Ziggurat::ZigMainWindow::OnNodeAdded(const QString Node)
 	
 	VLThreads::MutexKeeper Keeper { &this->MessengersLock };
 
+	Widgy->ZigMessageEditor->setFocus();
+
 	this->Messengers.emplace(Widgy->GetNode(), Widgy);
 
 }
 	
-Ziggurat::ZigMainWindow::ZigMainWindow(void) : QMainWindow()
+Ziggurat::ZigMainWindow::ZigMainWindow(void) : QMainWindow(), HasFocus()
 {
 	setupUi(this);
 }
@@ -254,4 +269,6 @@ Ziggurat::ZigTextChooser::ZigTextChooser(const VLString &WindowTitle,
 	
 	this->TextChooserLabel->setText(+PromptText);
 	this->setWindowTitle(+WindowTitle);
+	
+	this->TextChooserData->setFocus();
 }
