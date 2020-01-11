@@ -157,7 +157,7 @@ namespace Ziggurat
 		ZigMainWindow(void);
 		
 		inline void RenderDisplayMessage(const ZigMessage *const Msg) { emit NewDisplayMessage(Msg); }
-		
+		virtual void closeEvent(QCloseEvent*);
 	public slots:
 		void OnNewDisplayMessage(const ZigMessage *const Msg);
 		void OnNodeAdded(const QString Node);

@@ -122,8 +122,12 @@ void Ziggurat::ZigMainWindow::ThreadFunc(void)
 	QEventLoop Loop;
 	
 	QObject::connect(this, &ZigMainWindow::ZigDies, this, [&Loop] { Loop.exit(); }, Qt::ConnectionType::QueuedConnection);
-
 	Loop.exec();
+}
+
+void Ziggurat::ZigMainWindow::closeEvent(QCloseEvent*)
+{
+	exit(0);
 }
 
 void Ziggurat::ZigMainWindow::OnNodeAdded(const QString Node)
@@ -195,6 +199,12 @@ Ziggurat::ZigTextChooser::ZigTextChooser(const VLString &WindowTitle,
 		if (!this->AcceptCallback) return;
 		
 		this->AcceptCallback(this, this->UserData);
+	}, Qt::ConnectionType::QueuedConnection);
+	
+	QObject::connect(this->TextChooserData, &QLineEdit::editingFinished, this->TextChooserAccept,
+	[this]
+	{
+		emit this->TextChooserAccept->clicked();
 	});
 	
 	QObject::connect(this->TextChooserCancel, &QPushButton::clicked, this,
