@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.1.0)
 project("VLZiggurat")
 
+set(LIBNODE_CXXFLAGS -DAPPENDSCRIPTFUNC=InitLibZiggurat)
+
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../node ${CMAKE_CURRENT_LIST_DIR}/../../node/build)
 
 set(EXTRA_CXXFLAGS)

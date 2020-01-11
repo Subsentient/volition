@@ -107,6 +107,7 @@ if (IDENTITY)
 endif()
 target_include_directories(volition_node PUBLIC ${LUA_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS})
 
+target_compile_options(libnode PUBLIC ${LIBNODE_CXXFLAGS})
 
 target_link_libraries(volition_node libvolition_node ${CURLFLAGS} ${OPENSSL_LIBRARIES} ${LUA_LIBRARIES} ${CURLLD} ${TGT_LDFLAGS} ${EXTRA_LD})
 
