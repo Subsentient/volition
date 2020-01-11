@@ -151,21 +151,57 @@ Ziggurat::ZigMainWindow::ZigMainWindow(void) : QMainWindow()
 	setupUi(this);
 }
 
+void Ziggurat::ZigMessengerWidget::OnEnterPressed(QObject *Object, int Key)
+{
+	if (Object != this->ZigMessageEditor ||
+		(Key != Qt::Key_Enter && Key != Qt::Key_Return))
+	{
+		return;
+	}
+
+	if (this->ZigEnterCheckbox->checkState())
+	{ //Enter to send is on
+		emit this->ZigSendButton->clicked();
+		return;
+	}
+	
+	//Transliterate to HTML returns.
+	this->ZigMessageEditor->appendPlainText("<br />");
+}
+
 Ziggurat::ZigMessengerWidget::ZigMessengerWidget(const VLString &Node)
-	: Node(Node)
+	: Node(Node), KeyMon(new KeyboardMonitor{})
 {
 	setupUi(this);
+	
+	this->KeyMon->setParent(this);
+	this->ZigMessageEditor->installEventFilter(this->KeyMon);
 
 	QObject::connect(this->ZigSendButton, &QPushButton::clicked, this,
 	[this]
 	{
-		emit SendClicked(QString(+this->Node), QString(this->ZigMessageEditor->toPlainText()));
+		VLString TempString { qs2vls(this->ZigMessageEditor->toPlainText()) };
+		TempString.StripLeading(" \n\r");
+		TempString.StripTrailing(" \n\r");
+		
+		emit SendClicked(QString(+this->Node), QString(+TempString));
 		this->ZigMessageEditor->clear();
-	});
+	}, Qt::ConnectionType::QueuedConnection);
 
+	QObject::connect(this->KeyMon, &KeyboardMonitor::KeyPress, this, &ZigMessengerWidget::OnEnterPressed);
 	QObject::connect(this, &ZigMessengerWidget::NewDisplayMessage, this, &ZigMessengerWidget::OnNewDisplayMessage, Qt::ConnectionType::QueuedConnection);
 }
 
+bool Ziggurat::KeyboardMonitor::eventFilter(QObject *Object, QEvent *Event)
+{
+	if (Event->type() != QEvent::KeyPress) return QObject::eventFilter(Object, Event);
+	
+	QKeyEvent *KeyEvent = static_cast<QKeyEvent*>(Event);
+	
+	emit this->KeyPress(Object, KeyEvent->key());
+	
+	return QObject::eventFilter(Object, Event);
+}
 
 void Ziggurat::ZigMessengerWidget::OnNewDisplayMessage(const ZigMessage *const Item)
 {
@@ -199,7 +235,7 @@ Ziggurat::ZigTextChooser::ZigTextChooser(const VLString &WindowTitle,
 		if (!this->AcceptCallback) return;
 		
 		this->AcceptCallback(this, this->UserData);
-	}, Qt::ConnectionType::QueuedConnection);
+	}, Qt::ConnectionType::QueuedConnection); //We use queued connections here to prevent the below signal-forwarding from causing a segfault.
 	
 	QObject::connect(this->TextChooserData, &QLineEdit::editingFinished, this->TextChooserAccept,
 	[this]
@@ -213,7 +249,7 @@ Ziggurat::ZigTextChooser::ZigTextChooser(const VLString &WindowTitle,
 		if (!this->DismissCallback) return;
 		
 		this->DismissCallback(this, this->UserData);
-	});
+	}, Qt::ConnectionType::QueuedConnection);
 	
 	this->TextChooserLabel->setText(+PromptText);
 	this->setWindowTitle(+WindowTitle);

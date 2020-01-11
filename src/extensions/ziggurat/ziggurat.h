@@ -20,6 +20,14 @@ extern "C"
 #endif //WIN32
 namespace Ziggurat
 {
+	class KeyboardMonitor : public QObject
+	{
+	    Q_OBJECT
+	protected:
+	    bool eventFilter(QObject *Object, QEvent *Event);
+	signals:
+		void KeyPress(QObject *Target, int Key);
+	};
 	
 	struct ZigMessage
 	{
@@ -122,6 +130,7 @@ namespace Ziggurat
 		Q_OBJECT
 	private:
 		VLString Node;
+		KeyboardMonitor *KeyMon;
 		
 	public:
 		ZigMessengerWidget(const VLString &Node);
@@ -129,6 +138,8 @@ namespace Ziggurat
 		inline const VLString GetNode(void) const { return this->Node; }
 	public slots:
 		void OnNewDisplayMessage(const ZigMessage *const Item);
+		void OnEnterPressed(QObject *Object, int Key);
+
 	signals:
 		void SendClicked(const QString Node, const QString Msg);
 		void NewDisplayMessage(const ZigMessage *Msg);
