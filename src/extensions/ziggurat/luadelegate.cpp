@@ -9,14 +9,25 @@ extern "C"
 }
 #include <QtWidgets>
 
+
+static int ZigDeleteNativeMsg(lua_State *State)
+{
+	if (lua_getfield(State, 1, "RenderedData") != LUA_TLIGHTUSERDATA) return 0; //Not ready to render so probably didn't have one
+	
+	delete static_cast<Ziggurat::ZigMessage*>(lua_touserdata(State, 1));
+	
+	return 0;
+}
+	
 static int ZigRenderTextMessage(lua_State *State)
 {
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
 	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
-	VLASSERT(lua_type(State, 3) == LUA_TSTRING);
+	VLASSERT(lua_type(State, 3) == LUA_TNUMBER);
+	VLASSERT(lua_type(State, 4) == LUA_TSTRING);
 	
 	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
-	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(lua_tostring(State, 2), lua_tostring(State, 3));
+	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(lua_tostring(State, 2), lua_tointeger(State, 3), lua_tostring(State, 4));
 	
 	Delegate->RenderDisplayMessage(Msg);
 	
@@ -28,10 +39,11 @@ static int ZigRenderLinkMessage(lua_State *State)
 {
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
 	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
-	VLASSERT(lua_type(State, 3) == LUA_TSTRING);
+	VLASSERT(lua_type(State, 3) == LUA_TNUMBER);
+	VLASSERT(lua_type(State, 4) == LUA_TSTRING);
 	
 	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
-	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(lua_tostring(State, 2), lua_tostring(State, 3), Ziggurat::ZigMessage::ZIGMSG_LINK);
+	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(lua_tostring(State, 2), lua_tointeger(State, 3), lua_tostring(State, 4), Ziggurat::ZigMessage::ZIGMSG_LINK);
 	
 	Delegate->RenderDisplayMessage(Msg);
 	
@@ -53,24 +65,27 @@ static int ZigRenderImageMessage(lua_State *State)
 {
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
 	VLASSERT(lua_type(State, 2) == LUA_TSTRING);
-	VLASSERT(lua_type(State, 3) == LUA_TSTRING);
+	VLASSERT(lua_type(State, 3) == LUA_TNUMBER);
 	VLASSERT(lua_type(State, 4) == LUA_TSTRING);
+	VLASSERT(lua_type(State, 5) == LUA_TSTRING);
 	
 	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
 	
 	const VLString Node { lua_tostring(State, 2) };
 	
-	const VLString Text { lua_tostring(State, 3) };
+	const uint32_t MsgID = lua_tointeger(State, 3);
+	
+	const VLString Text { lua_tostring(State, 4) };
 	
 	size_t ImageSize = 0u;
-	const char *ImageData = lua_tolstring(State, 4, &ImageSize);
+	const char *ImageData = lua_tolstring(State, 5, &ImageSize);
 	
 	std::vector<uint8_t> Image;
 	Image.resize(ImageSize);
 	
 	memcpy(Image.data(), ImageData, ImageSize);
 	
-	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(Node, Text, std::move(Image));
+	Ziggurat::ZigMessage *const Msg = new Ziggurat::ZigMessage(Node, MsgID, Text, std::move(Image));
 	
 	Delegate->RenderDisplayMessage(Msg);
 	
@@ -140,6 +155,11 @@ extern "C" DLLEXPORT int InitLibZiggurat(lua_State *State)
 	
 	lua_pushstring(State, "Delegate");
 	lua_pushlightuserdata(State, Delegate);
+	
+	lua_settable(State, -3);
+	
+	lua_pushstring(State, "DeleteNativeMsg");
+	lua_pushcfunction(State, ZigDeleteNativeMsg);
 	
 	lua_settable(State, -3);
 	
@@ -220,6 +240,7 @@ auto Ziggurat::LuaDelegate::Fireup(lua_State *State) -> LuaDelegate*
 	QObject::connect(Win, &ZigMainWindow::SendClicked, Delegate, &LuaDelegate::MessageToSend, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(Win, &ZigMainWindow::NewNodeChosen, Delegate, &LuaDelegate::OnNewNodeChosen, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(Win, &ZigMainWindow::SessionEndRequested, Delegate, &LuaDelegate::OnSessionEndRequested, Qt::ConnectionType::QueuedConnection);
+	QObject::connect(Win, &ZigMainWindow::NativeMessageReady, Delegate, &LuaDelegate::OnNativeMessageReady, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(Delegate, &LuaDelegate::RemoteSessionTerminated, Win, &ZigMainWindow::OnRemoteSessionTerminated, Qt::ConnectionType::QueuedConnection);
 	return Delegate;
 }
@@ -252,6 +273,42 @@ void Ziggurat::LuaDelegate::OnNewNodeChosen(const QString NodeID)
 	lua_pushstring(this->LuaState, qs2vls(NodeID));
 	
 	if (lua_pcall(this->LuaState, 2, 0, 0) != LUA_OK)
+	{
+		VLWARN("Call of lua callback failed!");
+		return;
+	}
+}
+
+void Ziggurat::LuaDelegate::OnNativeMessageReady(Ziggurat::ZigMessage *const Msg)
+{
+	lua_settop(this->LuaState, 0);
+	
+	lua_getglobal(this->LuaState, "Ziggurat");
+	
+	if (lua_type(this->LuaState, -1) != LUA_TTABLE)
+	{
+		VLWARN("Ziggurat Lua global is not set correctly!");
+		lua_settop(this->LuaState, 0);
+		return;
+	}
+	
+	lua_pushstring(this->LuaState, "OnNativeMessageReady");
+	lua_gettable(this->LuaState, -2);
+	
+	if (lua_type(this->LuaState, -1) != LUA_TFUNCTION)
+	{
+		VLDEBUG("No function for OnNativeMessageReady detected, exiting method.");
+		return;
+	}
+	
+	VLDEBUG("Calling Lua callback to mark native data for msg " + Msg->GetNode() + " :: " + VLString::UintToString(Msg->GetMsgID()));
+
+	lua_pushvalue(this->LuaState, 1);
+	lua_pushstring(this->LuaState, Msg->GetNode());
+	lua_pushinteger(this->LuaState, Msg->GetMsgID());
+	lua_pushlightuserdata(this->LuaState, Msg);
+	
+	if (lua_pcall(this->LuaState, 4, 0, 0) != LUA_OK)
 	{
 		VLWARN("Call of lua callback failed!");
 		return;
@@ -292,7 +349,7 @@ void Ziggurat::LuaDelegate::OnSessionEndRequested(const QString NodeID)
 	}
 }
 
-void Ziggurat::LuaDelegate::RenderDisplayMessage(const ZigMessage *const Msg)
+void Ziggurat::LuaDelegate::RenderDisplayMessage(ZigMessage *const Msg)
 {
 	this->Window->RenderDisplayMessage(Msg);
 }
@@ -324,7 +381,7 @@ void Ziggurat::LuaDelegate::OnMessageToSend(const QString Node, const QString Ms
 	
 	if (lua_pcall(this->LuaState, 3, 0, 0) != LUA_OK)
 	{
-		VLWARN("Call of lua callback failed!");
+		VLWARN("Call of lua callback failed! Got error \"" + lua_tostring(this->LuaState, -1) + "\".");
 		return;
 	}
 	

@@ -41,61 +41,71 @@ namespace Ziggurat
 			ZIGMSG_MAX
 		};
 	private:
-		MessageType MsgType;
+		std::vector<uint8_t> BinData;
 		VLString Node;
 		VLString Text;
-		std::vector<uint8_t> BinData;
-		
+		uint32_t MsgID;
+		MessageType MsgType;
+		VLScopedPtr<QWidget*> MsgWidget;
+
 	public:
-		inline ZigMessage(const VLString &Node, const VLString &String, MessageType MsgType = ZIGMSG_TEXT)
-						: MsgType(MsgType), Node(Node), Text(String)
+		inline ZigMessage(const VLString &Node, const uint32_t MsgID, const VLString &String, MessageType MsgType = ZIGMSG_TEXT)
+						: Node(Node), Text(String), MsgID(MsgID), MsgType(MsgType)
 		{
 		}
 		
-		inline ZigMessage(const VLString &Node, const VLString &String, const std::vector<uint8_t> &ImageData)
-						: MsgType(ZIGMSG_IMAGE), Node(Node), Text(String), BinData(ImageData)
+		inline ZigMessage(const VLString &Node, const uint32_t MsgID, const VLString &String, const std::vector<uint8_t> &ImageData)
+						: BinData(ImageData), Node(Node), Text(String), MsgID(MsgID), MsgType(ZIGMSG_IMAGE)
 		{
 		}
-		inline ZigMessage(const VLString &Node, const VLString &String, std::vector<uint8_t> &&ImageData)
-						: MsgType(ZIGMSG_IMAGE), Node(Node), Text(String), BinData(ImageData)
+		inline ZigMessage(const VLString &Node, const uint32_t MsgID, const VLString &String, std::vector<uint8_t> &&ImageData)
+						: BinData(ImageData), Node(Node), Text(String), MsgID(MsgID), MsgType(ZIGMSG_IMAGE)
 		{
 		}
 		
 		inline const VLString &GetNode(void) const { return this->Node; }
-		
-		inline QWidget *AsImage(const int Width, const int Height) const
+		inline uint32_t GetMsgID(void) const { return this->MsgID; }
+		inline MessageType GetMsgType(void) const { return this->MsgType; }
+				
+		inline QLayout *PopulateImageWidget(const int Width, const int Height) const
 		{
-			QWidget *const BaseWidget = new QWidget;
 			QVBoxLayout *const Layout = new QVBoxLayout;
+			Layout->setSpacing(0);
+			Layout->setContentsMargins(0, 0, 0, 0);
 			
-			BaseWidget->setLayout(Layout);
-			
-			QLabel *const TextLabel = new QLabel(BaseWidget);
-			QLabel *const ImageLabel = new QLabel(BaseWidget);
+			QLabel *const TextLabel = new QLabel(QString(+this->Text));
+			QLabel *const ImageLabel = new QLabel;
 
-			TextLabel->setText(+this->Text);
 			TextLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
 			TextLabel->setOpenExternalLinks(true);
 			
 			Layout->addWidget(TextLabel);
 			Layout->addWidget(ImageLabel);
-			
+
 			QPixmap Pix { QPixmap::fromImage(QImage::fromData(this->BinData.data(), this->BinData.size())) };
 			
-			if (Width < Pix.width()) Pix = Pix.scaledToWidth(Width);
-			if (Height < Pix.height()) Pix = Pix.scaledToHeight(Height);
+			if (Width < Pix.width()) Pix = Pix.scaledToWidth(Width, Qt::SmoothTransformation);
+			if (Height < Pix.height()) Pix = Pix.scaledToHeight(Height, Qt::SmoothTransformation);
 			
 			ImageLabel->setPixmap(std::move(Pix));
 			
 			TextLabel->show();
 			ImageLabel->show();
-			return BaseWidget;
+			
+			return Layout;
 		}
 		
-		inline QLabel *AsText(void) const
+		inline QLayout *PopulateTextWidget(void) const
 		{
+			QVBoxLayout *const Layout = new QVBoxLayout;
+			Layout->setSpacing(0);
+			Layout->setContentsMargins(0, 0, 0, 0);
+			
 			QLabel *const Label = new QLabel(QString(+this->Text));
 			Label->setWordWrap(true);
+			Label->show();
+			
+			Layout->addWidget(Label);
 			
 			if (this->MsgType == ZIGMSG_LINK)
 			{
@@ -103,23 +113,38 @@ namespace Ziggurat
 				Label->setOpenExternalLinks(true);
 			}
 			
-			return Label;
+			return Layout;
 		}
 		
-		inline QWidget *GetMsgWidget(const int Width, const int Height) const
+		inline QWidget *GetMsgWidget(void) const { return this->MsgWidget; }
+		
+		inline QWidget *RebuildMsgWidget(const int Width, const int Height)
 		{
+			QWidget *const BaseWidget = this->MsgWidget ? +this->MsgWidget : new QWidget;
+			QLayout *ResultLayout = nullptr;
+			
 			switch (this->MsgType)
 			{
 				case ZIGMSG_IMAGE:
-					return this->AsImage(Width, Height);
+					ResultLayout = this->PopulateImageWidget(Width, Height);
+					break;
 				case ZIGMSG_TEXT:
 				case ZIGMSG_LINK:
-					return this->AsText();
+					ResultLayout = this->PopulateTextWidget();
+					break;
 				default:
 					VLWARN("Bad ZIGMSG value");
-					break;
+					return nullptr;
 			}
-			return nullptr;
+			
+			if (!ResultLayout) return nullptr;
+			
+			BaseWidget->setLayout(ResultLayout);
+			
+			this->MsgWidget = BaseWidget;
+			this->MsgWidget->show();
+
+			return this->MsgWidget;
 		}
 	};
 	
@@ -137,13 +162,14 @@ namespace Ziggurat
 		
 		inline const VLString GetNode(void) const { return this->Node; }
 	public slots:
-		void OnNewDisplayMessage(const ZigMessage *const Item);
+		void OnNewDisplayMessage(ZigMessage *const Item);
 		void OnEnterPressed(QObject *Object, int Key);
 
 	signals:
 		void SendClicked(const QString Node, const QString Msg);
-		void NewDisplayMessage(const ZigMessage *Msg);
-		
+		void NewDisplayMessage(ZigMessage *Msg);
+		void NativeMessageReady(ZigMessage *Msg);
+
 		/*	LuaDelegate is your friend.
 		* 	You trust LuaDelegate.
 		* 	You love LuaDelegate.
@@ -168,10 +194,10 @@ namespace Ziggurat
 		
 		ZigMainWindow(void);
 		
-		inline void RenderDisplayMessage(const ZigMessage *const Msg) { emit NewDisplayMessage(Msg); }
+		inline void RenderDisplayMessage(ZigMessage *const Msg) { emit NewDisplayMessage(Msg); }
 		virtual void closeEvent(QCloseEvent*);
 	public slots:
-		void OnNewDisplayMessage(const ZigMessage *const Msg);
+		void OnNewDisplayMessage(ZigMessage *const Msg);
 		void OnNodeAdded(const QString Node);
 		void OnNewNodeClicked(void);
 		void OnTabCloseClicked(int TabIndex);
@@ -180,12 +206,13 @@ namespace Ziggurat
 
 	signals:
 		void ZigDies(void);
-		void NewDisplayMessage(const ZigMessage *Msg);
+		void NewDisplayMessage(ZigMessage *Msg);
 		void SendClicked(const QString Node, const QString Msg);
 		void NodeAdded(const QString Node);
 		void NewNodeChosen(const QString NodeID);
 		void SessionEndRequested(const QString NodeID);
-		
+		void NativeMessageReady(ZigMessage *Msg);
+	
 		friend class LuaDelegate;
 	};
 	
@@ -233,17 +260,19 @@ namespace Ziggurat
 		void OnMessageToSend(const QString Node, const QString Msg);
 		void OnNewNodeChosen(const QString NodeID);
 		void OnSessionEndRequested(const QString NodeID);
+		void OnNativeMessageReady(ZigMessage *const Msg);
 
 	signals:
 		void MessageToSend(const QString Node, const QString Msg);
 		void RemoteSessionTerminated(const QString Node);
+
 	public:
 		LuaDelegate(ZigMainWindow *Win, VLThreads::Thread *ThreadObj, lua_State *State);
 	public:
 		static LuaDelegate *Fireup(lua_State *State);
 		void ProcessQtEvents(void) const;
 		inline bool GetHasFocus(void) const { return this->Window->HasFocus; }
-		void RenderDisplayMessage(const ZigMessage *const Msg);
+		void RenderDisplayMessage(ZigMessage *const Msg);
 		void AddNode(const VLString &Node);
 	};
 	

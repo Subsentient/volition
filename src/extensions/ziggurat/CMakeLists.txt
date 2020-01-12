@@ -66,8 +66,8 @@ endif()
 set(sourcefiles ziggurat.h luadelegate.cpp widgets.cpp notifications.cpp zigresources.qrc qdarkstyle/qdarkstyle/style.qrc)
 qt5_wrap_ui(sourcefiles zigmessenger.ui zigmainwindow.ui zigtextchooser.ui)
 
-add_library(Ziggurat SHARED ${sourcefiles})
-add_library(Ziggurat_static STATIC ${sourcefiles})
+add_library(Ziggurat SHARED EXCLUDE_FROM_ALL ${sourcefiles})
+add_library(Ziggurat_static STATIC EXCLUDE_FROM_ALL ${sourcefiles})
 add_executable(Ziggurat_node ${sourcefiles} win32/win.rc)
 
 target_include_directories(Ziggurat PRIVATE "../../")

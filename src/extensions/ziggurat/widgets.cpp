@@ -114,7 +114,7 @@ void Ziggurat::ZigMainWindow::OnNewNodeClicked(void)
 	Chooser->show();
 }
 
-void Ziggurat::ZigMainWindow::OnNewDisplayMessage(const ZigMessage *const Item)
+void Ziggurat::ZigMainWindow::OnNewDisplayMessage(ZigMessage *const Item)
 {
 	VLThreads::MutexKeeper Keeper { &this->MessengersLock };
 	
@@ -149,6 +149,7 @@ void Ziggurat::ZigMainWindow::OnNodeAdded(const QString Node)
 	ZigMessengerWidget *const Widgy = new ZigMessengerWidget(qs2vls(Node));
 	
 	QObject::connect(Widgy, &ZigMessengerWidget::SendClicked, this, &ZigMainWindow::SendClicked);
+	QObject::connect(Widgy, &ZigMessengerWidget::NativeMessageReady, this, &ZigMainWindow::NativeMessageReady);
 	
 	Widgy->show();
 	
@@ -219,20 +220,31 @@ bool Ziggurat::KeyboardMonitor::eventFilter(QObject *Object, QEvent *Event)
 	return QObject::eventFilter(Object, Event);
 }
 
-void Ziggurat::ZigMessengerWidget::OnNewDisplayMessage(const ZigMessage *const Item)
+void Ziggurat::ZigMessengerWidget::OnNewDisplayMessage(ZigMessage *const Item)
 {
 	QListWidgetItem *const ModelItem = new QListWidgetItem;
-
-	QWidget *const MsgWidget = Item->GetMsgWidget(ZigMessageList->width(), ZigMessageList->height());
-	MsgWidget->setParent(this->ZigMessageList);
+	
+	///75% max height/width for images
+	const int MaxWidth = ZigMessageList->width() - (ZigMessageList->width() / 4);
+	const int MaxHeight = ZigMessageList->height() - (ZigMessageList->height() / 4);
+	
+	QWidget *const MsgWidget = Item->RebuildMsgWidget(MaxWidth, MaxHeight);
+	
+	if (!MsgWidget)
+	{
+		VLERROR("FAILED TO GENERATE WIDGET FOR DISPLAY!");
+		return;
+	}
 	
 	ModelItem->setSizeHint(MsgWidget->sizeHint());
 
 	MsgWidget->show();
-
+	
 	this->ZigMessageList->addItem(ModelItem);
 	this->ZigMessageList->setItemWidget(ModelItem, MsgWidget);
 	this->ZigMessageList->verticalScrollBar()->setValue(this->ZigMessageList->verticalScrollBar()->maximum());
+	
+	emit NativeMessageReady(Item);
 }
 
 Ziggurat::ZigTextChooser::ZigTextChooser(const VLString &WindowTitle,

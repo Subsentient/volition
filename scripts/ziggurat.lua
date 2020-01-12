@@ -24,33 +24,46 @@ ZigPeer = { Message = {} }
 
 ZigLibEntryPointName = 'InitLibZiggurat'
 
+PingoutSecs = 10
+PingIntervalSecs = 3
+
 function ZigPeer.New(Node, ForeignJobID)
 	local Table =	{
 						LastActivity = os.time(),
+						LastOutgoingPing = os.time(),
 						ID = Node,
 						DisplayName = Node, --Changeable by the user
 						Messages = {},
-						ForeignJobID = ForeignJobID
+						ForeignJobID = ForeignJobID,
 					}
 					
 	setmetatable(Table, { __index = ZigPeer })
 	return Table
 end
 
-function ZigPeer.Message.New(Origin, Destination, Body)
+function ZigPeer.Message.New(Origin, Destination, Body, SentMessageID)
 	local Instance =	{
 							Origin = Origin,
 							Destination = Destination,
 							Body = Body,
-							SendTime = os.time()
+							SendTime = os.time(),
+							SentMessageID = SentMessageID,
+							DeliverTime = nil,
+							Delivered = false,
+							RenderedData = nil,
 						}
 
-	setmetatable(Instance, { __index = ZigPeer.Message })
+	setmetatable(Instance, { __index = ZigPeer.Message, __gc = Ziggurat.DeleteNativeMsg })
 	return Instance
 end
 
 function ZigPeer.Message:IsLinkMsg()
 	return string.find(self.Body, '^http[s]?://') ~= nil
+end
+
+function ZigPeer.Message:MarkDelivered()
+	self.DeliverTime = os.time()
+	self.Delivered = true
 end
 
 function ZigPeer.Message:IsImageMsg()
@@ -75,9 +88,9 @@ end
 
 
 function ZigPeer.Message:BuildMsgHeader(DisplayName, Color)
-	return '<font color="#008000">[' .. os.date('%a %Y-%m-%d %I:%M:%S %p') .. '] </font><font color="' .. Color .. '">' .. DisplayName .. ':</font> '
+	return '<font color="#AAFFAA">[' .. os.date('%a %Y-%m-%d %I:%M:%S %p') .. '] </font><font color="' .. Color .. '">' .. DisplayName .. ':</font> '
 end
-	
+
 function ZigPeer:RenderMessage(Msg)
 
 	local MessengerNode = self.ID == VL.GetIdentity() and Msg.Destination or self.ID
@@ -87,7 +100,7 @@ function ZigPeer:RenderMessage(Msg)
 	if self == ZigPeer.Us then
 		Color = '#00cd00'
 	else
-		Color = '#0000cd'
+		Color = '#00cdcd'
 	end
 	
 	if Msg:IsImageMsg() then
@@ -95,19 +108,19 @@ function ZigPeer:RenderMessage(Msg)
 		
 		if not Blob then
 			ZigWarn('Unable to download file at "' .. Msg.Body .. '".')
-			Ziggurat:RenderTextMessage(MessengerNode, Msg:BuildMsgHeader(self.DisplayName, Color) .. '<font color="#cd0000">BROKEN IMAGE at URL ' .. Msg.Body .. '</font>')
+			Ziggurat:RenderTextMessage(MessengerNode, Msg.SentMessageID, Msg:BuildMsgHeader(self.DisplayName, Color) .. '<font color="#cd0000">BROKEN IMAGE at URL ' .. Msg.Body .. '</font>')
 			return
 		end
 		
 		local ImageText = Msg:BuildMsgHeader(self.DisplayName, Color) .. '<br><i>Image at</i> <a href="' .. Msg.Body .. '">' .. Msg.Body .. '</a>'
 
-		Ziggurat:RenderImageMessage(MessengerNode, ImageText, Blob)
+		Ziggurat:RenderImageMessage(MessengerNode, Msg.SentMessageID, ImageText, Blob)
 	elseif Msg:IsLinkMsg() then
 		local LinkText = Msg:BuildMsgHeader(self.DisplayName, Color) .. '<br><a href="' .. Msg.Body .. '">' .. Msg.Body .. '</a>'
 		
-		Ziggurat:RenderLinkMessage(MessengerNode, LinkText)
+		Ziggurat:RenderLinkMessage(MessengerNode, Msg.SentMessageID, LinkText)
 	else
-		Ziggurat:RenderTextMessage(MessengerNode, Msg:BuildMsgHeader(self.DisplayName, Color) .. '<br>' .. Msg.Body)
+		Ziggurat:RenderTextMessage(MessengerNode, Msg.SentMessageID, Msg:BuildMsgHeader(self.DisplayName, Color) .. '<br>' .. Msg.Body)
 	end
 end
 
@@ -141,7 +154,7 @@ function Ziggurat:NewEmptyStream(Destination, Subcommand, IsReport, MsgID)
 	local CounterID
 	
 	--If we're a report, we reply with the same message ID the other guy sent.
-	if IsReport then
+	if IsReport or MsgID then
 		CounterID = MsgID
 	else
 		CounterID = MsgIDCounter
@@ -149,16 +162,17 @@ function Ziggurat:NewEmptyStream(Destination, Subcommand, IsReport, MsgID)
 	end
 	
 	Msg:Push(VL.ARGTYPE_UINT32, CounterID) --Local message ID, not used by foreign nodes
-
 	Msg:Push(VL.ARGTYPE_UINT32, Subcommand) --Sub-command code used by Ziggurat exclusively
 	
-	return Msg
+	return Msg, CounterID
 end
 
 function ZigPeer:SendPing()
 	local Msg = Ziggurat:NewEmptyStream(self.ID, ZIGCMD_PING, false)
 	
 	VL.SendN2N(Msg)
+	
+	self.LastOutgoingPing = os.time()
 end
 
 function ZigPeer:RegisterActivity()
@@ -166,20 +180,21 @@ function ZigPeer:RegisterActivity()
 end
 
 function ZigPeer:AddMessage(Msg)
-	self.Messages[#self.Messages + 1] = Msg
+	self.Messages[Msg.SentMessageID] = Msg
 end
 
 function ZigPeer:SendMsg(Body)
-	local Msg = self.Message.New(VL.GetIdentity(), self.ID, Body)
-	
+
+	local OutStream, MsgID = Ziggurat:NewEmptyStream(self.ID, ZIGCMD_MSG, false)
+
+	local Msg = self.Message.New(VL.GetIdentity(), self.ID, Body, MsgID)
+
 	self.Us:AddMessage(Msg)
 	self.Us:RenderMessage(Msg)
 
-	local OutMsg = Ziggurat:NewEmptyStream(Msg.Destination, ZIGCMD_MSG, false)
-
-	OutMsg:Push(VL.ARGTYPE_STRING, Msg.Body)
+	OutStream:Push(VL.ARGTYPE_STRING, Msg.Body)
 	
-	VL.SendN2N(OutMsg)
+	VL.SendN2N(OutStream)
 end
 
 function ZigDebug(String)
@@ -430,13 +445,16 @@ function Ziggurat:ProcessMsg(SetupArgs, Stream)
 	
 	if not Peer then
 		ZigWarn('Received bogus message from non-peer node ' .. SetupArgs.Origin .. ', discarding')
+		return
 	end
 	
-	local MsgBody, _
+	local MsgBody, MsgID, _
 	
 	_, MsgBody = Stream:Pop()
 	 
-	local Msg = ZigPeer.Message.New(SetupArgs.Origin, SetupArgs.Destination, MsgBody)
+	local Msg = ZigPeer.Message.New(SetupArgs.Origin, SetupArgs.Destination, MsgBody, SetupArgs.MsgID)
+	
+	Msg:MarkDelivered() --Because we just received it
 	
 	Peer:AddMessage(Msg)
 	Peer:RenderMessage(Msg)
@@ -445,12 +463,29 @@ function Ziggurat:ProcessMsg(SetupArgs, Stream)
 		self:FireAudioNotification()
 	end
 	
-	local Response = self:NewEmptyStream(SetupArgs.Origin, SetupArgs.Subcommand, true, SetupArgs.MsgID)
+	local Response = self:NewEmptyStream(SetupArgs.Origin, SetupArgs.Subcommand, true, Msg.SentMessageID)
 	
 	VL.SendN2N(Response)
 end
 
 function Ziggurat:ProcessMsgReport(SetupArgs, Stream)
+	local Peer = Peers[SetupArgs.Origin]
+	
+	if not Peer then
+		ZigWarn('Received message report from non-peer node ' .. SetupArgs.Origin .. ', discarding')
+		return
+	end
+	
+	local Msg = ZigPeer.Us.Messages[SetupArgs.MsgID]
+	
+	if not Msg then
+		ZigWarn('Received message report from peer ' .. Peer.ID .. ', but we never sent a message with ID ' .. tostring(SetupArgs.MsgID) .. '!')
+		return
+	end
+
+	Msg:MarkDelivered()
+
+	ZigDebug('Successful delivery report from node ' .. Peer.ID .. ' for message ID ' .. tostring(SetupArgs.MsgID))
 end
 
 function Ziggurat:OnSessionEndRequested(NodeID)
@@ -562,9 +597,30 @@ function Ziggurat:ProcessN2NQueue()
 	end
 end
 
+function Ziggurat:ProcessPings()
+	for ID, Peer in pairs(Peers) do
+		if Peer.LastActivity + PingoutSecs <= os.time() then
+			local EndMsg = Ziggurat:NewEmptyStream(NodeID, ZIGCMD_UNGREET, false)
+			
+			ZigDebug('Pingout detected, sending ungreet to node ' .. ID)
+			
+			VL.SendN2N(EndMsg)
+			
+			self:OnRemoteSessionTerminated(ID)
+			
+			Peers[ID] = nil
+			
+			return self:ProcessPings() --Restart loop
+		elseif Peer.LastOutgoingPing + PingIntervalSecs <= os.time() then
+			Peer:SendPing() --Send pings to everyone we know.
+		end
+	end
+end
+		
 function Ziggurat:MainLoopIter()
 	self:ProcessQtEvents()
 	self:ProcessN2NQueue()
+	self:ProcessPings()
 	VL.vl_sleep(20)
 end
 
