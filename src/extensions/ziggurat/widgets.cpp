@@ -56,7 +56,8 @@ void Ziggurat::ZigMainWindow::OnTabCloseClicked(int TabIndex)
 
 void Ziggurat::ZigMainWindow::OnFocusAltered(QWidget *Old, QWidget *Now)
 {
-	this->HasFocus = Now == this;
+	this->HasFocus = Now != nullptr;
+	VLDEBUG("Focus updated to " + (this->HasFocus ? "true" : "false"));
 }
 
 void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
