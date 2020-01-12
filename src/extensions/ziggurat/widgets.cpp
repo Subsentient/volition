@@ -181,9 +181,6 @@ void Ziggurat::ZigMessengerWidget::OnEnterPressed(QObject *Object, int Key)
 		emit this->ZigSendButton->clicked();
 		return;
 	}
-	
-	//Transliterate to HTML returns.
-	this->ZigMessageEditor->appendPlainText("<br />");
 }
 
 Ziggurat::ZigMessengerWidget::ZigMessengerWidget(const VLString &Node)
@@ -201,7 +198,15 @@ Ziggurat::ZigMessengerWidget::ZigMessengerWidget(const VLString &Node)
 		TempString.StripLeading(" \n\r");
 		TempString.StripTrailing(" \n\r");
 		
-		emit SendClicked(QString(+this->Node), QString(+TempString));
+		if (this->ZigHTMLCheckbox->checkState())
+		{
+			emit SendClicked(QString(+this->Node), QString(+TempString).replace("\n", "<br />"));
+		}
+		else
+		{
+			emit SendClicked(QString(+this->Node), QString(+TempString).toHtmlEscaped().replace("\n", "<br />"));
+		}
+
 		this->ZigMessageEditor->clear();
 	}, Qt::ConnectionType::QueuedConnection);
 

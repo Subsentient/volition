@@ -313,6 +313,40 @@ std::vector<VLString> *Utils::SplitTextByCharacter(const char *Text, const char 
 	
 }
 
+std::vector<VLString> *Utils::SplitTextBySubstring(const char *Text, const char *Substring)
+{
+	std::vector<VLString> *RetVal = new std::vector<VLString>;
+
+	if (!*Text) return RetVal; //Give us the empty vector we asked for, like the retards we are.
+	
+	VLString Buffer(strlen(Text) + 1);
+
+	const char *Worker = Text;
+	
+	const uint32_t SSLen = strlen(Substring);
+	
+	do
+	{
+		if (!strncmp(Worker, Substring, SSLen))
+		{
+			Worker += SSLen;
+			if (*Worker == '\0') break; //Don't try and store the empty line if we have trailing triggers.
+		}
+		
+		size_t Inc = 0;
+		for (; strncmp(Worker + Inc, Substring, SSLen) != 0 && Worker[Inc] != '\0'; ++Inc)
+		{
+			Buffer[Inc] = Worker[Inc];
+		}
+		
+		Buffer[Inc] = 0;
+
+		RetVal->push_back((const char*)Buffer);
+	} while ((Worker = strstr(Worker, Substring)));
+
+	return RetVal;
+}
+
 VLString Utils::JoinTextByCharacter(const std::vector<VLString> *Strings, const char Character)
 {
 	VLString RetVal(8192);
@@ -324,6 +358,23 @@ VLString Utils::JoinTextByCharacter(const std::vector<VLString> *Strings, const 
 		if (Inc + 1 < Strings->size())
 		{
 			RetVal += Character;
+		}
+	}
+
+	return RetVal;
+}
+	
+VLString Utils::JoinTextBySubstring(const std::vector<VLString> *Strings, const char *Substring)
+{
+	VLString RetVal(8192);
+	
+	for (size_t Inc = 0; Inc < Strings->size(); ++Inc)
+	{
+		RetVal += Strings->at(Inc);
+		
+		if (Inc + 1 < Strings->size())
+		{
+			RetVal += Substring;
 		}
 	}
 

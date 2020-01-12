@@ -38,7 +38,11 @@ namespace Utils
 	bool GetFileSize(const char *Path, uint64_t *Output);
 	VLString StripPathFromFilename(const char *FilePath);
 	std::vector<VLString> *SplitTextByCharacter(const char *Text, const char Character);
+	std::vector<VLString> *SplitTextBySubstring(const char *Text, const char *Substring);
+	
 	VLString JoinTextByCharacter(const std::vector<VLString> *Strings, const char Character);
+	VLString JoinTextBySubstring(const std::vector<VLString> *Strings, const char *Substring);
+	
 	VLString GetTempDirectory(void);
 	bool IsDirectory(const char *Path);
 	VLString GetSelfBinaryPath(void);

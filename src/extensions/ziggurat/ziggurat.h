@@ -76,7 +76,7 @@ namespace Ziggurat
 			QLabel *const TextLabel = new QLabel(QString(+this->Text));
 			QLabel *const ImageLabel = new QLabel;
 
-			TextLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+			TextLabel->setTextInteractionFlags(Qt::TextBrowserInteraction | Qt::TextSelectableByMouse);
 			TextLabel->setOpenExternalLinks(true);
 			
 			Layout->addWidget(TextLabel);
@@ -100,12 +100,13 @@ namespace Ziggurat
 			
 			QLabel *const Label = new QLabel(QString(+this->Text));
 			Label->setWordWrap(true);
+			Label->setTextInteractionFlags(Qt::TextSelectableByMouse);
 			
 			Layout->addWidget(Label);
-			
+
 			if (this->MsgType == ZIGMSG_LINK)
 			{
-				Label->setTextInteractionFlags(Qt::TextBrowserInteraction);
+				Label->setTextInteractionFlags(Label->textInteractionFlags() | Qt::TextBrowserInteraction);
 				Label->setOpenExternalLinks(true);
 			}
 			
@@ -134,6 +135,8 @@ namespace Ziggurat
 			}
 			
 			if (!ResultLayout) return nullptr;
+			
+			delete BaseWidget->layout(); //If it's already there, this is necessary or Qt won't let us replace it.
 			
 			BaseWidget->setLayout(ResultLayout);
 			
