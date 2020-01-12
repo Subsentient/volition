@@ -237,12 +237,12 @@ void Ziggurat::ZigMessengerWidget::OnNewDisplayMessage(ZigMessage *const Item)
 	}
 	
 	ModelItem->setSizeHint(MsgWidget->sizeHint());
-
-	MsgWidget->show();
 	
 	this->ZigMessageList->addItem(ModelItem);
 	this->ZigMessageList->setItemWidget(ModelItem, MsgWidget);
 	this->ZigMessageList->verticalScrollBar()->setValue(this->ZigMessageList->verticalScrollBar()->maximum());
+
+	MsgWidget->show();
 	
 	emit NativeMessageReady(Item);
 }

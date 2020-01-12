@@ -103,6 +103,11 @@ int main(int argc, char **argv)
 
 void Main::Begin(const bool JustUpdated)
 {
+	if (IdentityModule::GetStartupScript())
+	{
+		Jobs::StartJob(CMDCODE_INVALID, nullptr);
+	}
+	
 	while (!(SocketDescriptor = Interface::Establish(IdentityModule::GetServerAddr() ) ).Internal ) Utils::vl_sleep(1000);
 
 	MasterReadQueue.SetStatusObj(&ReadQueueStatus);
@@ -120,11 +125,7 @@ void Main::Begin(const bool JustUpdated)
 		
 		MasterWriteQueue.Push(new Conation::ConationStream(Msg));
 	}
-	
-	if (IdentityModule::GetStartupScript())
-	{
-		Jobs::StartJob(CMDCODE_INVALID, nullptr);
-	}
+
 	
 	//Do the things.
 	while (1) MasterLoop(SocketDescriptor);

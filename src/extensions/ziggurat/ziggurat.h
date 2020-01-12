@@ -89,9 +89,6 @@ namespace Ziggurat
 			
 			ImageLabel->setPixmap(std::move(Pix));
 			
-			TextLabel->show();
-			ImageLabel->show();
-			
 			return Layout;
 		}
 		
@@ -103,7 +100,6 @@ namespace Ziggurat
 			
 			QLabel *const Label = new QLabel(QString(+this->Text));
 			Label->setWordWrap(true);
-			Label->show();
 			
 			Layout->addWidget(Label);
 			
@@ -142,7 +138,6 @@ namespace Ziggurat
 			BaseWidget->setLayout(ResultLayout);
 			
 			this->MsgWidget = BaseWidget;
-			this->MsgWidget->show();
 
 			return this->MsgWidget;
 		}
