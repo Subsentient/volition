@@ -961,13 +961,12 @@ void Conation::ConationStream::IntegrityCheck(void) const
 
 bool Conation::ConationStream::VerifyArgTypePattern(const size_t ArgOffset, const std::vector<ArgType> &List) const
 { //Checks for a repeating pattern for arguments.
-	std::vector<ArgType> *Ptr = this->GetArgTypes();
+	VLScopedPtr<std::vector<ArgType>* > Ptr { this->GetArgTypes() };
 
 	if (!Ptr || Ptr->size() < ArgOffset + 1 ||
 		Ptr->size() - ArgOffset < List.size() ||
 		(!List.size() && Ptr->size() - ArgOffset))
 	{
-		delete Ptr;
 		return false;
 	}
 
@@ -979,12 +978,10 @@ bool Conation::ConationStream::VerifyArgTypePattern(const size_t ArgOffset, cons
 
 		if (Ptr->at(Inc) != List[PatternInc])
 		{
-			delete Ptr;
 			return false;
 		}
 	}
 
-	delete Ptr;
 
 	if (PatternInc != List.size()) return false;
 

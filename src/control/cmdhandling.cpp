@@ -373,7 +373,7 @@ static void AddServerCommandStatusReport(Conation::ConationStream *Stream)
 		return;
 	}
 
-	std::vector<Conation::ArgType> *ArgTypes = Stream->GetArgTypes();
+	VLScopedPtr<std::vector<Conation::ArgType>* > ArgTypes { Stream->GetArgTypes() };
 
 	if (!ArgTypes)
 	{
@@ -513,7 +513,7 @@ static void AddNodeCommandStatusReport(Conation::ConationStream *Stream)
 		return;
 	}
 
-	std::vector<Conation::ArgType> *ArgTypes = Stream->GetArgTypes();
+	VLScopedPtr<std::vector<Conation::ArgType>* > ArgTypes { Stream->GetArgTypes() };
 
 	if (!ArgTypes)
 	{

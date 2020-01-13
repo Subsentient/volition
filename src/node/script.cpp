@@ -1747,7 +1747,7 @@ static int GetCSArgsList_Lua(lua_State *State)
 	
 	lua_newtable(State);
 	
-	std::vector<Conation::ArgType> *Args = Stream->GetArgTypes();
+	VLScopedPtr<std::vector<Conation::ArgType>* > Args { Stream->GetArgTypes() };
 	
 	for (size_t Inc = 0; Inc < Args->size(); ++Inc)
 	{
@@ -1755,8 +1755,6 @@ static int GetCSArgsList_Lua(lua_State *State)
 		lua_pushinteger(State, Args->at(Inc));
 		lua_settable(State, 1);
 	}
-	
-	delete Args;
 	
 	return 1;
 }
