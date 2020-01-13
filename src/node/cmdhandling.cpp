@@ -109,6 +109,7 @@ void CmdHandling::HandleRequest(Conation::ConationStream *Stream)
 		case CMDCODE_A2C_CHDIR:
 		case CMDCODE_A2C_GETCWD:
 		case CMDCODE_A2C_EXECCMD:
+		case CMDCODE_A2C_EXECSNIPPET:
 		case CMDCODE_A2C_FILES_COPY:
 		case CMDCODE_A2C_FILES_MOVE:
 		case CMDCODE_A2C_FILES_DEL:

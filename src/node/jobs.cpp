@@ -59,6 +59,7 @@ static void *JOB_FILES_FETCH_ThreadFunc(Jobs::Job *OurJob);
 static void *JOB_FILES_COPY_ThreadFunc(Jobs::Job *OurJob);
 static void *JOB_FILES_DEL_ThreadFunc(Jobs::Job *OurJob);
 static void *JOB_EXECCMD_ThreadFunc(Jobs::Job *OurJob);
+static void *JOB_EXECSNIPPET_ThreadFunc(Jobs::Job *OurJob);
 static void *JOB_GETCWD_ThreadFunc(Jobs::Job *OurJob);
 static void *JOB_GETPROCESSES_ThreadFunc(Jobs::Job *OurJob);
 static void *JOB_KILLPROCESS_ThreadFunc(Jobs::Job *OurJob);
@@ -77,6 +78,7 @@ static JobFuncLookupStruct JobFunctions[] = {
 												{ CMDCODE_A2C_GETPROCESSES, JOB_GETPROCESSES_ThreadFunc },
 												{ CMDCODE_A2C_KILLPROCESS, JOB_KILLPROCESS_ThreadFunc },
 												{ CMDCODE_A2C_EXECCMD, JOB_EXECCMD_ThreadFunc },
+												{ CMDCODE_A2C_EXECSNIPPET, JOB_EXECSNIPPET_ThreadFunc },
 												{ CMDCODE_A2C_FILES_DEL, JOB_FILES_DEL_ThreadFunc },
 												{ CMDCODE_A2C_FILES_PLACE, JOB_FILES_PLACE_ThreadFunc },
 												{ CMDCODE_A2C_FILES_FETCH, JOB_FILES_FETCH_ThreadFunc },
@@ -196,6 +198,59 @@ static void *JOB_LISTDIRECTORY_ThreadFunc(Jobs::Job *OurJob)
 
 	Main::PushStreamToWriteQueue(Response);
 	
+	return nullptr;
+}
+
+static void *JOB_EXECSNIPPET_ThreadFunc(Jobs::Job *OurJob)
+{
+	InitJobEnv();
+	
+	Conation::ConationStream *Stream = OurJob->Read_Queue.Pop(false); //Cuz the snippet might want this
+
+	VLASSERT(Conation::BuildIdentComposite(Conation::GetIdentFlags(Stream->GetCmdIdentComposite()) & ~Conation::IDENT_ISREPORT_BIT, Stream->GetCmdIdentOnly()) == OurJob->CmdIdent && Stream->GetCommandCode() == OurJob->CmdCode);
+
+	Conation::ConationStream Response(OurJob->CmdCode, Conation::GetIdentFlags(OurJob->CmdIdent) | Conation::IDENT_ISREPORT_BIT, OurJob->CmdIdent);
+	Response.Push_ODHeader(IdentityModule::GetNodeIdentity(), ADMIN_STR);
+
+	if (!Stream->VerifyArgTypes({Conation::ARGTYPE_ODHEADER, Conation::ARGTYPE_STRING}))
+	{
+		Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_MISUSED));
+		
+		Main::PushStreamToWriteQueue(Response);
+		
+		return nullptr;
+	}
+	
+	Stream->Pop_ODHeader();
+	
+	const VLString ScriptData { Stream->Pop_String() };
+	
+	if (!Script::LoadScript(ScriptData, "VLTMPSNIPPET", true))
+	{
+		Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_IERR));
+		Main::PushStreamToWriteQueue(Response);
+		
+		return nullptr;
+	}
+	
+	try
+	{
+		if (!Script::ExecuteScriptFunction("VLTMPSNIPPET", nullptr, nullptr, OurJob))
+		{
+			Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_FAILED, "Generic failure with no details"));
+			Main::PushStreamToWriteQueue(Response);
+			return nullptr;
+		}
+	}
+	catch (const Script::ScriptError &Err)
+	{
+		Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_FAILED, Err.Msg));
+		Main::PushStreamToWriteQueue(Response);
+		return nullptr;
+	}
+	
+	Response.Push_NetCmdStatus(true);
+	Main::PushStreamToWriteQueue(Response);
 	return nullptr;
 }
 	

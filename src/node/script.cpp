@@ -101,6 +101,8 @@ static int VLAPI_ListDirectory(lua_State *State);
 static int VLAPI_IsDirectory(lua_State *State);
 static int VLAPI_GetCWD(lua_State *State);
 static int VLAPI_Chdir(lua_State *State);
+static int VLAPI_getenv(lua_State *State);
+static int VLAPI_setenv(lua_State *State);
 static int VLAPI_SlurpFile(lua_State *State);
 static int VLAPI_WriteFile(lua_State *State);
 static int VLAPI_RunningAsJob(lua_State *State);
@@ -157,6 +159,8 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "SendN2N", VLAPI_SendStream }, //Same function, just an alias
 	{ "GetTempDirectory", VLAPI_GetTempDirectory },
 	{ "vl_sleep", VLAPI_vl_sleep },
+	{ "getenv", VLAPI_getenv },
+	{ "setenv", VLAPI_setenv },
 	{ "FileExists", VLAPI_FileExists },
 	{ "GetFileSize", VLAPI_GetFileSize },
 	{ "StripPathFromFilename", VLAPI_StripPathFromFilename },
@@ -470,6 +474,32 @@ static int VLAPI_GetIdentity(lua_State *State)
 {
 	
 	lua_pushstring(State, IdentityModule::GetNodeIdentity());
+
+	return 1;
+}
+
+static int VLAPI_setenv(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING, LUA_TSTRING, }))
+	{
+		VLDEBUG("Invalid arguments");
+		return 0;
+	}
+	
+	lua_pushboolean(State, !putenv((char*)+(VLString(lua_tostring(State, 1)) + "=" + lua_tostring(State, 2))));
+
+	return 1;
+}
+
+static int VLAPI_getenv(lua_State *State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING }))
+	{
+		VLDEBUG("Invalid arguments");
+		return 0;
+	}
+	
+	lua_pushstring(State, getenv(lua_tostring(State, 1)));
 
 	return 1;
 }
@@ -2397,6 +2427,11 @@ bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionN
 	puts("Script::ExecuteScriptFunction(): InitScript() succeeded");
 #endif
 
+	if (!FunctionName || !*FunctionName)
+	{ //They really just wanted us to execute that block in InitScript().
+		return true;
+	}
+	
 	
 	///All this is to create a duplicated Lua-ified ConationStream for the argument to FunctionName.
 	
@@ -2420,7 +2455,6 @@ bool Script::ExecuteScriptFunction(const char *ScriptName, const char *FunctionN
 	}
 	
 	///Now we have the Lua-ified ConationStream on the stack, and we're gonna use it as the only argument to our script function.
-	
 	//Find our function.
 	lua_getglobal(State, FunctionName);
 	

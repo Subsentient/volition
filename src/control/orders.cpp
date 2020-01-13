@@ -90,6 +90,7 @@ const DialogSpecStruct DialogCommandMap[] =
 		{ CMDCODE_A2C_FILES_PLACE,DialogSpecStruct::FLAG_NONE,			{ DialogEntry(GuiDialogs::DIALOG_FILECHOOSER, Conation::ARGTYPE_FILE, "Select files", "Select files to upload.", true),
 																		  DialogEntry(GuiDialogs::DIALOG_SIMPLETEXT, Conation::ARGTYPE_FILEPATH, "Enter destination directory", "Enter a destination directory for the selected files.") } },
 		{ CMDCODE_A2C_LISTDIRECTORY,DialogSpecStruct::FLAG_NONE,		{ DialogEntry(GuiDialogs::DIALOG_SIMPLETEXT, Conation::ARGTYPE_FILEPATH, "Enter path", "Enter the path of a directory on the host system to list.") } },
+		{ CMDCODE_A2C_EXECSNIPPET,DialogSpecStruct::FLAG_NONE,			{ DialogEntry(GuiDialogs::DIALOG_LARGETEXT, Conation::ARGTYPE_STRING, "Enter Lua snippet", "Type or paste Lua code to execute on node.") } },
 		{ CMDCODE_A2C_KILLPROCESS,DialogSpecStruct::FLAG_NONE,			{ DialogEntry(GuiDialogs::DIALOG_LARGETEXT, Conation::ARGTYPE_STRING, "Enter process names or PIDs", "Enter a newline delimited list of process names and/or PIDs to kill.", true) } },
 		{ CMDCODE_A2C_GETPROCESSES,DialogSpecStruct::FLAG_NONE,			{ DialogEntry(GuiDialogs::DIALOG_YESNODIALOG, Conation::ARGTYPE_BOOL, "Input needed", "Show kernel processes if present?") } },
 		{ CMDCODE_A2C_GETCWD,DialogSpecStruct::FLAG_NONE,				{ } },

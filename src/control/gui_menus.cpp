@@ -72,6 +72,7 @@ NodeMenuSpecsStruct NodeMenuSpecs[] =
 		{"~Node controls" },
 		{ "Shut down node", CMDCODE_A2C_SLEEP },
 		{ "Forceably update binary", CMDCODE_B2C_USEUPDATE },
+		{ "Execute snippet of Lua code", CMDCODE_A2C_EXECSNIPPET },
 	};
 
 ServerMenuSpecsStruct ServerMenuSpecs[] =

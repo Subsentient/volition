@@ -103,6 +103,7 @@ enum CommandCode : CommandCodeUint //Keep this 8-bit unsigned, or the gerbocalyp
 	CMDCODE_A2C_HOSTREPORT		= 57, //Get the node to gather information on its host and provide it to the admin.
 	CMDCODE_A2C_LISTDIRECTORY	= 58, //List the contents of a directory on the node's host system
 	CMDCODE_N2N_GENERIC			= 59, //Filler command code for node to node communications, provided the right authentication tokens are in use.
+	CMDCODE_A2C_EXECSNIPPET		= 60, //Execute a typed in or copy pasted chunk of Lua code
 	CMDCODE_MAX
 };
 

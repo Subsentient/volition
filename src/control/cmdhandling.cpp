@@ -62,6 +62,7 @@ void CmdHandling::HandleReport(Conation::ConationStream *Stream)
 			break;
 		case CMDCODE_A2C_CHDIR:
 		case CMDCODE_A2C_EXECCMD:
+		case CMDCODE_A2C_EXECSNIPPET:
 		case CMDCODE_A2C_GETCWD:
 		case CMDCODE_A2C_FILES_COPY:
 		case CMDCODE_A2C_FILES_DEL:
