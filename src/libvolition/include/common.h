@@ -153,22 +153,23 @@ struct NetCmdStatus
 	}
 };
 
+enum VLAllocatorType : uint8_t
+{
+	VL_ALLOCTYPE_MALLOC,
+	VL_ALLOCTYPE_NEW,
+	VL_ALLOCTYPE_ARRAYNEW,
+	VL_ALLOCTYPE_LAMBDA,
+	VL_ALLOCTYPE_MAX
+};
+
 template <typename PtrType, typename DeallocFuncType = void(*)(PtrType)>
 class VLScopedPtr
 {
-public:
-	enum AllocatorType : uint8_t
-	{
-		ALLOCTYPE_MALLOC,
-		ALLOCTYPE_NEW,
-		ALLOCTYPE_ARRAYNEW,
-		ALLOCTYPE_LAMBDA,
-		ALLOCTYPE_MAX
-	};
+
 private:
 	PtrType Ptr;
 	DeallocFuncType DeallocFunc;
-	AllocatorType Allocator;
+	VLAllocatorType Allocator;
 
 public:
 	void Release(void)
@@ -177,24 +178,24 @@ public:
 		
 		this->DeallocFunc(this->Ptr);
 		this->Ptr = nullptr;
-		this->Allocator = ALLOCTYPE_NEW;
+		this->Allocator = VL_ALLOCTYPE_NEW;
 	}
 	
-	VLScopedPtr(const PtrType Input = nullptr, const AllocatorType AllocatorIn = ALLOCTYPE_NEW)
+	VLScopedPtr(const PtrType Input = nullptr, const VLAllocatorType AllocatorIn = VL_ALLOCTYPE_NEW)
 		: Ptr(Input), DeallocFunc(), Allocator(AllocatorIn)
 	{
 		switch (this->Allocator)
 		{
-			case ALLOCTYPE_LAMBDA: //We shouldn't be here but let's try and do something useful
+			case VL_ALLOCTYPE_LAMBDA: //We shouldn't be here but let's try and do something useful
 				abort();
 				break;
-			case ALLOCTYPE_NEW:
+			case VL_ALLOCTYPE_NEW:
 				this->DeallocFunc = [] (PtrType Ptr) { delete Ptr; };
 				break;
-			case ALLOCTYPE_ARRAYNEW:
+			case VL_ALLOCTYPE_ARRAYNEW:
 				this->DeallocFunc = [] (PtrType Ptr) { delete[] Ptr; };
 				break;
-			case ALLOCTYPE_MALLOC:
+			case VL_ALLOCTYPE_MALLOC:
 				this->DeallocFunc = [] (PtrType Ptr) { free((void*)Ptr); };
 				break;
 			default:
@@ -206,7 +207,7 @@ public:
 	VLScopedPtr(const PtrType Input, const DeallocFuncType DeallocFunc)
 		: Ptr(Input),
 		DeallocFunc(DeallocFunc),
-		Allocator(ALLOCTYPE_LAMBDA)
+		Allocator(VL_ALLOCTYPE_LAMBDA)
 	{
 	}
 	
@@ -215,7 +216,7 @@ public:
 		this->Release();
 	}
 
-	void Encase(const PtrType Input, const AllocatorType AllocatorIn = ALLOCTYPE_NEW)
+	void Encase(const PtrType Input, const VLAllocatorType AllocatorIn = VL_ALLOCTYPE_NEW)
 	{ //Put an existing pointer under our care
 		this->Release();
 		this->Ptr = Input;
@@ -226,7 +227,7 @@ public:
 	{ //Put an existing pointer under our care
 		this->Release();
 		this->Ptr = Input;
-		this->Allocator = ALLOCTYPE_LAMBDA;
+		this->Allocator = VL_ALLOCTYPE_LAMBDA;
 		this->DeallocFunc = DeallocFunc;
 	}
 
@@ -234,7 +235,7 @@ public:
 	{ //To abort freeing the pointer so something else can take control.
 		const PtrType RetVal = this->Ptr;
 		this->Ptr = nullptr;
-		this->Allocator = ALLOCTYPE_NEW;
+		this->Allocator = VL_ALLOCTYPE_NEW;
 		this->DeallocFunc = nullptr;
 		
 		return RetVal;
@@ -256,7 +257,7 @@ public:
 	VLScopedPtr(VLScopedPtr &&Ref) : Ptr(Ref.Ptr), DeallocFunc(Ref.DeallocFunc), Allocator(Ref.Allocator)
 	{
 		Ref.Ptr = nullptr;
-		Ref.Allocator = ALLOCTYPE_NEW;
+		Ref.Allocator = VL_ALLOCTYPE_NEW;
 		Ref.DeallocFunc = nullptr;
 	}
 
@@ -271,7 +272,7 @@ public:
 		this->DeallocFunc = Ref.DeallocFunc;
 		
 		Ref.Ptr = nullptr;
-		Ref.Allocator = ALLOCTYPE_NEW;
+		Ref.Allocator = VL_ALLOCTYPE_NEW;
 		Ref.DeallocFunc = nullptr;
 		
 		return *this;

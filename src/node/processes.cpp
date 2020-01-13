@@ -247,7 +247,7 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 				}
 			}
 			
-			VLScopedPtr<TOKEN_USER*> UserTokenPtr { (TOKEN_USER*)malloc(BufferLength), VLScopedPtr<TOKEN_USER*>::ALLOCTYPE_MALLOC };
+			VLScopedPtr<TOKEN_USER*> UserTokenPtr { (TOKEN_USER*)malloc(BufferLength), VL_ALLOCTYPE_MALLOC };
 			
 			if (!GetTokenInformation(TokenHandle, TokenUser, UserTokenPtr, BufferLength, &BufferLength))
 			{

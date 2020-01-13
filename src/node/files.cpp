@@ -96,7 +96,7 @@ static bool CopyFileSub(const char *Source, const char *Destination)
 	size_t TotalRead = 0;
 	size_t Read = 0;
 	
-	VLScopedPtr<uint8_t*> Buffer { new uint8_t[CHUNK_SIZE], VLScopedPtr<uint8_t*>::ALLOCTYPE_ARRAYNEW };
+	VLScopedPtr<uint8_t*> Buffer { new uint8_t[CHUNK_SIZE], VL_ALLOCTYPE_ARRAYNEW };
 	
 	for (; TotalRead < Size; TotalRead += Read)
 	{

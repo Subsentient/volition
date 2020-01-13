@@ -467,9 +467,11 @@ static void AddServerCommandStatusReport(Conation::ConationStream *Stream)
 			{
 				NetCmdStatus Status = Stream->Pop_NetCmdStatus();
 
+				VLScopedPtr<char*, decltype(&g_free)> EscapedMsg{ g_markup_escape_text(Status.Msg, Status.Msg.Length()), g_free };
+
 				Msg = VLString("Received command status report: ")
 						+ ((Status.Status == STATUS_OK || Status.Status == STATUS_WARN)  ? "succeeded " : "failed ")
-						+ "with status code " + TickerStatusCodeText[Status.Status] + ": \"" + Status.Msg + "\"";
+						+ "with status code " + TickerStatusCodeText[Status.Status] + ": \"" + (const char*)+EscapedMsg + "\"";
 		
 				Ticker::AddServerMessage(Msg, Status.Msg);
 				break;
@@ -496,10 +498,12 @@ static void AddNodeCommandStatusReport(Conation::ConationStream *Stream)
 		const Conation::ConationStream::ODHeader &Hdr = Stream->Pop_ODHeader();
 
 		NetCmdStatus Status = Stream->Pop_NetCmdStatus();
+		
+		VLScopedPtr<char*, decltype(&g_free)> EscapedMsg{ g_markup_escape_text(Status.Msg, Status.Msg.Length()), g_free };
 
 		Msg = VLString("Order ")
 				+ ((Status.Status == STATUS_OK || Status.Status == STATUS_WARN)  ? "succeeded " : "failed ")
-				+ "with status code " + TickerStatusCodeText[Status.Status] + ": \"" + Status.Msg + "\"";
+				+ "with status code " + TickerStatusCodeText[Status.Status] + ": \"" + (const char*)+EscapedMsg + "\"";
 
 		Ticker::AddNodeMessage(Hdr.Origin, Stream->GetCommandCode(), Stream->GetCmdIdentOnly(), Msg, Status.Msg);
 #ifdef DEBUG
@@ -546,8 +550,9 @@ static void AddNodeCommandStatusReport(Conation::ConationStream *Stream)
 			case Conation::ARGTYPE_STRING:
 			{
 				VLString Data = Stream->Pop_String();
+				VLScopedPtr<char*, decltype(&g_free)> EscapedData { g_markup_escape_text(+Data, Data.Length()), g_free };
 				
-				Msg = strchr(Data, '\n') ? VLString("Received multi-line text string from node.") : VLString("Received text string \"") + Data + "\" from node.";
+				Msg = strchr(Data, '\n') ? VLString("Received multi-line text string from node.") : VLString("Received text string \"") + (const char*)+EscapedData + "\" from node.";
 
 				Ticker::AddNodeMessage(Hdr.Origin, Stream->GetCommandCode(), Stream->GetCmdIdentOnly(), Msg, Data);
 				break;
@@ -611,10 +616,11 @@ static void AddNodeCommandStatusReport(Conation::ConationStream *Stream)
 			case Conation::ARGTYPE_NETCMDSTATUS:
 			{
 				NetCmdStatus Status = Stream->Pop_NetCmdStatus();
+				VLScopedPtr<char*, decltype(&g_free)> EscapedMsg{ g_markup_escape_text(Status.Msg, Status.Msg.Length()), g_free };
 
 				Msg = VLString("Received command status report: ")
 						+ ((Status.Status == STATUS_OK || Status.Status == STATUS_WARN)  ? "succeeded " : "failed ")
-						+ "with status code " + TickerStatusCodeText[Status.Status] + ": \"" + Status.Msg + "\"";
+						+ "with status code " + TickerStatusCodeText[Status.Status] + ": \"" + (const char*)+EscapedMsg + "\"";
 		
 				Ticker::AddNodeMessage(Hdr.Origin, Stream->GetCommandCode(), Stream->GetCmdIdentOnly(), Msg, Status.Msg);
 				break;
