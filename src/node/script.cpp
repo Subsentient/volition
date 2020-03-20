@@ -101,6 +101,7 @@ static int VLAPI_ListDirectory(lua_State *State);
 static int VLAPI_IsDirectory(lua_State *State);
 static int VLAPI_GetCWD(lua_State *State);
 static int VLAPI_Chdir(lua_State *State);
+static int VLAPI_GetHomeDirectory(lua_State *State);
 static int VLAPI_getenv(lua_State *State);
 static int VLAPI_setenv(lua_State *State);
 static int VLAPI_SlurpFile(lua_State *State);
@@ -148,6 +149,7 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "CopyFile", VLAPI_CopyFile },
 	{ "DeleteFile", VLAPI_DeleteFile },
 	{ "MoveFile", VLAPI_MoveFile },
+	{ "GetHomeDirectory", VLAPI_GetHomeDirectory },
 	{ "GetSha512", VLAPI_GetSha512 },
 #ifndef NOCURL
 	{ "GetHTTP", VLAPI_GetHTTP },
@@ -529,6 +531,13 @@ static int VLAPI_GetAuthToken(lua_State *State)
 {
 	lua_pushstring(State, IdentityModule::GetNodeAuthToken());
 	
+	return 1;
+}
+
+static int VLAPI_GetHomeDirectory(lua_State *const State)
+{
+	lua_pushstring(State, Utils::GetHomeDirectory());
+
 	return 1;
 }
 
@@ -1519,15 +1528,16 @@ static int NewLuaConationStream(lua_State *State)
 	std::vector<decltype(LUA_TNONE)> BasicConstructorParams { LUA_TNUMBER, LUA_TNUMBER, LUA_TNUMBER };
 	std::vector<decltype(LUA_TNONE)> CloneStreamConstructorParams { LUA_TTABLE };
 	std::vector<decltype(LUA_TNONE)> CBasedCloneConstructorParams { LUA_TLIGHTUSERDATA };
-	
+	std::vector<decltype(LUA_TNONE)> ByteStringConstructorParams { LUA_TSTRING };
 	struct
 	{
 		CommandCode CmdCode;
 		uint8_t Flags;
 		uint64_t Ident;
 		Conation::ConationStream *ToClone;
+		const uint8_t *StringBuffer;
 	} Args{};
-	
+
 	if (VerifyLuaFuncArgs(State, BasicConstructorParams))
 	{ //Standard constructor.
 		const lua_Integer Code = lua_tointeger(State, 1);
@@ -1542,6 +1552,10 @@ static int NewLuaConationStream(lua_State *State)
 		Args.CmdCode = static_cast<CommandCode>(Code);
 		Args.Flags = lua_tointeger(State, 2);
 		Args.Ident = lua_tointeger(State, 3);
+	}
+	else if (VerifyLuaFuncArgs(State, ByteStringConstructorParams))
+	{ //Create a new stream from a binary string.
+		Args.StringBuffer = reinterpret_cast<const uint8_t*>(lua_tostring(State, 1));
 	}
 	else if (VerifyLuaFuncArgs(State, CloneStreamConstructorParams))
 	{ //Cloning one.
@@ -1568,9 +1582,10 @@ static int NewLuaConationStream(lua_State *State)
 		lua_pushnil(State);
 		return 1;
 	}
-	
-	//We now have all arguments, wipe the stack.
-	lua_settop(State, 0);
+
+	/**Do NOT wipe the stack here, we need that Args.StringBuffer Lua string intact in case we're making
+	* it from a string, and if we just reuse that Lua string, it prevents a potentially very expensive copy operation!
+	**/
 	
 	//Find the class template table cuz we'll nee d it later and it's actually better to put it here.
 	lua_getglobal(State, "VL");
@@ -1590,15 +1605,17 @@ static int NewLuaConationStream(lua_State *State)
 	lua_gettable(State, -5); ///Goes all the way up to that getglobal wayyy up there.
 	//Set the __index metamethod.
 	lua_settable(State, -3);
-	
+
+	//Length operator support, get number of arguments.
+	lua_pushstring(State, "__len");
+	lua_pushcfunction(State, CountCSArgsLua);
+
+	lua_settable(State, -3);
+
 	///Now set the metatable. This pops the metatable afterwards.
 	lua_setmetatable(State, -2);
 	
 	//Finally. This metatable code hurt to write.
-	/**Now clean up the stack for everything but our table instance.
-	 * !!! We're back at index 1! !!!**/
-	lua_replace(State, 1);
-	lua_settop(State, 1);
 	
 	Conation::ConationStream *Stream = static_cast<Conation::ConationStream*>(lua_newuserdata(State, sizeof(Conation::ConationStream)));
 	
@@ -1606,6 +1623,20 @@ static int NewLuaConationStream(lua_State *State)
 	if (Args.CmdCode != CMDCODE_INVALID)
 	{
 		new (Stream) Conation::ConationStream(Args.CmdCode, Args.Flags, Args.Ident);
+	}
+	else if (Args.StringBuffer)
+	{
+		try
+		{
+			new (Stream) Conation::ConationStream(Args.StringBuffer);
+			VLDEBUG("Successfully allocated ConationStream from Lua string with command code"
+					+ Stream->GetCommandCode());
+		}
+		catch (const Conation::ConationStream::Err_Base &)
+		{
+			VLWARN("Failed to allocate ConationStream from Lua string!");
+			return 0;
+		}
 	}
 	else if (Args.ToClone)
 	{
@@ -1628,9 +1659,7 @@ static int NewLuaConationStream(lua_State *State)
 	///Setting the userdata's metatable finally.
 	lua_setmetatable(State, -2);
 	
-	//Finally we're done. God this function sucked.
-	lua_settop(State, 1);
-
+	lua_pop(State, 1); //Now that we've stored the userdata, get rid of it so we return only the instance table.
 	return 1;
 }
 

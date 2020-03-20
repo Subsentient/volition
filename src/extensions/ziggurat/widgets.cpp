@@ -16,6 +16,18 @@ static int fakeargc = 1;
 Ziggurat::ZigMainWindow *Ziggurat::ZigMainWindow::Instance;
 
 
+static void RecursiveSetFont(QWidget *const Widgy, const QFont &Font)
+{
+	Widgy->setFont(Font);
+
+	QList<QWidget*> Children { Widgy->findChildren<QWidget*>() };
+
+	for (QWidget *const Child : Children)
+	{
+		Child->setFont(Font);
+	}
+}
+
 void Ziggurat::ZigMainWindow::OnRemoteSessionTerminated(const QString Node_)
 {
 	const VLString Node { qs2vls(Node_) };
@@ -60,6 +72,22 @@ void Ziggurat::ZigMainWindow::OnFocusAltered(QWidget *Old, QWidget *Now)
 	VLDEBUG("Focus updated to " + (this->HasFocus ? "true" : "false"));
 }
 
+void Ziggurat::ZigMainWindow::OnFontChooserWanted(void)
+{
+	QFontDialog *const Dialog = new QFontDialog(this->font(), this);
+
+	QObject::connect(Dialog, &QFontDialog::fontSelected, this,
+					[this, Dialog](const QFont &Chosen)
+					{
+						VLDEBUG("SETTING FONT");
+						RecursiveSetFont(this, Chosen);
+						
+						delete Dialog;
+					});
+
+	Dialog->setVisible(true);
+}
+
 void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 {
 	VLThreads::ValueWaiter<ZigMainWindow*> *const Waiter = static_cast<VLThreads::ValueWaiter<ZigMainWindow*>*>(Waiter_);
@@ -80,8 +108,10 @@ void *Ziggurat::ZigMainWindow::ThreadFuncInit(void *Waiter_)
 	ZigWin->show();
 	ZigWin->setWindowIcon(QIcon(":ziggurat.png"));
 	
+	QObject::connect(ZigWin, &ZigMainWindow::FontChooserWanted, ZigWin, &ZigMainWindow::OnFontChooserWanted, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(ZigWin, &ZigMainWindow::NewDisplayMessage, ZigWin, &ZigMainWindow::OnNewDisplayMessage, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(ZigWin, &ZigMainWindow::NodeAdded, ZigWin, &ZigMainWindow::OnNodeAdded, Qt::ConnectionType::QueuedConnection);
+	QObject::connect(ZigWin->ZigActChooseFont, &QAction::triggered, ZigWin, &ZigMainWindow::OnFontChooserWanted);
 	QObject::connect(ZigWin->ZigActNewNode, &QAction::triggered, ZigWin, &ZigMainWindow::OnNewNodeClicked);
 	QObject::connect(ZigWin->ZigMsgTabs, &QTabWidget::tabCloseRequested, ZigWin, &ZigMainWindow::OnTabCloseClicked);
 	QObject::connect(ZigWin->ZigActQuit, &QAction::triggered, ZigWin, [] { exit(0); });
@@ -110,7 +140,8 @@ void Ziggurat::ZigMainWindow::OnNewNodeClicked(void)
 	};
 	
 	ZigTextChooser *const Chooser = new ZigTextChooser("Enter Node ID", "Enter a node ID to open a chat session to.", AcceptCB, DismissCB, this);
-
+	RecursiveSetFont(Chooser, this->font());
+	
 	Chooser->show();
 }
 
@@ -146,7 +177,7 @@ void Ziggurat::ZigMainWindow::closeEvent(QCloseEvent*)
 
 void Ziggurat::ZigMainWindow::OnNodeAdded(const QString Node)
 {
-	ZigMessengerWidget *const Widgy = new ZigMessengerWidget(qs2vls(Node));
+	ZigMessengerWidget *const Widgy = new ZigMessengerWidget(this, qs2vls(Node));
 	
 	QObject::connect(Widgy, &ZigMessengerWidget::SendClicked, this, &ZigMainWindow::SendClicked);
 	QObject::connect(Widgy, &ZigMessengerWidget::NativeMessageReady, this, &ZigMainWindow::NativeMessageReady);
@@ -183,10 +214,12 @@ void Ziggurat::ZigMessengerWidget::OnEnterPressed(QObject *Object, int Key)
 	}
 }
 
-Ziggurat::ZigMessengerWidget::ZigMessengerWidget(const VLString &Node)
-	: Node(Node), KeyMon(new KeyboardMonitor{})
+Ziggurat::ZigMessengerWidget::ZigMessengerWidget(QWidget *const Parent, const VLString &Node)
+	: QWidget(Parent), Node(Node), KeyMon(new KeyboardMonitor{})
 {
 	setupUi(this);
+	
+	this->setFont(Parent->font());
 	
 	this->KeyMon->setParent(this);
 	this->ZigMessageEditor->installEventFilter(this->KeyMon);
@@ -234,12 +267,14 @@ void Ziggurat::ZigMessengerWidget::OnNewDisplayMessage(ZigMessage *const Item)
 	const int MaxHeight = ZigMessageList->height() - (ZigMessageList->height() / 4);
 	
 	QWidget *const MsgWidget = Item->RebuildMsgWidget(MaxWidth, MaxHeight);
-	
+
 	if (!MsgWidget)
 	{
 		VLERROR("FAILED TO GENERATE WIDGET FOR DISPLAY!");
 		return;
 	}
+
+	RecursiveSetFont(MsgWidget, this->font());
 	
 	ModelItem->setSizeHint(MsgWidget->sizeHint());
 	

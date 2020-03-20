@@ -49,6 +49,7 @@
     <addaction name="ZigActNewNode"/>
     <addaction name="separator"/>
     <addaction name="ZigActTray"/>
+    <addaction name="ZigActChooseFont"/>
     <addaction name="ZigActSettings"/>
     <addaction name="ZigActQuit"/>
    </widget>
@@ -87,6 +88,11 @@
    </property>
    <property name="menuRole">
     <enum>QAction::PreferencesRole</enum>
+   </property>
+  </action>
+  <action name="ZigActChooseFont">
+   <property name="text">
+    <string>Change Font</string>
    </property>
   </action>
  </widget>

@@ -7,6 +7,21 @@ function::InitZiggurat|Start Ziggurat
 VLSI_END_SPEC
 ]]
 
+function ZigDebug(String)
+	local Dbg = debug.getinfo(2, 'lf')
+	io.stdout:write('Ziggurat messenger: DEBUG: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
+end
+
+function ZigError(String)
+	local Dbg = debug.getinfo(2, 'lf')
+	io.stdout:write('Ziggurat messenger: !!ERROR!!: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
+end
+
+function ZigWarn(String)
+	local Dbg = debug.getinfo(2, 'lf')
+	io.stdout:write('Ziggurat messenger: ~WARNING~: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
+end
+
 Ziggurat = { StayAlive = true }
 
 --Command codes internal to and exclusively used by Ziggurat
@@ -22,10 +37,72 @@ Peers = {} --Full of ZigPeers
 
 ZigPeer = { Message = {} }
 
+ConfigManager = { Keys = {} }
+
 ZigLibEntryPointName = 'InitLibZiggurat'
 
+ZigConfigFilePath = VL.GetHomeDirectory() .. VL.ospathdiv .. '.zigguratconfig.cnb'
 PingoutSecs = 10
 PingIntervalSecs = 3
+
+function ConfigManager:SetKey(Key, Value)
+	Keys[tostring(Key)] = tostring(Value)
+end
+
+function ConfigManager:UnsetKey(Key)
+	Keys[tostring(Key)] = nil
+end
+
+function ConfigManager:SaveKeys()
+	local Stream = VL.ConationStream.New(VL.CMDCODE_INVALID, 0, 0)
+
+	if not Stream then
+		ZigWarn('Error constructing empty ConationStream!')
+		return false
+	end
+
+	for Key, Value in pairs(self.Keys) do
+		Stream:Push(VL.ARGTYPE_STRING, tostring(Key))
+		Stream:Push(VL.ARGTYPE_STRING, tostring(Value))
+	end
+
+	local Result = VL.WriteFile(ZigConfigFilePath, Stream:GetData())
+
+	if not Result then
+		ZigWarn('Failed to write config file "' .. ZigConfigFilePath .. '" back to disk!')
+		return false
+	end
+
+	return true
+end
+
+function ConfigManager:LoadKeys()
+	local BinBlob = VL.SlurpFile(ZigConfigFilePath)
+
+	if not BinBlob then
+		ZigWarn('Unable to slurp config file at path "' .. ZigConfigFilePath .. '"!')
+		return false
+	end
+
+	local Stream = VL.ConationStream.New(BinBlob)
+
+	if not Stream then
+		ZigError('Error decoding config file as ConationStream!')
+		return false
+	end
+
+	if #Stream % 2 ~= 0 then
+		ZigError('Uneven number of arguments, unsuitable for key/value pair!')
+		return false
+	end
+	
+	for Inc = 1, #Stream do
+		local _, Key = Stream:Pop()
+		local _, Value = Stream:Pop()
+
+		self:SetKey(Key, Value)
+	end
+end
 
 function ZigPeer.New(Node, ForeignJobID)
 	local Table =	{
@@ -197,20 +274,6 @@ function ZigPeer:SendMsg(Body)
 	VL.SendN2N(OutStream)
 end
 
-function ZigDebug(String)
-	local Dbg = debug.getinfo(2, 'lf')
-	io.stdout:write('Ziggurat messenger: DEBUG: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
-end
-
-function ZigError(String)
-	local Dbg = debug.getinfo(2, 'lf')
-	io.stdout:write('Ziggurat messenger: !!ERROR!!: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
-end
-
-function ZigWarn(String)
-	local Dbg = debug.getinfo(2, 'lf')
-	io.stdout:write('Ziggurat messenger: ~WARNING~: Line ' .. Dbg.currentline .. ': '.. String .. '\n')
-end
 
 function libZiggurat_LoadViaAnyMethod()
 	if	not libZiggurat_LoadViaStatic() and

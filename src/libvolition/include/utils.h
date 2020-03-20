@@ -44,6 +44,7 @@ namespace Utils
 	VLString JoinTextBySubstring(const std::vector<VLString> *Strings, const char *Substring);
 	
 	VLString GetTempDirectory(void);
+	VLString GetHomeDirectory(void);
 	bool IsDirectory(const char *Path);
 	VLString GetSelfBinaryPath(void);
 	

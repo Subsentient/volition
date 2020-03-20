@@ -26,8 +26,10 @@
 #include <memory>
 #ifdef WIN32
 #include <windows.h>
+#define VL_HOME_ENV "USERPROFILE"
 #else
 #include <unistd.h>
+#define VL_HOME_ENV "HOME"
 #endif //WIN32
 
 #if defined(LINUX) || defined(NETBSD)
@@ -380,7 +382,12 @@ VLString Utils::JoinTextBySubstring(const std::vector<VLString> *Strings, const 
 
 	return RetVal;
 }
-	
+
+VLString Utils::GetHomeDirectory(void)
+{
+	return getenv(VL_HOME_ENV);
+}
+
 VLString Utils::GetTempDirectory(void)
 {
 	VLString NewPath(2048);

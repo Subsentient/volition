@@ -156,7 +156,7 @@ namespace Ziggurat
 		KeyboardMonitor *KeyMon;
 		
 	public:
-		ZigMessengerWidget(const VLString &Node);
+		ZigMessengerWidget(QWidget *const Parent, const VLString &Node);
 		
 		inline const VLString GetNode(void) const { return this->Node; }
 	public slots:
@@ -201,7 +201,8 @@ namespace Ziggurat
 		void OnTabCloseClicked(int TabIndex);
 		void OnRemoteSessionTerminated(const QString Node);
 		void OnFocusAltered(QWidget *Old, QWidget *Now);
-
+		void OnFontChooserWanted(void);
+		
 	signals:
 		void ZigDies(void);
 		void NewDisplayMessage(ZigMessage *Msg);
@@ -210,7 +211,8 @@ namespace Ziggurat
 		void NewNodeChosen(const QString NodeID);
 		void SessionEndRequested(const QString NodeID);
 		void NativeMessageReady(ZigMessage *Msg);
-	
+		void FontChooserWanted(void);
+		
 		friend class LuaDelegate;
 	};
 	
