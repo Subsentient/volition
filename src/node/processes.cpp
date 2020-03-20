@@ -295,9 +295,8 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		
 		if (!FileBuffer)
 		{
-			const NetCmdStatus Ret(false, STATUS_FAILED);
-			OutList.clear();
-			return Ret;
+			VLWARN("Failed to read " + CmdlinePath);
+			continue;
 		}
 		
 		OutList.push_back(ProcessListMember());
@@ -313,9 +312,9 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		
 		if (!FileBuffer)
 		{
-			const NetCmdStatus Ret(false, STATUS_FAILED);
-			OutList.clear();
-			return Ret;
+			VLWARN("Failed to read " + StatusPath);
+			OutList.pop_back();
+			continue;
 		}
 		
 		const VLString &LookFor = VLString("Uid:") + '\t';
@@ -324,9 +323,9 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		
 		if (!Search)
 		{
-			OutList.clear();
-			const NetCmdStatus Ret(false, STATUS_FAILED);
-			return Ret;
+			VLWARN("Failed to get Uid from status file for PID " + VLString{DirPtr->d_name});
+			OutList.pop_back();
+			continue;
 		}
 		
 		Search += strlen(LookFor);
@@ -352,9 +351,9 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 			
 			if (!Search)
 			{
-				OutList.clear();
-				const NetCmdStatus Ret(false, STATUS_IERR);
-				return Ret;
+				VLWARN("Failed to get kernel thread name for PID " + VLString{DirPtr->d_name});
+				OutList.pop_back();
+				continue;
 			}
 	
 			Search += strlen(LookFor_Name);
@@ -379,21 +378,19 @@ NetCmdStatus Processes::GetProcessesList(std::list<Processes::ProcessListMember>
 		
 		if (!*UIDBuf || !Utils::StringAllNumeric(UIDBuf))
 		{
-			OutList.clear();
-			const NetCmdStatus Ret(false, STATUS_FAILED);
-			return Ret;
+			VLWARN("Failed to read UIDBuf for PID " + VLString{DirPtr->d_name});
+			OutList.pop_back();
+			continue;
 		}
 		
 		struct passwd *UserLookup = getpwuid(atol(UIDBuf));
 		
 		if (!UserLookup)
 		{
-			const NetCmdStatus Ret(false, STATUS_FAILED);
-			OutList.clear();
-			return Ret;
+			VLWARN("Failed to find user for PID " + VLString{DirPtr->d_name} + ", appending user ID instead");
 		}
 		
-		NewMember->User = UserLookup->pw_name;
+		NewMember->User = UserLookup ? VLString{UserLookup->pw_name} : VLString{UIDBuf};
 	}
 	
 	return true;
