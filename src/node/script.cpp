@@ -1620,11 +1620,7 @@ static int NewLuaConationStream(lua_State *State)
 	Conation::ConationStream *Stream = static_cast<Conation::ConationStream*>(lua_newuserdata(State, sizeof(Conation::ConationStream)));
 	
 	//We check which are defined in the Args struct to see what we need to do.
-	if (Args.CmdCode != CMDCODE_INVALID)
-	{
-		new (Stream) Conation::ConationStream(Args.CmdCode, Args.Flags, Args.Ident);
-	}
-	else if (Args.StringBuffer)
+	if (Args.StringBuffer)
 	{
 		try
 		{
@@ -1642,6 +1638,11 @@ static int NewLuaConationStream(lua_State *State)
 	{
 		new (Stream) Conation::ConationStream(Args.ToClone->GetHeader(), Args.ToClone->GetArgData());
 	}
+	else
+	{
+		new (Stream) Conation::ConationStream(Args.CmdCode, Args.Flags, Args.Ident);
+	}
+
 
 	//Setting the internal userdata now.	
 	lua_pushstring(State, "VL_INTRNL");
@@ -2082,21 +2083,17 @@ static int PopArg_LuaConationStream(lua_State *State)
 
 static int CountCSArgsLua(lua_State *State)
 {
-	if (lua_gettop(State) != 1 || lua_type(State, 1) != LUA_TTABLE)
+	if (lua_type(State, -1) != LUA_TTABLE)
 	{
-	EasyFail:
-		lua_settop(State, 0);
-		lua_pushnil(State);
-		return 1;
+		return 0;
 	}
 	
 	lua_pushstring(State, "VL_INTRNL");
-	lua_gettable(State, 1);
+	lua_gettable(State, -2);
 	
-	if (lua_type(State, -1) != LUA_TUSERDATA) goto EasyFail;
+	if (lua_type(State, -1) != LUA_TUSERDATA) return 0;
 	
 	Conation::ConationStream *Stream = static_cast<Conation::ConationStream*>(lua_touserdata(State, -1));
-	lua_settop(State, 0);
 	
 	lua_pushinteger(State, Stream->CountArguments());
 	return 1;

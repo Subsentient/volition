@@ -61,6 +61,25 @@ static int ZigGetHasFocus(lua_State *State)
 	return 1;
 }
 
+static int ZigLoadFont(lua_State *State)
+{
+	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
+	
+	Ziggurat::LuaDelegate *const Delegate = static_cast<Ziggurat::LuaDelegate*>(lua_touserdata(State, -1));
+
+	if (!Delegate)
+	{
+		VLWARN("Delegate is null pointer!");
+		return 0;
+	}
+	
+	QFont Font;
+	Font.fromString(lua_tostring(State, 2));
+	
+	emit Delegate->LoadFont(Font);
+	return 0;
+}
+
 static int ZigRenderImageMessage(lua_State *State)
 {
 	VLASSERT(lua_getfield(State, 1, "Delegate") == LUA_TLIGHTUSERDATA);
@@ -168,6 +187,11 @@ extern "C" DLLEXPORT int InitLibZiggurat(lua_State *State)
 	
 	lua_settable(State, -3);
 	
+	lua_pushstring(State, "LoadFont");
+	lua_pushcfunction(State, ZigLoadFont);
+	
+	lua_settable(State, -3);
+	
 	lua_pushstring(State, "AddNode");
 	lua_pushcfunction(State, ZigAddNode);
 	
@@ -239,9 +263,11 @@ auto Ziggurat::LuaDelegate::Fireup(lua_State *State) -> LuaDelegate*
 	
 	QObject::connect(Win, &ZigMainWindow::SendClicked, Delegate, &LuaDelegate::MessageToSend, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(Win, &ZigMainWindow::NewNodeChosen, Delegate, &LuaDelegate::OnNewNodeChosen, Qt::ConnectionType::QueuedConnection);
+	QObject::connect(Win, &ZigMainWindow::NewFontSelected, Delegate, &LuaDelegate::OnNewFontSelected, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(Win, &ZigMainWindow::SessionEndRequested, Delegate, &LuaDelegate::OnSessionEndRequested, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(Win, &ZigMainWindow::NativeMessageReady, Delegate, &LuaDelegate::OnNativeMessageReady, Qt::ConnectionType::QueuedConnection);
 	QObject::connect(Delegate, &LuaDelegate::RemoteSessionTerminated, Win, &ZigMainWindow::OnRemoteSessionTerminated, Qt::ConnectionType::QueuedConnection);
+	QObject::connect(Delegate, &LuaDelegate::LoadFont, Win, &ZigMainWindow::OnLoadFont, Qt::ConnectionType::QueuedConnection);
 	return Delegate;
 }
 
@@ -309,6 +335,42 @@ void Ziggurat::LuaDelegate::OnNativeMessageReady(Ziggurat::ZigMessage *const Msg
 	lua_pushlightuserdata(this->LuaState, Msg);
 	
 	if (lua_pcall(this->LuaState, 4, 0, 0) != LUA_OK)
+	{
+		VLWARN("Call of lua callback failed!");
+		return;
+	}
+}
+
+void Ziggurat::LuaDelegate::OnNewFontSelected(const QFont &Selected)
+{
+	VLDEBUG("Storing font string " + qs2vls(Selected.toString()));
+	
+	lua_settop(this->LuaState, 0);
+	
+	lua_getglobal(this->LuaState, "Ziggurat");
+	
+	if (lua_type(this->LuaState, -1) != LUA_TTABLE)
+	{
+		VLWARN("Ziggurat Lua global is not set correctly!");
+		lua_settop(this->LuaState, 0);
+		return;
+	}
+	
+	lua_pushstring(this->LuaState, "OnNewFontSelected");
+	lua_gettable(this->LuaState, -2);
+	
+	if (lua_type(this->LuaState, -1) != LUA_TFUNCTION)
+	{
+		VLDEBUG("No function for OnNewFontSelected detected, exiting method.");
+		return;
+	}
+	
+	VLDEBUG("Calling Lua callback to set font to " + qs2vls(Selected.toString()));
+
+	lua_pushvalue(this->LuaState, 1);
+	lua_pushstring(this->LuaState, qs2vls(Selected.toString()));
+	
+	if (lua_pcall(this->LuaState, 2, 0, 0) != LUA_OK)
 	{
 		VLWARN("Call of lua callback failed!");
 		return;

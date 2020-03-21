@@ -167,7 +167,7 @@ namespace Ziggurat
 		void SendClicked(const QString Node, const QString Msg);
 		void NewDisplayMessage(ZigMessage *Msg);
 		void NativeMessageReady(ZigMessage *Msg);
-
+		
 		/*	LuaDelegate is your friend.
 		* 	You trust LuaDelegate.
 		* 	You love LuaDelegate.
@@ -202,6 +202,7 @@ namespace Ziggurat
 		void OnRemoteSessionTerminated(const QString Node);
 		void OnFocusAltered(QWidget *Old, QWidget *Now);
 		void OnFontChooserWanted(void);
+		void OnLoadFont(const QFont &Selected);
 		
 	signals:
 		void ZigDies(void);
@@ -212,7 +213,8 @@ namespace Ziggurat
 		void SessionEndRequested(const QString NodeID);
 		void NativeMessageReady(ZigMessage *Msg);
 		void FontChooserWanted(void);
-		
+		void NewFontSelected(const QFont &Font);
+
 		friend class LuaDelegate;
 	};
 	
@@ -261,10 +263,12 @@ namespace Ziggurat
 		void OnNewNodeChosen(const QString NodeID);
 		void OnSessionEndRequested(const QString NodeID);
 		void OnNativeMessageReady(ZigMessage *const Msg);
+		void OnNewFontSelected(const QFont &Font);
 
 	signals:
 		void MessageToSend(const QString Node, const QString Msg);
 		void RemoteSessionTerminated(const QString Node);
+		void LoadFont(const QFont &Selected);
 
 	public:
 		LuaDelegate(ZigMainWindow *Win, VLThreads::Thread *ThreadObj, lua_State *State);

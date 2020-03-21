@@ -72,6 +72,13 @@ void Ziggurat::ZigMainWindow::OnFocusAltered(QWidget *Old, QWidget *Now)
 	VLDEBUG("Focus updated to " + (this->HasFocus ? "true" : "false"));
 }
 
+void Ziggurat::ZigMainWindow::OnLoadFont(const QFont &Selected)
+{
+	VLDEBUG("Setting font to " + qs2vls(Selected.toString()));
+	
+	RecursiveSetFont(this, Selected);
+}
+
 void Ziggurat::ZigMainWindow::OnFontChooserWanted(void)
 {
 	QFontDialog *const Dialog = new QFontDialog(this->font(), this);
@@ -83,6 +90,8 @@ void Ziggurat::ZigMainWindow::OnFontChooserWanted(void)
 						RecursiveSetFont(this, Chosen);
 						
 						delete Dialog;
+						
+						emit this->NewFontSelected(Chosen);
 					});
 
 	Dialog->setVisible(true);
@@ -178,6 +187,8 @@ void Ziggurat::ZigMainWindow::closeEvent(QCloseEvent*)
 void Ziggurat::ZigMainWindow::OnNodeAdded(const QString Node)
 {
 	ZigMessengerWidget *const Widgy = new ZigMessengerWidget(this, qs2vls(Node));
+
+	RecursiveSetFont(Widgy, this->font());
 	
 	QObject::connect(Widgy, &ZigMessengerWidget::SendClicked, this, &ZigMainWindow::SendClicked);
 	QObject::connect(Widgy, &ZigMessengerWidget::NativeMessageReady, this, &ZigMainWindow::NativeMessageReady);

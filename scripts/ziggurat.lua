@@ -46,15 +46,19 @@ PingoutSecs = 10
 PingIntervalSecs = 3
 
 function ConfigManager:SetKey(Key, Value)
-	Keys[tostring(Key)] = tostring(Value)
+	self.Keys[tostring(Key)] = tostring(Value)
 end
 
 function ConfigManager:UnsetKey(Key)
-	Keys[tostring(Key)] = nil
+	self.Keys[tostring(Key)] = nil
+end
+
+function ConfigManager:GetKey(Key)
+	return self.Keys[tostring(Key)]
 end
 
 function ConfigManager:SaveKeys()
-	local Stream = VL.ConationStream.New(VL.CMDCODE_INVALID, 0, 0)
+	local Stream = VL.ConationStream.New(VL.CMDCODE_N2N_GENERIC, 0, 0)
 
 	if not Stream then
 		ZigWarn('Error constructing empty ConationStream!')
@@ -96,7 +100,7 @@ function ConfigManager:LoadKeys()
 		return false
 	end
 	
-	for Inc = 1, #Stream do
+	for Inc = 1, #Stream / 2 do
 		local _, Key = Stream:Pop()
 		local _, Value = Stream:Pop()
 
@@ -430,6 +434,15 @@ function InitZiggurat() --Must be executable as both init script and a job.
 	
 	ZigPeer.Us = ZigPeer.New(VL.GetIdentity())
 	Peers[VL.GetIdentity()] = ZigPeer.Us
+
+	ConfigManager:LoadKeys()
+
+	local FontString = ConfigManager:GetKey('GlobalFont')
+	
+	if FontString then
+		ZigDebug('SETTING FONT STRING ' .. FontString)
+		Ziggurat:LoadFont(FontString)
+	end
 	
 	while Ziggurat.StayAlive do
 		Ziggurat:MainLoopIter()
@@ -443,6 +456,7 @@ function Ziggurat:ProcessPing(SetupArgs, Stream)
 	
 	if not Peer then
 		ZigWarn('Unknown origin node ' .. SetupArgs.Origin)
+		return
 	end
 	
 	Peer:RegisterActivity()
@@ -582,6 +596,11 @@ function Ziggurat:OnNewNodeChosen(NodeID)
 	ZigDebug('Sending greeting to node ' .. NodeID)
 	
 	VL.SendN2N(GreetMsg)
+end
+
+function Ziggurat:OnNewFontSelected(FontString)
+	ConfigManager:SetKey('GlobalFont', FontString)
+	ConfigManager:SaveKeys()
 end
 
 function Ziggurat:ProcessSingleN2N(Stream)
