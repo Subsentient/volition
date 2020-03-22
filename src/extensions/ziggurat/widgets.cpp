@@ -325,7 +325,7 @@ Ziggurat::ZigTextChooser::ZigTextChooser(const VLString &WindowTitle,
 		this->AcceptCallback(this, this->UserData);
 	}, Qt::ConnectionType::QueuedConnection); //We use queued connections here to prevent the below signal-forwarding from causing a segfault.
 	
-	QObject::connect(this->TextChooserData, &QLineEdit::editingFinished, this->TextChooserAccept,
+	QObject::connect(this->TextChooserData, &QLineEdit::returnPressed, this->TextChooserAccept,
 	[this]
 	{
 		emit this->TextChooserAccept->clicked();
