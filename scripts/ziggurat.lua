@@ -100,7 +100,7 @@ function ConfigManager:LoadKeys()
 		return false
 	end
 	
-	for Inc = 1, #Stream / 2 do
+	for Inc = 1, #Stream // 2 do
 		local _, Key = Stream:Pop()
 		local _, Value = Stream:Pop()
 
