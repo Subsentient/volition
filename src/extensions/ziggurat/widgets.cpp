@@ -74,8 +74,16 @@ void Ziggurat::ZigMainWindow::OnFocusAltered(QWidget *Old, QWidget *Now)
 
 void Ziggurat::ZigMainWindow::OnLoadFont(const QFont &Selected)
 {
+	this->GlobalSetFont(Selected);
+}
+
+void Ziggurat::ZigMainWindow::GlobalSetFont(const QFont &Selected)
+{
 	VLDEBUG("Setting font to " + qs2vls(Selected.toString()));
-	
+
+	QApplication *const App = static_cast<QApplication*>(QApplication::instance());
+
+	App->setFont(Selected);
 	RecursiveSetFont(this, Selected);
 }
 
@@ -87,7 +95,7 @@ void Ziggurat::ZigMainWindow::OnFontChooserWanted(void)
 					[this, Dialog](const QFont &Chosen)
 					{
 						VLDEBUG("SETTING FONT");
-						RecursiveSetFont(this, Chosen);
+						this->GlobalSetFont(Chosen);
 						
 						delete Dialog;
 						

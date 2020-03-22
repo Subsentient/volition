@@ -194,6 +194,9 @@ namespace Ziggurat
 		
 		inline void RenderDisplayMessage(ZigMessage *const Msg) { emit NewDisplayMessage(Msg); }
 		virtual void closeEvent(QCloseEvent*);
+
+		void GlobalSetFont(const QFont &Selected);
+
 	public slots:
 		void OnNewDisplayMessage(ZigMessage *const Msg);
 		void OnNodeAdded(const QString Node);
