@@ -43,7 +43,7 @@ else()
 	add_compile_options(-std=gnu++14 -Wno-ignored-attributes -fPIC -pedantic -Wall -Ofast -fno-strict-aliasing -Wno-strict-aliasing -Wno-deprecated-declarations -Wno-unused-function -fomit-frame-pointer ${TGT_CXXFLAGS} ${EXTRA_CXXFLAGS})
 endif()
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../libvolition ${CMAKE_CURRENT_LIST_DIR}/../libvolition/build)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../libvolition ${CMAKE_CURRENT_BINARY_DIR}/libvolition/build EXCLUDE_FROM_ALL)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 message("== Searching for pkg-config...")

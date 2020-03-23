@@ -3,7 +3,7 @@ project("VLZiggurat")
 
 set(LIBNODE_CXXFLAGS -DAPPENDSCRIPTFUNC=InitLibZiggurat)
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../node ${CMAKE_CURRENT_LIST_DIR}/../../node/build)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../node ${CMAKE_CURRENT_BINARY_DIR}/libnode)
 
 set(EXTRA_CXXFLAGS)
 set(EXTRA_LD "")
