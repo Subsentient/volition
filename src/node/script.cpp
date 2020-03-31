@@ -487,10 +487,14 @@ static int VLAPI_setenv(lua_State *State)
 		VLDEBUG("Invalid arguments");
 		return 0;
 	}
-	
+#ifdef WIN32
 	lua_pushboolean(State, !putenv((char*)+(VLString(lua_tostring(State, 1)) + "=" + lua_tostring(State, 2))));
+#else
+	lua_pushboolean(State, !setenv(lua_tostring(State, 1), lua_tostring(State, 2), true));
+#endif
 
 	return 1;
+
 }
 
 static int VLAPI_getenv(lua_State *State)
