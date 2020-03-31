@@ -1,3 +1,6 @@
 [submodule "src/extensions/ziggurat/qdarkstyle"]
 	path = src/extensions/ziggurat/qdarkstyle
 	url = https://github.com/ColinDuquesnoy/QDarkStyleSheet
+[submodule "src/extensions/vlfltk/fltk4lua"]
+	path = src/extensions/vlfltk/fltk4lua
+	url = https://github.com/Subsentient/lua-fltk4lua
