@@ -86,4 +86,4 @@ if (WIN32)
 	endif()
 endif()
 
-target_link_libraries(vlfltk_node libnode libvolition_node ${EXTRA_LD} ${OPENSSL_LIBRARIES} ${CURL_LIBRARIES} ${LUA_LIBRARIES} -ldl ${CMAKE_CURRENT_LIST_DIR}/fltk4lua/fltk4lua.a ${FLTK_LDFLAGS})
+target_link_libraries(vlfltk_node libnode libvolition_node ${EXTRA_LD} ${OPENSSL_LIBRARIES} ${CURL_LIBRARIES} ${LUA_LIBRARIES} -ldl ${CMAKE_CURRENT_LIST_DIR}/fltk4lua/libfltk4lua.a ${FLTK_LDFLAGS})
