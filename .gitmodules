@@ -4,3 +4,6 @@
 [submodule "src/extensions/vlfltk/fltk4lua"]
 	path = src/extensions/vlfltk/fltk4lua
 	url = https://github.com/siffiejoe/lua-fltk4lua
+[submodule "src/node/luaffi/cffi-lua"]
+	path = src/node/luaffi/cffi-lua
+	url = https://github.com/q66/cffi-lua

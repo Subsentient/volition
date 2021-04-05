@@ -61,6 +61,13 @@ message("== OK, found Lua")
 message("== Searching for curl...")
 pkg_check_modules(CURL libcurl)
 
+
+if (LUAFFI)
+	message("== Searching for libffi...")
+	pkg_check_modules(LIBFFI libffi)
+	add_compile_options("-DLUAFFI")
+endif()
+
 set(CURLFLAGS "-DNOCURL")
 set(CURLLD)
 
@@ -85,6 +92,11 @@ add_compile_options(${CURLFLAGS})
 add_executable(volition_node ${sourcefiles})
 add_library(libnode STATIC EXCLUDE_FROM_ALL ${sourcefiles})
 set_target_properties(libnode PROPERTIES PREFIX "")
+
+if (LUAFFI)
+	set(EXTENSION_FLAGS "${CMAKE_CURRENT_LIST_DIR}/luaffi/luaffi.a")
+endif()
+
 if (IDENTITY)
 	add_custom_command(TARGET volition_node POST_BUILD COMMAND ${CMAKE_CURRENT_LIST_DIR}/../utils/build/brander $<TARGET_FILE:volition_node> --id ${IDENTITY})
 endif()
@@ -100,16 +112,17 @@ if (AUTHTOKEN)
 	add_custom_command(TARGET volition_node POST_BUILD COMMAND ${CMAKE_CURRENT_LIST_DIR}/../utils/build/brander $<TARGET_FILE:volition_node> --authtoken ${AUTHTOKEN})
 endif()
 
+
 add_custom_command(TARGET volition_node POST_BUILD COMMAND ${CMAKE_CURRENT_LIST_DIR}/../utils/build/brander $<TARGET_FILE:volition_node> --platformstring ${LOWEROS}.${LOWERCPU} --revision ${REVISION} --compiletime ${COMPILETIME})
 
 if (IDENTITY)
 	add_custom_command(TARGET volition_node POST_BUILD COMMAND mv -fv $<TARGET_FILE:volition_node> volition_node_${IDENTITY}-${LOWEROS}.${LOWERCPU}${CMAKE_EXECUTABLE_SUFFIX})
 endif()
-target_include_directories(volition_node PUBLIC ${LUA_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS})
+target_include_directories(volition_node PUBLIC ${LUA_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${LIBFFI_INCLUDE_DIRS})
 
 target_compile_options(libnode PUBLIC ${LIBNODE_CXXFLAGS})
 
-target_link_libraries(volition_node libvolition_node ${CURLFLAGS} ${OPENSSL_LIBRARIES} ${LUA_LIBRARIES} ${CURLLD} ${TGT_LDFLAGS} ${EXTRA_LD})
+target_link_libraries(volition_node libvolition_node ${CURLFLAGS} ${OPENSSL_LIBRARIES} ${LUA_LIBRARIES} ${CURLLD} ${TGT_LDFLAGS} ${EXTRA_LD} ${EXTENSION_FLAGS} ${LIBFFI_LIBRARIES})
 
 set_property(TARGET volition_node PROPERTY CXX_STANDARD 14)
 set_property(TARGET volition_node PROPERTY CXX_STANDARD_REQUIRED ON)

@@ -63,6 +63,13 @@ extern int APPENDSCRIPTFUNC (lua_State *);
 }
 #endif //APPENDSCRIPTFUNC
 
+#ifdef LUAFFI
+extern "C"
+{
+extern int luaopen_cffi(lua_State *);
+}
+#endif //LUAFFI
+
 //Prototypes
 static bool LoadVLAPI(lua_State *State);
 static bool VerifyLuaFuncArgs(lua_State *State, const std::vector<decltype(LUA_TNONE)> &ToCheck);
@@ -186,6 +193,9 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 #ifdef APPENDSCRIPTFUNC
 	{ "NODE_COMPILETIME_EXTFUNC", APPENDSCRIPTFUNC },
 #endif //APPENDSCRIPTFUNC
+#ifdef LUAFFI
+	{ "init_cffi", luaopen_cffi },
+#endif //LUAFFI
 };
 
 enum IntNameMapEnum : uint8_t
