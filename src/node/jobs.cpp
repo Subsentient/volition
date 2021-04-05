@@ -189,8 +189,28 @@ static void *JOB_LISTDIRECTORY_ThreadFunc(Jobs::Job *OurJob)
 
 	for (auto &Entry : *Results)
 	{
-		RetVal += Entry.IsDirectory ? "d " : "f ";
+		
+#ifndef WIN32
+		if (Entry.Symlink)
+		{
+			RetVal += VLString("l=") + Entry.Symlink + " ";
+		}
+		else
+#endif
+		{
+			RetVal += Entry.IsDirectory ? "d " : "f ";
+		}
 		RetVal += Entry.Path;
+		RetVal += " | S:";
+		RetVal += VLString::UintToString(Entry.Size);
+		RetVal += " C:";
+		RetVal += Utils::TimeToString(Entry.CreateTime);
+		RetVal += " M:";
+		RetVal += Utils::TimeToString(Entry.ModTime);
+#ifndef WIN32
+		RetVal += VLString(" U/G:") + Entry.Owner + ":" + Entry.Group;
+		RetVal += VLString(" P:") + Utils::ToOctalString(Entry.Permissions) + " ";
+#endif //WIN32
 		RetVal += '\n';
 	}
 

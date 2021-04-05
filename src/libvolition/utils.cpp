@@ -72,6 +72,72 @@ VLString Utils::GetSha512(const void *Buffer, const uint64_t Length)
 	return RetVal;
 }
 
+VLString Utils::GetFileSha512(const VLString &Path)
+{
+    SHA512_CTX Context{};
+    
+	uint8_t BinBuf[SHA512_DIGEST_LENGTH + 1] {};
+	
+    SHA512_Init(&Context);
+    
+	VLScopedPtr<FILE*, int(*)(FILE*)> Desc { fopen(Path, "rb"), fclose };
+    
+    if (!Desc)
+    {
+		VLWARN("Failed to open path " + Path);
+		return {};
+	}
+	
+	uint64_t Size = 0;
+	
+	if (!Utils::GetFileSize(Path, &Size))
+	{
+		VLWARN("Failed to get file size of path " + Path);
+		return {};
+	}
+	
+	const uint64_t ChunkSize = (1024 * 1024) * 32;
+	
+	std::vector<uint8_t> Buf;
+	
+	Buf.resize(ChunkSize);
+	
+	uint64_t TotalRead = 0;
+	
+	do
+	{
+		const uint64_t ActuallyRead = fread(Buf.data(), 1, ChunkSize, Desc);
+		
+		if (ActuallyRead <= 0)
+		{
+			VLWARN("Failed to read data for path " + Path);
+			return {};
+		}
+		
+	    SHA512_Update(&Context, Buf.data(), ActuallyRead);
+	    
+		TotalRead += ActuallyRead;
+	} while (Size > TotalRead);
+	
+    SHA512_Final(BinBuf, &Context);
+	
+	VLString RetVal((sizeof BinBuf * 2) + 1);
+
+	uint8_t *Worker = BinBuf, *const Stopper = BinBuf + SHA512_DIGEST_LENGTH;
+
+	char Tmp[32]{};
+	
+	for (; Worker != Stopper; ++Worker)
+	{
+		snprintf(Tmp, sizeof Tmp, "%02x", *Worker);
+		
+		RetVal += (const char*)Tmp;
+	}
+	
+	VLDEBUG("Returning SHA512 " + RetVal);
+	return RetVal;
+}
+
 bool Utils::StringAllNumeric(const char *String)
 {
 	if (!*String) return false; //Empty

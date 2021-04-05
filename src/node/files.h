@@ -40,7 +40,14 @@ namespace Files
 	struct DirectoryEntry
 	{
 		VLString Path;
-		bool IsDirectory;
+#ifndef WIN32 //We don't support these attributes on Windows.
+		VLString Owner, Group;
+		VLString Symlink; //Not a symlink if empty.
+		uint64_t Permissions;
+#endif //WIN32
+		int64_t ModTime, CreateTime;
+		uint64_t Size;
+		bool IsDirectory; //Always false if a symlink.
 	};
 
 	std::list<DirectoryEntry> *ListDirectory(const char *Path);

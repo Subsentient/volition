@@ -112,6 +112,7 @@ static int VLAPI_SetN2NState(lua_State *const State);
 static int VLAPI_SetCaptureIncomingStreams(lua_State *const State);
 static int VLAPI_GetJobID(lua_State *const State);
 static int VLAPI_GetSha512(lua_State *const State);
+static int VLAPI_GetFileSha512(lua_State *const State);
 ///Lua ConationStream helper functions, the ones that don't go in VLAPIFuncs.
 static void InitConationStreamBindings(lua_State *State);
 static int VerifyCSArgsLua(lua_State *State);
@@ -151,6 +152,7 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 	{ "MoveFile", VLAPI_MoveFile },
 	{ "GetHomeDirectory", VLAPI_GetHomeDirectory },
 	{ "GetSha512", VLAPI_GetSha512 },
+	{ "GetFileSha512", VLAPI_GetFileSha512 },
 #ifndef NOCURL
 	{ "GetHTTP", VLAPI_GetHTTP },
 #endif //NOCURL
@@ -605,6 +607,27 @@ static int VLAPI_GetSha512(lua_State *const State)
 	return 1;
 }
 	
+static int VLAPI_GetFileSha512(lua_State *const State)
+{
+	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING }))
+	{
+		VLWARN("Incorrect argument type. Expected a Lua string.");
+		return 0;
+	}
+	
+	const VLString Path { lua_tostring(State, -1) };
+	
+	if (!Path)
+	{
+		VLWARN("Unable to acquire string data.");
+		return 0;
+	}
+	
+	lua_pushstring(State, Utils::GetFileSha512(Path));
+	
+	return 1;
+}
+	
 static int VLAPI_WriteFile(lua_State *State)
 {
 	if (!VerifyLuaFuncArgs(State, { LUA_TSTRING, LUA_TSTRING }))
@@ -747,7 +770,44 @@ static int VLAPI_ListDirectory(lua_State *State)
 		lua_pushboolean(State, Iter->IsDirectory);
 
 		lua_settable(State, -3);
+		
+		lua_pushstring(State, "Size");
+		lua_pushinteger(State, Iter->Size);
+		
+		lua_settable(State, -3);
+		
+		lua_pushstring(State, "ModTime");
+		lua_pushinteger(State, Iter->ModTime);
+		
+		lua_settable(State, -3);
+		
+		lua_pushstring(State, "CreateTime");
+		lua_pushinteger(State, Iter->CreateTime);
+		
+		lua_settable(State, -3);
+#ifndef WIN32
+		lua_pushstring(State, "Owner");
+		lua_pushstring(State, Iter->Owner);
+		
+		lua_settable(State, -3);
+		
+		lua_pushstring(State, "Group");
+		lua_pushstring(State, Iter->Group);
+		
+		lua_settable(State, -3);
+		
+		lua_pushstring(State, "Symlink");
+		
+		if (Iter->Symlink) lua_pushstring(State, Iter->Symlink);
+		else lua_pushnil(State);
+		
+		lua_settable(State, -3);
 
+		lua_pushstring(State, "Permissions");
+		lua_pushinteger(State, Iter->Permissions);
+		
+		lua_settable(State, -3);
+#endif //WIN32
 		//Store subtable in greater table.
 		lua_settable(State, -3);
 	}

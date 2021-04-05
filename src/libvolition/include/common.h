@@ -38,6 +38,7 @@
 #include <vector>
 #include <list>
 #include <set>
+#include <algorithm>
 
 #ifdef WIN32
 #define PATH_DIVIDER '\\'

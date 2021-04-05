@@ -51,6 +51,30 @@ namespace Utils
 	VLString GetSha512(const void *Buffer, const uint64_t Length);
 	inline VLString GetSha512(const VLString &String) { return GetSha512(+String, String.Length()); }
 	
+	VLString GetFileSha512(const VLString &Path);
+	
+	inline VLString TimeToString(const time_t Time)
+	{
+		struct tm TimeStruct = *localtime(&Time);
+
+		VLString Buf { 256 };
+	
+		strftime(Buf.GetBuffer(), Buf.GetCapacity(), "%Y-%m-%d %I:%M:%S %p", &TimeStruct);
+		
+		return Buf;
+	}
+	
+	template <typename I>
+	inline VLString ToOctalString(const I Num)
+	{
+		VLString Buf { 256 };
+		
+		snprintf(Buf.GetBuffer(), Buf.GetCapacity(), "%llo", (unsigned long long)Num);
+		
+		return Buf;
+	}
+	
+	
 	template <typename I>
 	VLString ToBinaryString(const I Value)
 	{
