@@ -87,6 +87,7 @@
 #include "vlstrings.h"
 
 #define TOKEN_KEYVALPAIR(a) a, #a
+#define TOKEN_VALKEYPAIR(a) #a, a
 
 
 enum StatusCode : uint8_t //I shouldn't need to say it

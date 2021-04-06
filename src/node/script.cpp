@@ -49,7 +49,9 @@ extern "C"
 #endif //WIN32
 
 #include <string.h> //For memcpy
+#ifndef NO_DLFCN
 #include <dlfcn.h>
+#endif //NO_DLFCN
 #include <map>
 
 #ifndef LUA_OK
@@ -68,6 +70,7 @@ extern "C"
 {
 extern int luaopen_cffi(lua_State *);
 }
+#include "luaffi_prelude.h"
 #endif //LUAFFI
 
 //Prototypes
@@ -193,9 +196,6 @@ static std::map<VLString, lua_CFunction> VLAPIFuncs
 #ifdef APPENDSCRIPTFUNC
 	{ "NODE_COMPILETIME_EXTFUNC", APPENDSCRIPTFUNC },
 #endif //APPENDSCRIPTFUNC
-#ifdef LUAFFI
-	{ "init_cffi", luaopen_cffi },
-#endif //LUAFFI
 };
 
 enum IntNameMapEnum : uint8_t
@@ -633,7 +633,16 @@ static int VLAPI_GetFileSha512(lua_State *const State)
 		return 0;
 	}
 	
-	lua_pushstring(State, Utils::GetFileSha512(Path));
+	const VLString Result { Utils::GetFileSha512(Path) };
+	
+	if (Result)
+	{
+		lua_pushstring(State, Result);
+	}
+	else
+	{
+		lua_pushnil(State);
+	}
 	
 	return 1;
 }
@@ -1583,6 +1592,57 @@ static bool LoadVLAPI(lua_State *State)
 	
 	lua_settable(State, -3);
 	
+#ifdef LUAFFI
+
+	lua_pushcfunction(State, luaopen_cffi);
+	
+	if (lua_pcall(State, 0, 1, 0) != LUA_OK)
+	{ //Try to continue if we fail, but warn us.
+		VLERROR("Failed to call luaopen_cffi!");
+		goto EndFFI;
+	}
+
+	lua_newtable(State); //Actual table.
+	
+	//Metatable
+	lua_newtable(State);
+	
+	lua_pushstring(State, "__index");
+	lua_pushvalue(State, -4); //Get the C module.
+	
+	lua_settable(State, -3);
+	
+	lua_setmetatable(State, -2);
+	
+	
+	lua_setglobal(State, "ffi"); //Sets the actual table as above.
+	lua_getglobal(State, "ffi");
+	
+	//Get cffi.cdef on stack.
+	lua_pushstring(State, "cdef");
+	lua_gettable(State, -2);
+	
+	lua_pushstring(State, LuaFFI_StaticPrelude);
+	
+	//Init static bindings.
+	if (lua_pcall(State, 1, 0, 0) != LUA_OK)
+	{
+		VLERROR("Failed to set cffi static bindings!");
+		goto EndFFI;
+	}
+	
+	//Set dynamic bindings.
+	for (const auto &Pair : LuaFFI_IntegerDefs)
+	{
+		lua_pushstring(State, Pair.first);
+		lua_pushinteger(State, Pair.second);
+		
+		lua_settable(State, -3);
+	}
+	
+	lua_pop(State, 1); //Important for InitConationStreamBindings.
+EndFFI:
+#endif //LUAFFI
 	InitConationStreamBindings(State);
 	return true;
 }
