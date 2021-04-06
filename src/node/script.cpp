@@ -1640,7 +1640,7 @@ static bool LoadVLAPI(lua_State *State)
 		lua_settable(State, -3);
 	}
 	
-	lua_pop(State, 1); //Important for InitConationStreamBindings.
+	lua_pop(State, 2); //Important for InitConationStreamBindings.
 EndFFI:
 #endif //LUAFFI
 	InitConationStreamBindings(State);
