@@ -10,10 +10,10 @@ Volition is software to administrate, configure, and monitor vast amounts of PCs
 
 A proprietary "enterprise" edition is not off the table, but this repository here will always be GPLv3 licensed and provide all the core functionality required for systems administration purposes.
 
-From mid-2016 until now (September 29th, 2018), I've been fiddling with this pile of code of mine,
+From mid-2016 onwards, I've been fiddling with this pile of code of mine,
 adding and removing features, the idea of what exactly it should be and how it should behave shifting like sand.
 
-At last, I've reached a point in its development where I'm comfortable exposing it to the public.
+It seems to be a perpetual pet project of mine, and I personally think a damned interesting and useful one. :^)
 
 Volition is written in C++14, but when you observe the style, you'll probably get a strong feeling that 'this guy came from C first',
 which of course is correct.
@@ -29,9 +29,9 @@ Volition is:
 * GPLv3 licensed
 
 Some of Volition's features include:
-* GTK 2 or 3 based control program for administration
+* GTK 3 based control program for administration
 * Custom binary protocol for network traffic, Conation.
-* LuaJIT-based scripting capabilities for nodes
+* Lua-based scripting capabilities for nodes with true multithreading and optional LuaJIT-style FFI.
 * Unlimited simultaneous jobs/tasks, including unlimited node Lua scripts
 * Unlimited simultaneous nodes
 * Authentication tokens to add another layer of security
@@ -46,11 +46,11 @@ For now, it's probably useful as a way to administrate your home network all at 
 
 Volition's dependencies are:
 * OpenSSL
-* SQLite
-* LuaJIT
-* libcurl
-* GTK 2 or 3
-* GNU make
+* SQLite (server)
+* Lua, 5.3 or higher recommended (node)
+* libcurl (node, optional)
+* GTK 3 (control)
+* CMake
 * GCC or clang or MinGW
 * pkg-config
 * pthreads on POSIX, win32 threads are used on Windows
@@ -63,10 +63,11 @@ Once you have the -devel packages of all these installed, you can use the exampl
 ```
 This script, by default, compiles Volition in debug mode, which enables considerably more chatter at stdout for the three programs.
 
+To create a password for the admin, add a global config key AdminLogins and set it to e.g. User1,Pass1|User2,Pass2 via Control.
+
 You will need to add the authentication token that the script generates for the node into the server. You can do that from the control program in the Server menu >> Authorization tokens >> add token. Right now, enter 0 for the permissions when prompted, as they're not utilized.
 
 Have fun experimenting with Volition!
-
 
 ## Contributing
 
@@ -76,9 +77,8 @@ If you wish to contribute to Volition, here are the requirements for your code t
 * You must write your code with the same styling as the rest of the codebase.
 * You must use tabs, not spaces.
 * You must know C++ **well**.
-* I will not accept hacky, poorly written, inefficient, or hideous code. Volition's codebase must remain high quality.
+* I will not accept fugly code. Volition's codebase must remain high quality. I've been burned before with other projects.
 * Do not reinvent the wheel. If Volition already has facilities for something, and you are told to use them, use them.
-* Do not have enormous piles of commit messages like _fixing fix of broken fix for commit three pages back_ in your pull requests. Get it right, or reset your branch to before you made the changes and re-commit, force update your remote branch, and then make a new pull request.
 * Do not break portability! Most developers are probably on Linux, but that does not mean it's okay to break support for other platforms, especially Windows!
 * Use VLScopedPtr and VLString whenever possible! We want to minimize the chance of memory leaks and buffer overflows/corruption.
 
