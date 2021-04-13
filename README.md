@@ -1,4 +1,4 @@
-## Volition -- first public release
+## Volition
 
 ![Volition about logo](https://raw.githubusercontent.com/Subsentient/volition/master/src/control/icons/ctlabout.png)
 
@@ -65,8 +65,20 @@ This script, by default, compiles Volition in debug mode, which enables consider
 
 To create a password for the admin, add a global config key AdminLogins and set it to e.g. User1,Pass1|User2,Pass2 via Control.
 
-You will need to add the authentication token that the script generates for the node into the server. You can do that from the control program in the Server menu >> Authorization tokens >> add token. Right now, enter 0 for the permissions when prompted, as they're not utilized.
-
+You will need to add the authentication token that the script generates for the node into the server. You can do that from the control program in the Server menu >> Authorization tokens >> add token. You can just enter 255 for the permissions to enable everything, or take a look at the following bitflags to see what you want:
+```
+	enum AuthTokenPermissions : uint32_t
+	{
+		ATP_INVALID					= 0, //Invalid value
+		ATP_N2NCOMM_ANY				= 1 << 1, //Node to node communications to ANY node
+		ATP_N2NCOMM_GROUP			= 1 << 2, //Node to node communications to nodes in their group only
+		ATP_VAULT_READ_OUR			= 1 << 3, //Read our own items from the vault
+		ATP_VAULT_READ_ANY			= 1 << 4, //Read ANY items from the vault
+		ATP_VAULT_CHG_OUR			= 1 << 5, //Add, update or delete items in the vault that belong to this node.
+		ATP_VAULT_CHG_ANY			= 1 << 6, //Update or delete ANY items in the vault.
+		ATP_VAULT_ADD				= 1 << 7, //Add a new item to the vault
+	};
+```
 Have fun experimenting with Volition!
 
 ## Contributing
