@@ -245,17 +245,9 @@ static void *JOB_EXECSNIPPET_ThreadFunc(Jobs::Job *OurJob)
 	
 	const VLString ScriptData { Stream->Pop_String() };
 	
-	if (!Script::LoadScript(ScriptData, "VLTMPSNIPPET", true))
-	{
-		Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_IERR));
-		Main::PushStreamToWriteQueue(Response);
-		
-		return nullptr;
-	}
-	
 	try
 	{
-		if (!Script::ExecuteScriptFunction("VLTMPSNIPPET", nullptr, nullptr, OurJob))
+		if (!Script::ExecuteScriptFunction(Script::LUAJOB_SNIPPET, ScriptData, nullptr, nullptr, OurJob))
 		{
 			Response.Push_NetCmdStatus(NetCmdStatus(false, STATUS_FAILED, "Generic failure with no details"));
 			Main::PushStreamToWriteQueue(Response);
@@ -310,9 +302,17 @@ static void *JOB_MOD_EXECFUNC_ThreadFunc(Jobs::Job *OurJob)
 	printf("JOB_MOD_EXECFUNC_ThreadFunc(): Attempting to execute job %s::%s\n", +ScriptName, +FuncName);
 #endif
 
+	if (!Script::LoadedScripts.count(ScriptName))
+	{
+		Response.Push_NetCmdStatus(false, STATUS_MISSING);
+		
+		Main::PushStreamToWriteQueue(Response);
+		return nullptr;
+	}
+	
 	try
 	{
-		Result = Script::ExecuteScriptFunction(ScriptName, FuncName, Stream, OurJob);
+		Result = Script::ExecuteScriptFunction(Script::LUAJOB_JOB, Script::LoadedScripts.at(ScriptName), FuncName, Stream, OurJob);
 	}
 	catch (Script::ScriptError &Err)
 	{

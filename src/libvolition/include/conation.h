@@ -35,6 +35,7 @@
 #include "common.h"
 #include "commandcodes.h"
 #include "netcore.h"
+#include "vlthreads.h"
 
 #include <vector>
 
@@ -308,6 +309,65 @@ namespace Conation
 		void IntegrityCheck(void) const;
 		///Friends
 
+	};
+	
+	class ConationQueue
+	{
+	private:
+		std::queue<VLScopedPtr<ConationStream*>> Queue;
+		VLThreads::Mutex Mutex;
+		VLThreads::Semaphore PushEvent;
+		
+	public:
+		inline void Push(ConationStream *Stream)
+		{
+			VLThreads::MutexKeeper Keeper { &this->Mutex };
+
+			this->Queue.push(Stream);
+			
+			this->PushEvent.Post();
+		}
+		
+		inline void Push(const ConationStream &Stream)
+		{
+			this->Push(new ConationStream(Stream));
+		}
+		
+		inline ConationStream *Pop(const bool ActuallyPop = true)
+		{
+			VLThreads::MutexKeeper Keeper { &this->Mutex };
+			
+			if (this->Queue.empty()) return nullptr;
+
+			ConationStream *Result = nullptr;
+			
+			if (ActuallyPop)
+			{
+				Result = this->Queue.front().Forget();
+				this->Queue.pop();
+			}
+			else
+			{
+				Result = new ConationStream(*this->Queue.front()); //WE MUST COPY IT!!! If we don't, it will probably get popped afterwards.
+			}
+			
+		
+			return Result;
+		}
+		
+		inline ConationStream *WaitPop(void)
+		{
+			this->PushEvent.Wait();
+			
+			VLThreads::MutexKeeper Keeper { &this->Mutex };
+			
+			//Steal the pointer.
+			ConationStream *const Result = this->Queue.front().Forget();
+			
+			this->Queue.pop();
+			
+			return Result;
+		}
 	};
 }
 

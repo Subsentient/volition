@@ -31,10 +31,12 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <time.h>
+#include <queue>
 
 //C++ headers
 #include <atomic>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <list>
 #include <set>

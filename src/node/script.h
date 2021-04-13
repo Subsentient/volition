@@ -21,13 +21,22 @@
 
 #include "../libvolition/include/common.h"
 #include "../libvolition/include/vlthreads.h"
-#include "jobs.h" //Because we need JobReadQueue class.
+#include "jobs.h" //Because we need Jobs::Job
 
 namespace Script
 {
+	enum LuaJobType : uint8_t
+	{
+		LUAJOB_INVALID = 0,
+		LUAJOB_JOB		= 1,
+		LUAJOB_STARTUP	= 1 << 1,
+		LUAJOB_SNIPPET	= 1 << 2,
+		LUAJOB_WORKER	= 1 << 3,
+		LUAJOB_MAXVALUE = LUAJOB_WORKER
+	};
+	
 	struct ScriptError
 	{ //For exceptions.
-		VLString ScriptName;
 		VLString Function;
 		VLString Msg;
 	};
@@ -36,7 +45,9 @@ namespace Script
 	bool UnloadScript(const char *ScriptName);
 	bool ScriptIsLoaded(const char *ScriptName);
 	void ExecuteStartupScript(Jobs::Job *const OurJob);
-	bool ExecuteScriptFunction(const char *ScriptName, const char *FunctionName, Conation::ConationStream *Stream, Jobs::Job *OurJob);
+	bool ExecuteScriptFunction(const LuaJobType Type, const char *ScriptData, const char *FunctionName, Conation::ConationStream *Stream, Jobs::Job *OurJob);
+	
+	extern std::map<VLString, VLString> LoadedScripts;
 }
 
 #endif //_VL_NODE_SCRIPT_H_

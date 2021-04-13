@@ -26,71 +26,12 @@
 
 namespace Jobs
 {
-	class JobReadQueue
-	{
-	private:
-		std::queue<VLScopedPtr<Conation::ConationStream*>> Queue;
-		VLThreads::Mutex Mutex;
-		VLThreads::Semaphore PushEvent;
-		
-	public:
-		inline void Push(Conation::ConationStream *Stream)
-		{
-			VLThreads::MutexKeeper Keeper { &this->Mutex };
-
-			this->Queue.push(Stream);
-			
-			this->PushEvent.Post();
-		}
-		
-		inline void Push(const Conation::ConationStream &Stream)
-		{
-			this->Push(new Conation::ConationStream(Stream));
-		}
-		
-		inline Conation::ConationStream *Pop(const bool ActuallyPop = true)
-		{
-			VLThreads::MutexKeeper Keeper { &this->Mutex };
-			
-			if (this->Queue.empty()) return nullptr;
-
-			Conation::ConationStream *Result = nullptr;
-			
-			if (ActuallyPop)
-			{
-				Result = this->Queue.front().Forget();
-				this->Queue.pop();
-			}
-			else
-			{
-				Result = new Conation::ConationStream(*this->Queue.front()); //WE MUST COPY IT!!! If we don't, it will probably get popped afterwards.
-			}
-			
-		
-			return Result;
-		}
-		
-		inline Conation::ConationStream *WaitPop(void)
-		{
-			this->PushEvent.Wait();
-			
-			VLThreads::MutexKeeper Keeper { &this->Mutex };
-			
-			//Steal the pointer.
-			Conation::ConationStream *const Result = this->Queue.front().Forget();
-			
-			this->Queue.pop();
-			
-			return Result;
-		}
-	};
-
 	struct Job
 	{
 		uint64_t JobID; //The number of the job according to this node.
 		uint64_t CmdIdent;
 		CommandCode CmdCode;
-		JobReadQueue Read_Queue, N2N_Queue; //The main thread puts streams intended for a certain job in this queue.
+		Conation::ConationQueue Read_Queue, N2N_Queue; //The main thread puts streams intended for a certain job in this queue.
 		bool CaptureIncomingStreams : 1;
 		bool ReceiveN2N : 1;
 		
