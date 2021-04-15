@@ -85,12 +85,11 @@ Have fun experimenting with Volition!
 
 If you wish to contribute to Volition, here are the requirements for your code to be seriously considered for merging.
 
-* You must surrender the copyright to me, because as stated earlier, there may be an enterprise version of Volition in the future that is not GPLv3 licensed. In order to make that legal, I must have copyright control.
 * You must write your code with the same styling as the rest of the codebase.
 * You must use tabs, not spaces.
 * You must know C++ **well**.
 * I will not accept fugly code. Volition's codebase must remain high quality. I've been burned before with other projects.
-* Do not reinvent the wheel. If Volition already has facilities for something, and you are told to use them, use them.
+* Do not reinvent the wheel. If Volition already has facilities for something, and you are told to use them, please use them.
 * Do not break portability! Most developers are probably on Linux, but that does not mean it's okay to break support for other platforms, especially Windows!
 * Use VLScopedPtr and VLString whenever possible! We want to minimize the chance of memory leaks and buffer overflows/corruption.
 
